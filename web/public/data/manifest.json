@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-07T18:31:02+00:00",
+ "generated_at": "2026-07-07T20:50:29+00:00",
  "seasons": {
   "2021": {
    "last_reg_week": 18,
@@ -10,6 +10,7 @@
     "ngs_receiving",
     "ngs_rushing",
     "player_redzone",
+    "player_scheme",
     "player_season",
     "player_weeks",
     "schedule",
@@ -29,6 +30,7 @@
     "ngs_receiving",
     "ngs_rushing",
     "player_redzone",
+    "player_scheme",
     "player_season",
     "player_weeks",
     "schedule",
@@ -48,6 +50,7 @@
     "ngs_receiving",
     "ngs_rushing",
     "player_redzone",
+    "player_scheme",
     "player_season",
     "player_weeks",
     "schedule",
@@ -67,6 +70,7 @@
     "ngs_receiving",
     "ngs_rushing",
     "player_redzone",
+    "player_scheme",
     "player_season",
     "player_weeks",
     "schedule",
@@ -86,6 +90,7 @@
     "ngs_receiving",
     "ngs_rushing",
     "player_redzone",
+    "player_scheme",
     "player_season",
     "player_weeks",
     "schedule",
