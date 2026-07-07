@@ -9,6 +9,7 @@ import {
 import { label, presetForPosition } from "../lib/columns";
 import { WeeklyBarChart } from "../components/charts";
 import StatTiles from "../components/StatTiles";
+import { downloadStatCard } from "../lib/statcard";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 import { teamName } from "../lib/teams";
@@ -134,7 +135,19 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
       )}
 
       <h2>Haftalık Game Log</h2>
-      <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
+      <div className="toolbar">
+        <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
+        <button className="pill"
+                onClick={() => {
+                  const row = career?.find((r) => Number(r.season) === season);
+                  if (row)
+                    downloadStatCard(String(row.player_name ?? id), pos,
+                                     String(row.team ?? ""), season, row,
+                                     ["games", ...stats]);
+                }}>
+          ⬇ Stat Kartı (PNG)
+        </button>
+      </div>
       {loading && <Loading />}
       {weeksErr && <ErrorMsg msg={weeksErr} />}
       {weeks && weeks.length > 0 && (

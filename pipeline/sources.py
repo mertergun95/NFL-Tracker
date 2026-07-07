@@ -1,6 +1,8 @@
 """Veri kaynaklarından ham DataFrame'leri indirir (nflverse öncelikli)."""
 import io
 import logging
+import re
+import time
 
 import pandas as pd
 import requests
@@ -72,8 +74,66 @@ def fetch_snap_counts(season: int) -> pd.DataFrame | None:
 
 
 def fetch_ngs(season: int, stat_type: str) -> pd.DataFrame | None:
-    """Next Gen Stats: passing | rushing | receiving (haftalık, week=0 sezon toplamı)."""
-    return _fetch_first(config.NGS_CANDIDATES, season=season, stat_type=stat_type)
+    """Next Gen Stats: passing | rushing | receiving (haftalık, week=0 sezon toplamı).
+
+    Sıra: nflverse sezon dosyası -> nflverse birleşik dosya -> NFL NGS API.
+    """
+    for tpl in config.NGS_CANDIDATES:
+        df = _fetch_csv(tpl.format(base=config.NFLVERSE_BASE,
+                                   season=season, stat_type=stat_type))
+        if df is None:
+            continue
+        if "season" not in df.columns or (df["season"] == season).any():
+            return df
+        log.info("NGS %s: dosyada %s sezonu yok, sonraki kaynak", stat_type, season)
+    log.info("NGS %s %s nflverse'te bulunamadı, NGS API deneniyor", stat_type, season)
+    return _fetch_ngs_api(season, stat_type)
+
+
+def _camel_to_snake(s: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", s).lower()
+
+
+def _fetch_ngs_api(season: int, stat_type: str) -> pd.DataFrame | None:
+    """NFL NGS API'sinden hafta hafta çeker (week=0 sezon toplamı)."""
+    rows: list[dict] = []
+    skip_keys = {"season", "seasonType", "week", "teamAbbr"}
+    for week in range(0, 19):
+        url = config.NGS_API_URL.format(stat_type=stat_type, season=season)
+        if week:
+            url += f"&week={week}"
+        try:
+            resp = _session.get(url, headers=config.NGS_API_HEADERS, timeout=60)
+        except requests.RequestException as exc:
+            log.warning("NGS API hatası (%s w%s): %s", stat_type, week, exc)
+            if week == 0:
+                return None
+            continue
+        if resp.status_code != 200:
+            log.warning("NGS API HTTP %s (%s w%s)", resp.status_code, stat_type, week)
+            if week == 0:
+                return None
+            continue
+        for item in resp.json().get("stats") or []:
+            player = item.get("player") or {}
+            flat = {
+                "season": season, "season_type": "REG", "week": week,
+                "player_gsis_id": player.get("gsisId") or item.get("gsisId"),
+                "player_display_name": (player.get("displayName")
+                                        or item.get("playerName")),
+                "team_abbr": item.get("teamAbbr"),
+            }
+            for k, v in item.items():
+                if k in skip_keys or not isinstance(v, (int, float, str)):
+                    continue
+                flat.setdefault(_camel_to_snake(k), v)
+            rows.append(flat)
+        time.sleep(0.25)
+    if not rows:
+        return None
+    df = pd.DataFrame(rows)
+    log.info("NGS API OK: %s %s -> %s satır", season, stat_type, len(df))
+    return df
 
 
 def fetch_pbp(season: int) -> pd.DataFrame | None:

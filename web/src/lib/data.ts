@@ -63,6 +63,33 @@ export const loadTeamAdvanced = (season: number | string) =>
 export const loadTeamScheme = (season: number | string) =>
   loadOptional(`seasons/${season}/team_scheme.json`);
 
+export interface Insight {
+  title: string;
+  detail: string;
+  player_id?: string;
+  team?: string;
+  game?: string;
+  value?: number;
+}
+
+export interface InsightsPayload {
+  generated_at: string;
+  data_season: number;
+  through_week: number;
+  next_game_week: { season: number; week: number };
+  sections: Record<string, Insight[]>;
+}
+
+export async function loadInsights(): Promise<InsightsPayload | null> {
+  try {
+    const res = await fetch(`${BASE}/insights.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as InsightsPayload;
+  } catch {
+    return null;
+  }
+}
+
 export function seasonsFromManifest(m: Manifest): number[] {
   return Object.keys(m.seasons)
     .map(Number)

@@ -46,7 +46,16 @@ SNAP_COUNTS_CANDIDATES = [
 NGS_CANDIDATES = [  # stat_type: passing | rushing | receiving
     "{base}/nextgen_stats/ngs_{season}_{stat_type}.csv.gz",
     "{base}/nextgen_stats/ngs_{season}_{stat_type}.csv",
+    # tüm sezonları içeren birleşik dosya (sezon filtresi build_ngs'te)
+    "{base}/nextgen_stats/ngs_{stat_type}.csv.gz",
 ]
+# nflverse'te henüz yayınlanmamış sezonlar için NFL'in kendi NGS API'si
+NGS_API_URL = ("https://appapi.ngs.nfl.com/statboard/{stat_type}"
+               "?season={season}&seasonType=REG")
+NGS_API_HEADERS = {
+    "referer": "https://nextgenstats.nfl.com/stats/",
+    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+}
 PBP_CANDIDATES = [
     "{base}/pbp/play_by_play_{season}.csv.gz",
 ]

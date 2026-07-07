@@ -81,22 +81,31 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Takım **advanced** statsleri (EPA/play, success rate, explosive, 3. down,
       RZ TD%, sack rate, turnover — lig ortalamalarıyla)
 
-### 🔄 Faz 4 — Grafikler, görseller, raporlar (başladı)
+### ✅ Faz 4 — Grafikler, görseller, raporlar
 - [x] Oyuncu trend grafikleri (hafta hafta, istatistik seçilebilir sütun grafiği)
 - [x] Takım hücum/savunma scatter haritası (lig ortalaması referanslı)
 - [x] Oyuncu snap count trend grafiği
+- [x] Oyuncu karşılaştırma sayfası (3'e kadar oyuncu, sezon tablosu + haftalık overlay)
+- [x] Lig Grafikleri sayfası (eksenleri seçilebilir dağılım grafikleri)
+- [x] Paylaşılabilir PNG stat kartı (oyuncu sayfasından indirme)
 - [ ] Oyuncu-oyuncu ve sezon-sezon karşılaştırma görselleri
 - [ ] Takım hücum/savunma dağılım grafikleri, lig geneli scatter'lar
       (ör. EPA benzeri verimlilik eksenleri)
 - [ ] Footballguys'tan redzone / snap count / target verilerinin entegrasyonu
 - [ ] Paylaşılabilir "stat kartı" görselleri
 
-### Faz 5 — Key Insights (PFF tarzı çıkarımlar)
-- [ ] Kural tabanlı otomatik çıkarımlar: form trendleri (son 3 hafta vs sezon ortalaması),
-      kullanım artışı (target/carry share), patlama/çöküş adayları, rakip savunma zayıflıkları
-- [ ] Gelecek hafta maçları için eşleşme (matchup) analizi: rakibin pozisyona karşı
-      verdiği istatistikler ("points allowed to WR" vb.)
-- [ ] Haftalık otomatik "Insights" raporu (Salı pipeline'ı üretir, arayüz gösterir)
+### ✅ Faz 5 — Key Insights (PFF tarzı çıkarımlar)
+- [x] Kural tabanlı otomatik çıkarımlar: form trendleri (son 3 hafta vs sezon ortalaması),
+      kullanım artışı (target/carry share), takım güç profili (EPA sıralamaları)
+- [x] Gelecek hafta maçları için eşleşme (matchup) analizi: EPA sıralama uyuşmazlıkları
+      + pozisyona karşı verilen PPR ("points allowed to WR/RB/TE") ve takip edilecek oyuncular
+- [x] Haftalık otomatik "Insights" raporu (Salı pipeline'ı `insights.json` üretir,
+      arayüzdeki Insights sayfası gösterir; sezon içinde her hafta kendini yeniler)
+
+### Faz 6 — Fikirler (gelecek)
+- [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
+- [ ] Haftalık e-posta/Slack özeti, insights arşivi
+- [ ] ESPN canlı skor entegrasyonu (maç günü modu)
 
 ---
 

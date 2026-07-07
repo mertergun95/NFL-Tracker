@@ -5,6 +5,9 @@ import PlayerDetail from "./pages/PlayerDetail";
 import Teams from "./pages/Teams";
 import TeamDetail from "./pages/TeamDetail";
 import Games from "./pages/Games";
+import Compare from "./pages/Compare";
+import ChartsPage from "./pages/ChartsPage";
+import Insights from "./pages/Insights";
 import { loadManifest, seasonsFromManifest } from "./lib/data";
 import { useAsync } from "./lib/hooks";
 import { ErrorMsg, Loading } from "./components/Pickers";
@@ -14,6 +17,9 @@ const NAV = [
   { to: "/players", label: "Oyuncular" },
   { to: "/teams", label: "Takımlar" },
   { to: "/games", label: "Maçlar" },
+  { to: "/compare", label: "Karşılaştır" },
+  { to: "/charts", label: "Grafikler" },
+  { to: "/insights", label: "Insights" },
 ];
 
 export default function App() {
@@ -41,6 +47,9 @@ export default function App() {
             <Route path="/teams" element={<Teams seasons={seasons} />} />
             <Route path="/team/:abbr" element={<TeamDetail seasons={seasons} />} />
             <Route path="/games" element={<Games seasons={seasons} />} />
+            <Route path="/compare" element={<Compare seasons={seasons} />} />
+            <Route path="/charts" element={<ChartsPage seasons={seasons} />} />
+            <Route path="/insights" element={<Insights />} />
           </Routes>
         )}
       </main>

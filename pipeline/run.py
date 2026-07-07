@@ -11,6 +11,7 @@ from datetime import date
 
 import advanced
 import config
+import insights
 import sources
 import transform
 
@@ -139,6 +140,7 @@ def main() -> int:
         return 1
 
     rebuild_index_and_manifest(master)
+    _optional("insights", lambda: insights.build_and_write(schedules))
     if failed:
         log.warning("Tamamlandı ama şu sezonlar başarısız: %s", failed)
         return 1
