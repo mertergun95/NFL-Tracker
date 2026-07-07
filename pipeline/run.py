@@ -9,6 +9,7 @@ import logging
 import sys
 from datetime import date
 
+import advanced
 import config
 import sources
 import transform
@@ -22,7 +23,15 @@ def current_season(today: date | None = None) -> int:
     return today.year if today.month >= 8 else today.year - 1
 
 
-def process_season(season: int, schedules) -> None:
+def _optional(name: str, fn) -> None:
+    """Opsiyonel veri seti: hata olursa logla ama sezonu düşürme."""
+    try:
+        fn()
+    except Exception:
+        log.exception("Opsiyonel veri seti üretilemedi: %s", name)
+
+
+def process_season(season: int, schedules, master) -> None:
     log.info("=== %s sezonu işleniyor ===", season)
     raw_pw = sources.fetch_player_weeks(season)
     pw = transform.build_player_weeks(raw_pw, season)
@@ -31,21 +40,63 @@ def process_season(season: int, schedules) -> None:
     sched = transform.build_schedule(schedules, season)
     ts = transform.build_team_season(tw, sched)
 
+    # Takım toplamına göre pay kolonları (haftalık + sezonluk)
+    pw_shared = advanced.add_weekly_shares(pw, tw)
+    try:
+        shares = advanced.season_shares(pw_shared, tw)
+        ps = ps.merge(shares, on="player_id", how="left")
+    except Exception:
+        log.exception("Sezonluk share hesabı başarısız")
+
     sdir = config.DATA_DIR / "seasons" / str(season)
-    transform.write_json(sdir / "player_weeks.json", pw)
+    transform.write_json(sdir / "player_weeks.json", pw_shared)
     transform.write_json(sdir / "player_season.json", ps)
     transform.write_json(sdir / "team_weeks.json", tw)
     transform.write_json(sdir / "team_season.json", ts)
     transform.write_json(sdir / "schedule.json", sched)
 
+    names = ps[["player_id", "player_name", "position", "team"]]
 
-def rebuild_index_and_manifest() -> None:
+    def do_pbp():
+        pbp = sources.fetch_pbp(season)
+        if pbp is None:
+            log.warning("%s pbp yok, red zone/advanced atlandı", season)
+            return
+        transform.write_json(sdir / "player_redzone.json",
+                             advanced.build_player_redzone(pbp, names))
+        transform.write_json(sdir / "team_advanced.json",
+                             advanced.build_team_advanced(pbp))
+        scheme = advanced.build_team_scheme(
+            pbp, sources.fetch_participation(season), sources.fetch_ftn(season))
+        if scheme is not None:
+            transform.write_json(sdir / "team_scheme.json", scheme)
+        else:
+            log.warning("%s için şema verisi (participation/FTN) yok", season)
+
+    def do_snaps():
+        raw = sources.fetch_snap_counts(season)
+        if raw is not None:
+            transform.write_json(sdir / "snap_counts.json",
+                                 advanced.build_snap_counts(raw, master, season))
+
+    def do_ngs():
+        for stat_type in ("passing", "rushing", "receiving"):
+            raw = sources.fetch_ngs(season, stat_type)
+            if raw is not None:
+                transform.write_json(sdir / f"ngs_{stat_type}.json",
+                                     advanced.build_ngs(raw, stat_type, season))
+
+    _optional("pbp (red zone / team advanced / şema)", do_pbp)
+    _optional("snap counts", do_snaps)
+    _optional("next gen stats", do_ngs)
+
+
+def rebuild_index_and_manifest(master) -> None:
     season_dfs = {}
     for sdir in sorted((config.DATA_DIR / "seasons").glob("*")):
         ps = transform.read_json(sdir / "player_season.json")
         if ps is not None:
             season_dfs[int(sdir.name)] = ps
-    master = sources.fetch_players_master()
     idx = transform.build_players_index(season_dfs, master)
     transform.write_json(config.DATA_DIR / "players" / "index.json", idx)
     transform.build_manifest(config.DATA_DIR)
@@ -69,10 +120,11 @@ def main() -> int:
         seasons = [current_season()]
 
     schedules = sources.fetch_schedules()
+    master = sources.fetch_players_master()
     failed = []
     for season in seasons:
         try:
-            process_season(season, schedules)
+            process_season(season, schedules, master)
         except Exception:
             log.exception("%s sezonu işlenemedi", season)
             failed.append(season)
@@ -86,7 +138,7 @@ def main() -> int:
         log.error("Hiçbir sezon işlenemedi, çıkılıyor")
         return 1
 
-    rebuild_index_and_manifest()
+    rebuild_index_and_manifest(master)
     if failed:
         log.warning("Tamamlandı ama şu sezonlar başarısız: %s", failed)
         return 1

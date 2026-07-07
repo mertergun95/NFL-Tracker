@@ -171,6 +171,7 @@ def build_manifest(data_dir: Path) -> None:
             "last_reg_week": int(reg["week"].max()) if not reg.empty else 0,
             "last_post_week": int(post["week"].max()) if not post.empty else 0,
             "player_week_rows": int(len(pw)),
+            "datasets": sorted(p.stem for p in sdir.glob("*.json")),
         }
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
