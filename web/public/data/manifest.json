@@ -1,0 +1,34 @@
+{
+ "generated_at": "2026-07-07T11:38:25+00:00",
+ "seasons": {
+  "2021": {
+   "last_reg_week": 18,
+   "last_post_week": 22,
+   "player_week_rows": 18969
+  },
+  "2022": {
+   "last_reg_week": 18,
+   "last_post_week": 22,
+   "player_week_rows": 18831
+  },
+  "2023": {
+   "last_reg_week": 18,
+   "last_post_week": 22,
+   "player_week_rows": 18643
+  },
+  "2024": {
+   "last_reg_week": 18,
+   "last_post_week": 22,
+   "player_week_rows": 18981
+  },
+  "2025": {
+   "last_reg_week": 18,
+   "last_post_week": 22,
+   "player_week_rows": 19421
+  }
+ },
+ "sources": [
+  "nflverse",
+  "nfldata (schedules)"
+ ]
+}
