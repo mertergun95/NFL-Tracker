@@ -50,7 +50,7 @@ export function WeeklyBarChart({ rows, stat }: WeeklyBarProps) {
                    formatter={(v) => [fmt(stat, Number(v)), label(stat)]}
                    labelFormatter={(w) => `Hafta ${w}`} />
           <Bar dataKey="value" fill={CHART.series1} radius={[4, 4, 0, 0]}
-               maxBarSize={28} name={label(stat)} />
+               maxBarSize={28} name={label(stat)} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -78,8 +78,8 @@ export function TeamScatterChart({ rows, highlight }: TeamScatterProps) {
   return (
     <div className="chart-box">
       <p className="chart-note">
-        Sağ alt köşe ideal: çok sayı atıp az sayı yiyen takımlar.
-        Çizgiler lig ortalaması.
+        x: atılan sayı, y: yenilen sayı (ters çevrilmiş) — sağ üst köşe ideal:
+        çok sayı atıp az sayı yiyen takımlar. Kesikli çizgiler lig ortalaması.
       </p>
       <ResponsiveContainer width="100%" height={420}>
         <ScatterChart margin={{ top: 12, right: 24, bottom: 8, left: -8 }}>
@@ -91,11 +91,9 @@ export function TeamScatterChart({ rows, highlight }: TeamScatterProps) {
                  label={{ value: "Atılan Sayı", position: "insideBottom",
                           offset: -4, fill: CHART.muted, fontSize: 12 }} />
           <YAxis dataKey="pa" type="number" domain={["auto", "auto"]} reversed
-                 name="Yenilen Sayı"
+                 name="Yenilen Sayı" width={48}
                  tick={{ fill: CHART.muted, fontSize: 11 }}
-                 axisLine={false} tickLine={false}
-                 label={{ value: "Yenilen Sayı (ters)", angle: -90,
-                          position: "insideLeft", fill: CHART.muted, fontSize: 12 }} />
+                 axisLine={false} tickLine={false} />
           <ReferenceLine x={avgPf} stroke={CHART.axis} strokeDasharray="4 4" />
           <ReferenceLine y={avgPa} stroke={CHART.axis} strokeDasharray="4 4" />
           <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: CHART.muted }}

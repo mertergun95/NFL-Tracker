@@ -42,36 +42,37 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Yol haritası ve mimari karar
 - [x] Repo yapısı: `pipeline/`, `web/`, `.github/workflows/`
 
-### Faz 1 — Veri seti kurulumu (2021–2025 backfill)
-- [ ] Python pipeline: nflverse'ten haftalık oyuncu istatistikleri (hücum/savunma/kicking),
+### ✅ Faz 1 — Veri seti kurulumu (2021–2025 backfill)
+- [x] Python pipeline: nflverse'ten haftalık oyuncu istatistikleri (hücum/savunma/kicking),
       haftalık takım istatistikleri, maç programı/sonuçları, oyuncu kimlik verisi
-- [ ] Dönüşüm: web'in tüketeceği kompakt JSON'lar → `web/public/data/`
+- [x] Dönüşüm: web'in tüketeceği kompakt JSON'lar → `web/public/data/`
   - `manifest.json` — mevcut sezonlar, son güncelleme, hafta sayıları
   - `seasons/{yıl}/player_weeks.json` — oyuncu × hafta satırları (REG+POST)
   - `seasons/{yıl}/player_season.json` — sezon toplamları + maç başı ortalamalar
   - `seasons/{yıl}/team_weeks.json`, `team_season.json`
   - `seasons/{yıl}/schedule.json` — skorlar, sonuçlar
   - `players/index.json` — oyuncu arama dizini (isim, pozisyon, takım, headshot)
-- [ ] GitHub Actions `update-stats.yml`: `workflow_dispatch` ile backfill çalıştır, doğrula
+- [x] GitHub Actions `update-stats.yml`: `workflow_dispatch` ile backfill çalıştır, doğrula
 
-### Faz 2 — Haftalık güncelleme otomasyonu (2026+ sezonlar)
-- [ ] Aynı workflow'a **Salı cron'u** (`0 10 * * 2`): sezon boyunca o haftanın verisini işler,
+### ✅ Faz 2 — Haftalık güncelleme otomasyonu (2026+ sezonlar)
+- [x] Aynı workflow'a **Salı cron'u** (`0 10 * * 2`): sezon boyunca o haftanın verisini işler,
       değişiklik varsa commit'ler
-- [ ] Manifest'te "son güncellenen hafta" bilgisi; arayüzde "Verilerin güncelliği" göstergesi
+- [x] Manifest'te "son güncellenen hafta" bilgisi; arayüzde "Verilerin güncelliği" göstergesi
 
-### Faz 3 — Kallavi arayüz
-- [ ] React + Vite + TypeScript, koyu "nerd" teması
-- [ ] Sayfalar:
+### 🔄 Faz 3 — Kallavi arayüz (ilk sürüm hazır, geliştirilecek)
+- [x] React + Vite + TypeScript, koyu "nerd" teması
+- [x] Sayfalar:
   - **Dashboard:** sezon özeti, haftanın öne çıkanları, lig liderleri
   - **Oyuncular:** pozisyon/takım/sezon filtreli, sıralanabilir istatistik tabloları
   - **Oyuncu detay:** kariyer görünümü, hafta hafta game log, sezon karşılaştırması
   - **Takımlar:** takım sezon istatistikleri, hücum/savunma sıralamaları
   - **Takım detay:** haftalık sonuçlar, kadro istatistikleri
   - **Maçlar:** haftalık skor tablosu ve sonuçlar
-- [ ] GitHub Pages deploy workflow'u
+- [x] GitHub Pages deploy workflow'u (Pages'i Settings'ten bir kez etkinleştirmek gerekir)
 
-### Faz 4 — Grafikler, görseller, raporlar
-- [ ] Oyuncu trend grafikleri (hafta hafta yards/TD/target share…)
+### 🔄 Faz 4 — Grafikler, görseller, raporlar (başladı)
+- [x] Oyuncu trend grafikleri (hafta hafta, istatistik seçilebilir sütun grafiği)
+- [x] Takım hücum/savunma scatter haritası (lig ortalaması referanslı)
 - [ ] Oyuncu-oyuncu ve sezon-sezon karşılaştırma görselleri
 - [ ] Takım hücum/savunma dağılım grafikleri, lig geneli scatter'lar
       (ör. EPA benzeri verimlilik eksenleri)

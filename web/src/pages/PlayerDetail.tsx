@@ -52,7 +52,8 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
     <section>
       <div className="player-header">
         {player?.headshot_url && (
-          <img className="headshot" src={String(player.headshot_url)} alt="" />
+          <img className="headshot" src={String(player.headshot_url)} alt=""
+               onError={(e) => { e.currentTarget.style.display = "none"; }} />
         )}
         <div>
           <h1>{String(player?.player_name ?? id)}</h1>
