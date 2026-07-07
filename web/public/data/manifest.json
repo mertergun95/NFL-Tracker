@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-07T18:00:34+00:00",
+ "generated_at": "2026-07-07T18:31:02+00:00",
  "seasons": {
   "2021": {
    "last_reg_week": 18,
@@ -82,6 +82,9 @@
    "last_post_week": 22,
    "player_week_rows": 19421,
    "datasets": [
+    "ngs_passing",
+    "ngs_receiving",
+    "ngs_rushing",
     "player_redzone",
     "player_season",
     "player_weeks",
