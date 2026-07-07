@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import StatTable from "../components/StatTable";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import { loadPlayerIndex, loadPlayerSeason, loadPlayerWeeks } from "../lib/data";
-import { presetForPosition } from "../lib/columns";
+import { label, presetForPosition } from "../lib/columns";
+import { WeeklyBarChart } from "../components/charts";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 import { teamName } from "../lib/teams";
@@ -43,6 +44,9 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
 
   const pos = String(player?.position ?? weeks?.[0]?.position ?? "");
   const stats = presetForPosition(pos || null);
+  const [statChoice, setStatChoice] = useState<string | null>(null);
+  const chartStat = statChoice ?? stats[0];
+  const setChartStat = setStatChoice;
 
   return (
     <section>
@@ -70,6 +74,19 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       {loading && <Loading />}
       {weeksErr && <ErrorMsg msg={weeksErr} />}
+      {weeks && weeks.length > 0 && (
+        <>
+          <div className="pill-row">
+            {stats.map((s) => (
+              <button key={s} className={`pill small ${s === chartStat ? "active" : ""}`}
+                      onClick={() => setChartStat(s)}>
+                {label(s)}
+              </button>
+            ))}
+          </div>
+          <WeeklyBarChart rows={weeks} stat={chartStat} />
+        </>
+      )}
       {weeks && (
         <StatTable rows={weeks}
           columns={["week", "season_type", "opponent_team", ...stats]}

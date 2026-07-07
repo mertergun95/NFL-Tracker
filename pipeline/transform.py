@@ -18,6 +18,10 @@ log = logging.getLogger(__name__)
 
 def _clean(df: pd.DataFrame, cols: list[str], renames: dict | None = None) -> pd.DataFrame:
     if renames:
+        # Hedef ad zaten varsa önce onu at (ör. player_name kısa ad iken
+        # player_display_name -> player_name çakışıp kolonları kaydırmasın)
+        drop = [v for k, v in renames.items() if k in df.columns and v in df.columns]
+        df = df.drop(columns=drop)
         df = df.rename(columns={k: v for k, v in renames.items() if k in df.columns})
     keep = [c for c in cols if c in df.columns]
     missing = [c for c in cols if c not in df.columns]
@@ -30,6 +34,8 @@ def _clean(df: pd.DataFrame, cols: list[str], renames: dict | None = None) -> pd
 
 
 def write_json(path: Path, df: pd.DataFrame) -> None:
+    if df.columns.duplicated().any():
+        raise ValueError(f"Duplicate kolonlar: {df.columns[df.columns.duplicated()].tolist()}")
     path.parent.mkdir(parents=True, exist_ok=True)
     df = df.replace({np.nan: None})
     payload = {"columns": list(df.columns), "rows": df.values.tolist()}
