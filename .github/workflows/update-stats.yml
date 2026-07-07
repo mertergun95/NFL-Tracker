@@ -1,3 +1,4 @@
+# nflverse'ten istatistikleri indirip web/public/data altına JSON olarak işler.
 name: Update NFL Stats
 
 on:
