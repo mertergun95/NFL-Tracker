@@ -70,9 +70,21 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
   - **Maçlar:** haftalık skor tablosu ve sonuçlar
 - [x] GitHub Pages deploy workflow'u (Pages'i Settings'ten bir kez etkinleştirmek gerekir)
 
+### ✅ Faz 3.5 — Derin veri katmanı (kullanıcı istekleri)
+- [x] Takım sayfasında oyuncu **game logs** ve **game logs against** sekmeleri
+- [x] Oyuncu **red zone / inside-10** istatistikleri (pbp'den hesaplanır)
+- [x] Oyuncu **snap counts** (haftalık, pfr→gsis id eşlemeli)
+- [x] Oyuncu paylarının takım toplamına oranı (carry/target/yds share, haftalık+sezonluk)
+- [x] Oyuncu **advanced** istatistikleri (Next Gen Stats: CPOE, RYOE, separation…)
+- [x] Takım **savunma şeması** statsleri (man/zone oranı, coverage'a göre EPA,
+      blitz oranı, box — participation + FTN kaynaklı)
+- [x] Takım **advanced** statsleri (EPA/play, success rate, explosive, 3. down,
+      RZ TD%, sack rate, turnover — lig ortalamalarıyla)
+
 ### 🔄 Faz 4 — Grafikler, görseller, raporlar (başladı)
 - [x] Oyuncu trend grafikleri (hafta hafta, istatistik seçilebilir sütun grafiği)
 - [x] Takım hücum/savunma scatter haritası (lig ortalaması referanslı)
+- [x] Oyuncu snap count trend grafiği
 - [ ] Oyuncu-oyuncu ve sezon-sezon karşılaştırma görselleri
 - [ ] Takım hücum/savunma dağılım grafikleri, lig geneli scatter'lar
       (ör. EPA benzeri verimlilik eksenleri)

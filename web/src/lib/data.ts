@@ -43,6 +43,26 @@ export const loadTeamWeeks = (season: number | string) =>
 export const loadSchedule = (season: number | string) =>
   loadColumnar(`seasons/${season}/schedule.json`);
 
+/** Opsiyonel veri seti: dosya yoksa null döner (404'te patlamaz). */
+export async function loadOptional(path: string): Promise<StatRow[] | null> {
+  try {
+    return await loadColumnar(path);
+  } catch {
+    return null;
+  }
+}
+
+export const loadSnapCounts = (season: number | string) =>
+  loadOptional(`seasons/${season}/snap_counts.json`);
+export const loadRedzone = (season: number | string) =>
+  loadOptional(`seasons/${season}/player_redzone.json`);
+export const loadNgs = (season: number | string, t: "passing" | "rushing" | "receiving") =>
+  loadOptional(`seasons/${season}/ngs_${t}.json`);
+export const loadTeamAdvanced = (season: number | string) =>
+  loadOptional(`seasons/${season}/team_advanced.json`);
+export const loadTeamScheme = (season: number | string) =>
+  loadOptional(`seasons/${season}/team_scheme.json`);
+
 export function seasonsFromManifest(m: Manifest): number[] {
   return Object.keys(m.seasons)
     .map(Number)
