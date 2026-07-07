@@ -37,6 +37,81 @@ SCHEDULE_URLS = [
     "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
 ]
 
+# --- Ek veri setleri (Faz 1.5: advanced/rz/snap/şema) ---
+
+SNAP_COUNTS_CANDIDATES = [
+    "{base}/snap_counts/snap_counts_{season}.csv.gz",
+    "{base}/snap_counts/snap_counts_{season}.csv",
+]
+NGS_CANDIDATES = [  # stat_type: passing | rushing | receiving
+    "{base}/nextgen_stats/ngs_{season}_{stat_type}.csv.gz",
+    "{base}/nextgen_stats/ngs_{season}_{stat_type}.csv",
+    # tüm sezonları içeren birleşik dosya (sezon filtresi build_ngs'te)
+    "{base}/nextgen_stats/ngs_{stat_type}.csv.gz",
+]
+# nflverse'te henüz yayınlanmamış sezonlar için NFL'in kendi NGS API'si
+NGS_API_URL = ("https://appapi.ngs.nfl.com/statboard/{stat_type}"
+               "?season={season}&seasonType=REG")
+NGS_API_HEADERS = {
+    "referer": "https://nextgenstats.nfl.com/stats/",
+    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+}
+PBP_CANDIDATES = [
+    "{base}/pbp/play_by_play_{season}.csv.gz",
+]
+PARTICIPATION_CANDIDATES = [
+    "{base}/pbp_participation/pbp_participation_{season}.csv.gz",
+    "{base}/pbp_participation/pbp_participation_{season}.csv",
+]
+FTN_CANDIDATES = [
+    "{base}/ftn_charting/ftn_charting_{season}.csv.gz",
+    "{base}/ftn_charting/ftn_charting_{season}.csv",
+]
+
+# pbp'den yalnızca ihtiyaç duyulan kolonlar (bellek için)
+PBP_USECOLS = [
+    "game_id", "play_id", "season_type", "week", "posteam", "defteam",
+    "yardline_100", "down", "ydstogo", "play_type", "yards_gained",
+    "rush_attempt", "pass_attempt", "complete_pass", "sack", "qb_dropback",
+    "pass", "rush", "touchdown", "rush_touchdown", "pass_touchdown",
+    "interception", "fumble_lost", "first_down", "epa", "success",
+    "rusher_player_id", "receiver_player_id", "passer_player_id",
+    "fixed_drive", "fixed_drive_result", "two_point_attempt",
+]
+
+SNAP_COUNT_COLS = [
+    "player_id", "player", "position", "team", "opponent",
+    "season", "game_type", "week",
+    "offense_snaps", "offense_pct", "defense_snaps", "defense_pct",
+    "st_snaps", "st_pct",
+]
+
+NGS_COLS = {
+    "passing": [
+        "week", "season_type", "player_gsis_id", "player_display_name",
+        "team_abbr", "attempts", "pass_yards", "pass_touchdowns", "interceptions",
+        "passer_rating", "completion_percentage",
+        "expected_completion_percentage", "completion_percentage_above_expectation",
+        "avg_time_to_throw", "avg_intended_air_yards", "avg_completed_air_yards",
+        "avg_air_yards_differential", "aggressiveness", "avg_air_yards_to_sticks",
+        "max_completed_air_distance",
+    ],
+    "rushing": [
+        "week", "season_type", "player_gsis_id", "player_display_name",
+        "team_abbr", "rush_attempts", "rush_yards", "rush_touchdowns",
+        "efficiency", "percent_attempts_gte_eight_defenders", "avg_time_to_los",
+        "expected_rush_yards", "rush_yards_over_expected",
+        "rush_yards_over_expected_per_att", "rush_pct_over_expected",
+    ],
+    "receiving": [
+        "week", "season_type", "player_gsis_id", "player_display_name",
+        "team_abbr", "targets", "receptions", "yards", "rec_touchdowns",
+        "catch_percentage", "avg_cushion", "avg_separation",
+        "avg_intended_air_yards", "percent_share_of_intended_air_yards",
+        "avg_yac", "avg_expected_yac", "avg_yac_above_expectation",
+    ],
+}
+
 # Eski kolon adı -> kanonik ad
 PLAYER_RENAMES = {
     "player_display_name": "player_name",

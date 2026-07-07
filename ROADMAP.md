@@ -42,48 +42,70 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Yol haritası ve mimari karar
 - [x] Repo yapısı: `pipeline/`, `web/`, `.github/workflows/`
 
-### Faz 1 — Veri seti kurulumu (2021–2025 backfill)
-- [ ] Python pipeline: nflverse'ten haftalık oyuncu istatistikleri (hücum/savunma/kicking),
+### ✅ Faz 1 — Veri seti kurulumu (2021–2025 backfill)
+- [x] Python pipeline: nflverse'ten haftalık oyuncu istatistikleri (hücum/savunma/kicking),
       haftalık takım istatistikleri, maç programı/sonuçları, oyuncu kimlik verisi
-- [ ] Dönüşüm: web'in tüketeceği kompakt JSON'lar → `web/public/data/`
+- [x] Dönüşüm: web'in tüketeceği kompakt JSON'lar → `web/public/data/`
   - `manifest.json` — mevcut sezonlar, son güncelleme, hafta sayıları
   - `seasons/{yıl}/player_weeks.json` — oyuncu × hafta satırları (REG+POST)
   - `seasons/{yıl}/player_season.json` — sezon toplamları + maç başı ortalamalar
   - `seasons/{yıl}/team_weeks.json`, `team_season.json`
   - `seasons/{yıl}/schedule.json` — skorlar, sonuçlar
   - `players/index.json` — oyuncu arama dizini (isim, pozisyon, takım, headshot)
-- [ ] GitHub Actions `update-stats.yml`: `workflow_dispatch` ile backfill çalıştır, doğrula
+- [x] GitHub Actions `update-stats.yml`: `workflow_dispatch` ile backfill çalıştır, doğrula
 
-### Faz 2 — Haftalık güncelleme otomasyonu (2026+ sezonlar)
-- [ ] Aynı workflow'a **Salı cron'u** (`0 10 * * 2`): sezon boyunca o haftanın verisini işler,
+### ✅ Faz 2 — Haftalık güncelleme otomasyonu (2026+ sezonlar)
+- [x] Aynı workflow'a **Salı cron'u** (`0 10 * * 2`): sezon boyunca o haftanın verisini işler,
       değişiklik varsa commit'ler
-- [ ] Manifest'te "son güncellenen hafta" bilgisi; arayüzde "Verilerin güncelliği" göstergesi
+- [x] Manifest'te "son güncellenen hafta" bilgisi; arayüzde "Verilerin güncelliği" göstergesi
 
-### Faz 3 — Kallavi arayüz
-- [ ] React + Vite + TypeScript, koyu "nerd" teması
-- [ ] Sayfalar:
+### 🔄 Faz 3 — Kallavi arayüz (ilk sürüm hazır, geliştirilecek)
+- [x] React + Vite + TypeScript, koyu "nerd" teması
+- [x] Sayfalar:
   - **Dashboard:** sezon özeti, haftanın öne çıkanları, lig liderleri
   - **Oyuncular:** pozisyon/takım/sezon filtreli, sıralanabilir istatistik tabloları
   - **Oyuncu detay:** kariyer görünümü, hafta hafta game log, sezon karşılaştırması
   - **Takımlar:** takım sezon istatistikleri, hücum/savunma sıralamaları
   - **Takım detay:** haftalık sonuçlar, kadro istatistikleri
   - **Maçlar:** haftalık skor tablosu ve sonuçlar
-- [ ] GitHub Pages deploy workflow'u
+- [x] GitHub Pages deploy workflow'u (Pages'i Settings'ten bir kez etkinleştirmek gerekir)
 
-### Faz 4 — Grafikler, görseller, raporlar
-- [ ] Oyuncu trend grafikleri (hafta hafta yards/TD/target share…)
+### ✅ Faz 3.5 — Derin veri katmanı (kullanıcı istekleri)
+- [x] Takım sayfasında oyuncu **game logs** ve **game logs against** sekmeleri
+- [x] Oyuncu **red zone / inside-10** istatistikleri (pbp'den hesaplanır)
+- [x] Oyuncu **snap counts** (haftalık, pfr→gsis id eşlemeli)
+- [x] Oyuncu paylarının takım toplamına oranı (carry/target/yds share, haftalık+sezonluk)
+- [x] Oyuncu **advanced** istatistikleri (Next Gen Stats: CPOE, RYOE, separation…)
+- [x] Takım **savunma şeması** statsleri (man/zone oranı, coverage'a göre EPA,
+      blitz oranı, box — participation + FTN kaynaklı)
+- [x] Takım **advanced** statsleri (EPA/play, success rate, explosive, 3. down,
+      RZ TD%, sack rate, turnover — lig ortalamalarıyla)
+
+### ✅ Faz 4 — Grafikler, görseller, raporlar
+- [x] Oyuncu trend grafikleri (hafta hafta, istatistik seçilebilir sütun grafiği)
+- [x] Takım hücum/savunma scatter haritası (lig ortalaması referanslı)
+- [x] Oyuncu snap count trend grafiği
+- [x] Oyuncu karşılaştırma sayfası (3'e kadar oyuncu, sezon tablosu + haftalık overlay)
+- [x] Lig Grafikleri sayfası (eksenleri seçilebilir dağılım grafikleri)
+- [x] Paylaşılabilir PNG stat kartı (oyuncu sayfasından indirme)
 - [ ] Oyuncu-oyuncu ve sezon-sezon karşılaştırma görselleri
 - [ ] Takım hücum/savunma dağılım grafikleri, lig geneli scatter'lar
       (ör. EPA benzeri verimlilik eksenleri)
 - [ ] Footballguys'tan redzone / snap count / target verilerinin entegrasyonu
 - [ ] Paylaşılabilir "stat kartı" görselleri
 
-### Faz 5 — Key Insights (PFF tarzı çıkarımlar)
-- [ ] Kural tabanlı otomatik çıkarımlar: form trendleri (son 3 hafta vs sezon ortalaması),
-      kullanım artışı (target/carry share), patlama/çöküş adayları, rakip savunma zayıflıkları
-- [ ] Gelecek hafta maçları için eşleşme (matchup) analizi: rakibin pozisyona karşı
-      verdiği istatistikler ("points allowed to WR" vb.)
-- [ ] Haftalık otomatik "Insights" raporu (Salı pipeline'ı üretir, arayüz gösterir)
+### ✅ Faz 5 — Key Insights (PFF tarzı çıkarımlar)
+- [x] Kural tabanlı otomatik çıkarımlar: form trendleri (son 3 hafta vs sezon ortalaması),
+      kullanım artışı (target/carry share), takım güç profili (EPA sıralamaları)
+- [x] Gelecek hafta maçları için eşleşme (matchup) analizi: EPA sıralama uyuşmazlıkları
+      + pozisyona karşı verilen PPR ("points allowed to WR/RB/TE") ve takip edilecek oyuncular
+- [x] Haftalık otomatik "Insights" raporu (Salı pipeline'ı `insights.json` üretir,
+      arayüzdeki Insights sayfası gösterir; sezon içinde her hafta kendini yeniler)
+
+### Faz 6 — Fikirler (gelecek)
+- [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
+- [ ] Haftalık e-posta/Slack özeti, insights arşivi
+- [ ] ESPN canlı skor entegrasyonu (maç günü modu)
 
 ---
 
