@@ -15,7 +15,8 @@ const LEADER_BOARDS: { title: string; col: string; pos?: string[] }[] = [
   { title: "Sack (savunma)", col: "def_sacks" },
 ];
 
-function leaders(rows: StatRow[], col: string, pos?: string[]): StatRow[] {
+function leaders(rows: StatRow[], col: string, pos: string[] | undefined,
+                 count: number): StatRow[] {
   let r = rows;
   if (pos) r = r.filter((p) => pos.includes(String(p.position)));
   const val = (p: StatRow) =>
@@ -24,8 +25,31 @@ function leaders(rows: StatRow[], col: string, pos?: string[]): StatRow[] {
       : Number(p[col] ?? 0);
   return [...r]
     .sort((a, b) => val(b) - val(a))
-    .slice(0, 5)
+    .slice(0, count)
     .map((p) => ({ ...p, _value: val(p) }));
+}
+
+function LeaderCard({ title, col, pos, data }:
+  { title: string; col: string; pos?: string[]; data: StatRow[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const items = leaders(data, col, pos, expanded ? 30 : 5);
+  return (
+    <div className={`leader-card ${expanded ? "expanded" : ""}`}>
+      <h3>{title}</h3>
+      <ol>
+        {items.map((p) => (
+          <li key={String(p.player_id)}>
+            <Link to={`/player/${p.player_id}`}>{String(p.player_name)}</Link>
+            <span className="leader-team">{String(p.team ?? "")}</span>
+            <strong>{fmt(col, p._value as number)}</strong>
+          </li>
+        ))}
+      </ol>
+      <button className="leader-toggle" onClick={() => setExpanded(!expanded)}>
+        {expanded ? "▴ Daralt" : "▾ Top 30'u göster"}
+      </button>
+    </div>
+  );
 }
 
 export default function Dashboard({ manifest, seasons }:
@@ -48,20 +72,7 @@ export default function Dashboard({ manifest, seasons }:
       {data && (
         <div className="leader-grid">
           {LEADER_BOARDS.map(({ title, col, pos }) => (
-            <div className="leader-card" key={title}>
-              <h3>{title}</h3>
-              <ol>
-                {leaders(data, col, pos).map((p) => (
-                  <li key={String(p.player_id)}>
-                    <Link to={`/player/${p.player_id}`}>
-                      {String(p.player_name)}
-                    </Link>
-                    <span className="leader-team">{String(p.team ?? "")}</span>
-                    <strong>{fmt(col, p._value as number)}</strong>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            <LeaderCard key={title} title={title} col={col} pos={pos} data={data} />
           ))}
         </div>
       )}

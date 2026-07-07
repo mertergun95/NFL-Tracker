@@ -77,6 +77,7 @@ PBP_USECOLS = [
     "interception", "fumble_lost", "first_down", "epa", "success",
     "rusher_player_id", "receiver_player_id", "passer_player_id",
     "fixed_drive", "fixed_drive_result", "two_point_attempt",
+    "shotgun", "no_huddle",
 ]
 
 SNAP_COUNT_COLS = [

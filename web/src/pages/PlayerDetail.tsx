@@ -3,8 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import StatTable from "../components/StatTable";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import {
-  loadNgs, loadPlayerIndex, loadPlayerSeason, loadPlayerWeeks,
-  loadRedzone, loadSnapCounts,
+  loadNgs, loadPlayerIndex, loadPlayerScheme, loadPlayerSeason,
+  loadPlayerWeeks, loadRedzone, loadSnapCounts,
 } from "../lib/data";
 import { label, presetForPosition } from "../lib/columns";
 import { WeeklyBarChart } from "../components/charts";
@@ -100,6 +100,13 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
   const snapStat = ["QB", "RB", "FB", "WR", "TE", "K", "P", "T", "G", "C"]
     .includes(pos) ? "offense_pct" : "defense_pct";
 
+  // Hücum şeması splitleri (seçili sezon)
+  const { data: scheme } = useAsync(async () => {
+    const rows = await loadPlayerScheme(season);
+    if (!rows) return null;
+    return rows.filter((r) => r.player_id === id);
+  }, [id, season]);
+
   // Next Gen Stats (seçili sezon, pozisyona göre tip)
   const ngsType = NGS_TYPE[pos];
   const { data: ngs } = useAsync(async () => {
@@ -181,6 +188,24 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
         <>
           <h2>Red Zone ({season}, REG)</h2>
           <StatTiles row={rz} cols={rzCols} />
+        </>
+      )}
+
+      {scheme && scheme.length > 0 && (
+        <>
+          <h2>Şema Splitleri ({season}, REG)</h2>
+          <p className="sub">
+            Play action, blitz, shotgun ve box bağlamlarına göre performans
+            (pbp + FTN charting; min. 8 play).
+          </p>
+          <StatTable
+            rows={scheme.map((r) => ({
+              ...r,
+              split: `${String(r.unit)} · ${label(`split_${r.split}`)}`,
+            }))}
+            columns={["split", "plays", "yards", "tds", "ints",
+                      "epa_play", "success_rate"]}
+            defaultSort="plays" />
         </>
       )}
 

@@ -187,6 +187,135 @@ def matchup_notes(games: pd.DataFrame, ranks: pd.DataFrame,
     return sorted(notes, key=lambda x: -x["value"])[:14]
 
 
+# ------------------------------------------------------- şema çıkarımları
+
+def scheme_insights(pscheme: pd.DataFrame | None,
+                    tscheme: pd.DataFrame | None,
+                    games: pd.DataFrame, ps: pd.DataFrame,
+                    data_season: int) -> list:
+    """QB'lerin blitze karşı performansı + blitz-ağır rakip eşleşmeleri."""
+    out: list = []
+    if pscheme is None or "split" not in getattr(pscheme, "columns", []):
+        return out
+    blitz = pscheme[(pscheme["unit"] == "QB") & (pscheme["split"] == "vs_blitz")
+                    & (pscheme["plays"] >= 60)]
+    if blitz.empty:
+        return out
+    for _, r in blitz.sort_values("epa_play", ascending=False).head(3).iterrows():
+        out.append({
+            "player_id": r["player_id"], "team": r["team"],
+            "title": f"🧠 {r['player_name']} blitze karşı üretken",
+            "detail": (f"Blitze karşı {int(r['plays'])} dropback'te EPA/play "
+                       f"{r['epa_play']:+.2f} ({data_season}). Blitz-ağır "
+                       f"savunmalara karşı avantaj."),
+            "value": float(r["epa_play"]),
+        })
+    for _, r in blitz.sort_values("epa_play").head(3).iterrows():
+        out.append({
+            "player_id": r["player_id"], "team": r["team"],
+            "title": f"⚠️ {r['player_name']} blitze karşı zorlanıyor",
+            "detail": (f"Blitze karşı {int(r['plays'])} dropback'te EPA/play "
+                       f"{r['epa_play']:+.2f} ({data_season})."),
+            "value": float(r["epa_play"]),
+        })
+    # gelecek hafta: blitz-ağır rakip + QB blitz profili
+    if tscheme is not None and not games.empty:
+        bcol = "blitz_rate_ftn" if "blitz_rate_ftn" in tscheme.columns else "blitz_rate"
+        if bcol in tscheme.columns:
+            ts = tscheme.set_index("team")
+            heavy = ts[ts[bcol] >= ts[bcol].quantile(0.8)].index
+            qb_by_team = (ps[ps["position"] == "QB"]
+                          .sort_values("attempts", ascending=False)
+                          .drop_duplicates("team").set_index("team"))
+            bq = blitz.set_index("player_id")
+            for _, g in games.iterrows():
+                for off, deff in ((g["away_team"], g["home_team"]),
+                                  (g["home_team"], g["away_team"])):
+                    if deff not in heavy or off not in qb_by_team.index:
+                        continue
+                    qb = qb_by_team.loc[off]
+                    if qb["player_id"] not in bq.index:
+                        continue
+                    epa = float(bq.loc[qb["player_id"], "epa_play"])
+                    rate = float(ts.loc[deff, bcol])
+                    good = epa >= 0.1
+                    if not good and epa > -0.05:
+                        continue
+                    out.append({
+                        "player_id": qb["player_id"], "team": off,
+                        "game": f"{g['away_team']} @ {g['home_team']}",
+                        "title": (f"{'🧠' if good else '⚠️'} "
+                                  f"{g['away_team']} @ {g['home_team']}: "
+                                  f"{deff} blitz-ağır (%{rate*100:.0f})"),
+                        "detail": (f"{qb['player_name']} blitze karşı EPA/play "
+                                   f"{epa:+.2f} ({data_season}) — bu eşleşme "
+                                   f"{'lehine' if good else 'aleyhine'}."),
+                        "value": abs(epa),
+                    })
+    return out[:12]
+
+
+# ------------------------------------------------------------ projeksiyon
+
+PROJ_STAT = {"QB": "passing_yards", "RB": "rushing_yards",
+             "WR": "receiving_yards", "TE": "receiving_yards"}
+
+
+def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
+                      games: pd.DataFrame, next_season: int, next_week: int,
+                      data_season: int) -> pd.DataFrame:
+    """Basit haftalık projeksiyon: ağırlıklı form + rakip pozisyon-zafiyeti çarpanı."""
+    if games.empty:
+        return pd.DataFrame()
+    opp = {}
+    for _, g in games.iterrows():
+        opp[g["home_team"]] = g["away_team"]
+        opp[g["away_team"]] = g["home_team"]
+
+    reg = pw[(pw["season_type"] == "REG") & pw["position"].isin(SKILL_POS)
+             & pw["fantasy_points_ppr"].notna()].sort_values("week")
+    league_avg = allowed.groupby("position")["ppr_allowed"].mean()
+
+    rows = []
+    for pid, g in reg.groupby("player_id"):
+        if len(g) < 4:
+            continue
+        team = g["team"].iloc[-1]
+        if team not in opp:
+            continue
+        pos = g["position"].iloc[-1]
+        stat_col = PROJ_STAT.get(pos)
+        last5 = g.tail(5)
+        w = pd.Series(range(1, len(last5) + 1), index=last5.index, dtype=float)
+        recent = float((last5["fantasy_points_ppr"] * w).sum() / w.sum())
+        season_avg = float(g["fantasy_points_ppr"].mean())
+        base = 0.6 * recent + 0.4 * season_avg
+        opponent = opp[team]
+        row_a = allowed[(allowed["team"] == opponent) & (allowed["position"] == pos)]
+        factor = 1.0
+        if not row_a.empty and pos in league_avg.index and league_avg[pos] > 0:
+            factor = float(row_a["ppr_allowed"].iloc[0] / league_avg[pos])
+            factor = max(0.8, min(1.25, factor))
+        stat_proj = None
+        if stat_col in g.columns:
+            s_recent = float((last5[stat_col].fillna(0) * w).sum() / w.sum())
+            s_season = float(g[stat_col].fillna(0).mean())
+            stat_proj = round((0.6 * s_recent + 0.4 * s_season) * factor, 1)
+        rows.append({
+            "player_id": pid, "player_name": g["player_name"].iloc[-1],
+            "position": pos, "team": team, "opponent": opponent,
+            "proj_ppr": round(base * factor, 1),
+            "recent_avg": round(recent, 1), "season_avg": round(season_avg, 1),
+            "matchup_factor": round(factor, 2),
+            "proj_stat": stat_proj, "proj_stat_name": stat_col,
+        })
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    df = df[df["proj_ppr"] >= 4].sort_values("proj_ppr", ascending=False)
+    return df.reset_index(drop=True)
+
+
 # ------------------------------------------------------------- takım gücü
 
 def team_power(ta: pd.DataFrame) -> list:
@@ -232,6 +361,8 @@ def build_and_write(schedules: pd.DataFrame) -> None:
         power = team_power(ta)
         if not games.empty:
             matchups = matchup_notes(games, _ranks(ta), allowed, ps, season)
+    scheme = scheme_insights(_read(season, "player_scheme"),
+                             _read(season, "team_scheme"), games, ps, season)
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -240,7 +371,7 @@ def build_and_write(schedules: pd.DataFrame) -> None:
         "next_game_week": {"season": next_season, "week": next_week},
         "sections": {
             "hot": hot, "cold": cold, "usage": usage,
-            "matchups": matchups, "team_power": power,
+            "matchups": matchups, "scheme": scheme, "team_power": power,
         },
     }
     path = config.DATA_DIR / "insights.json"
@@ -249,3 +380,18 @@ def build_and_write(schedules: pd.DataFrame) -> None:
     n = sum(len(v) for v in payload["sections"].values())
     log.info("Insights yazıldı: %s madde (%s sezonu, hafta %s'e kadar)",
              n, season, last_week)
+
+    # Haftalık projeksiyonlar (sıradaki oynanmamış hafta için)
+    proj = build_projections(pw, allowed, games, next_season, next_week, season)
+    if not proj.empty:
+        payload_p = {
+            "generated_at": payload["generated_at"],
+            "data_season": season,
+            "target": {"season": next_season, "week": next_week},
+            "columns": list(proj.columns),
+            "rows": proj.where(pd.notna(proj), None).values.tolist(),
+        }
+        with open(config.DATA_DIR / "projections.json", "w") as f:
+            json.dump(payload_p, f, ensure_ascii=False, separators=(",", ":"))
+        log.info("Projeksiyonlar yazıldı: %s oyuncu (%s W%s)",
+                 len(proj), next_season, next_week)

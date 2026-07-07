@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import { loadSchedule } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 
 export default function Games({ seasons }: { seasons: number[] }) {
+  const navigate = useNavigate();
   const [season, setSeason] = useState(seasons[0]);
   const [week, setWeek] = useState(1);
   const { data, error, loading } = useAsync(() => loadSchedule(season), [season]);
@@ -38,7 +39,8 @@ export default function Games({ seasons }: { seasons: number[] }) {
         {games.map((g) => {
           const played = g.home_score !== null;
           return (
-            <div className="game-card" key={String(g.game_id)}>
+            <div className="game-card" key={String(g.game_id)}
+                 onClick={() => navigate(`/game/${season}/${g.game_id}`)}>
               <div className="game-date">{String(g.gameday)} · {String(g.game_type)}</div>
               <div className="game-line">
                 <Link to={`/team/${g.away_team}`}>{teamName(String(g.away_team))}</Link>

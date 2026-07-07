@@ -12,6 +12,7 @@ from datetime import date
 import advanced
 import config
 import insights
+import scheme
 import sources
 import transform
 
@@ -67,12 +68,16 @@ def process_season(season: int, schedules, master) -> None:
                              advanced.build_player_redzone(pbp, names))
         transform.write_json(sdir / "team_advanced.json",
                              advanced.build_team_advanced(pbp))
-        scheme = advanced.build_team_scheme(
-            pbp, sources.fetch_participation(season), sources.fetch_ftn(season))
-        if scheme is not None:
-            transform.write_json(sdir / "team_scheme.json", scheme)
+        ftn = sources.fetch_ftn(season)
+        team_scheme = advanced.build_team_scheme(
+            pbp, sources.fetch_participation(season), ftn)
+        if team_scheme is not None:
+            transform.write_json(sdir / "team_scheme.json", team_scheme)
         else:
             log.warning("%s için şema verisi (participation/FTN) yok", season)
+        player_scheme = scheme.build_player_scheme(pbp, ftn, names)
+        if not player_scheme.empty:
+            transform.write_json(sdir / "player_scheme.json", player_scheme)
 
     def do_snaps():
         raw = sources.fetch_snap_counts(season)

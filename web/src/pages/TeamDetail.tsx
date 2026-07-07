@@ -168,6 +168,7 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
         const them = Number(home ? g.away_score : g.home_score);
         const played = g.home_score !== null && g.away_score !== null;
         return {
+          game_id: g.game_id,
           week: g.week, game_type: g.game_type, gameday: g.gameday,
           opponent: home ? g.away_team : g.home_team,
           where: home ? "Ev" : "Dep",
@@ -215,6 +216,9 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
               render={{
                 opponent: (row) => (
                   <Link to={`/team/${row.opponent}`}>{String(row.opponent)}</Link>
+                ),
+                score: (row) => (
+                  <Link to={`/game/${season}/${row.game_id}`}>{String(row.score)}</Link>
                 ),
               }}
             />

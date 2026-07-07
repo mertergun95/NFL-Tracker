@@ -5,6 +5,7 @@ import { useAsync } from "../lib/hooks";
 
 const SECTIONS: [string, string, string][] = [
   ["matchups", "Gelecek Hafta Matchup Notları", "Sıradaki haftanın maçları için geçmiş sezon verisine dayalı avantaj analizi."],
+  ["scheme", "Şema Notları", "Blitze karşı QB profilleri ve blitz-ağır rakip eşleşmeleri (FTN charting)."],
   ["hot", "Formda Olanlar", "Son 3 haftası sezon ortalamasının belirgin üstünde."],
   ["cold", "Form Düşüşü", "Son 3 haftası sezon ortalamasının belirgin altında."],
   ["usage", "Kullanımı Artanlar", "Target/carry payı son haftalarda yükselenler."],

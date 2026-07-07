@@ -63,6 +63,36 @@ export const loadTeamAdvanced = (season: number | string) =>
 export const loadTeamScheme = (season: number | string) =>
   loadOptional(`seasons/${season}/team_scheme.json`);
 
+export const loadPlayerScheme = (season: number | string) =>
+  loadOptional(`seasons/${season}/player_scheme.json`);
+
+export interface ProjectionsPayload {
+  generated_at: string;
+  data_season: number;
+  target: { season: number; week: number };
+  rows: StatRow[];
+}
+
+export async function loadProjections(): Promise<ProjectionsPayload | null> {
+  try {
+    const res = await fetch(`${BASE}/projections.json`);
+    if (!res.ok) return null;
+    const raw = await res.json() as {
+      generated_at: string; data_season: number;
+      target: { season: number; week: number };
+      columns: string[]; rows: (string | number | null)[][];
+    };
+    return {
+      generated_at: raw.generated_at,
+      data_season: raw.data_season,
+      target: raw.target,
+      rows: toRows({ columns: raw.columns, rows: raw.rows }),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface Insight {
   title: string;
   detail: string;

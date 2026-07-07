@@ -107,16 +107,28 @@ export function CompareLineChart({ series, stat }:
   );
 }
 
-/** Genel amaçlı oyuncu scatter'ı: x/y istatistik, isim etiketli. */
-export function PlayerScatterChart({ rows, x, y, labelTop = 12 }:
-  { rows: StatRow[]; x: string; y: string; labelTop?: number }) {
+/** Genel amaçlı dağılım grafiği: x/y istatistik, isim etiketli, tıklanabilir. */
+export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "player_name",
+                                     idKey = "player_id", onPointClick }: {
+  rows: StatRow[]; x: string; y: string; labelTop?: number;
+  nameKey?: string; idKey?: string;
+  onPointClick?: (id: string) => void;
+}) {
   const data = rows
     .filter((r) => typeof r[x] === "number" && typeof r[y] === "number")
-    .map((r) => ({ name: String(r.player_name), xv: Number(r[x]), yv: Number(r[y]) }));
+    .map((r) => ({ name: String(r[nameKey]), id: String(r[idKey] ?? ""),
+                   xv: Number(r[x]), yv: Number(r[y]) }));
   if (data.length === 0) return null;
   const top = [...data].sort((a, b) => b.yv - a.yv).slice(0, labelTop);
   const topSet = new Set(top.map((d) => d.name));
   const rest = data.filter((d) => !topSet.has(d.name));
+  const handleClick = onPointClick
+    ? (d: unknown) => {
+        const p = (d as { payload?: { id?: string } })?.payload
+          ?? (d as { id?: string });
+        if (p?.id) onPointClick(p.id);
+      }
+    : undefined;
   return (
     <div className="chart-box">
       <ResponsiveContainer width="100%" height={460}>
@@ -142,13 +154,20 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12 }:
                       name === "xv" ? label(x) : label(y)]}
                    labelFormatter={() => ""}
                    content={undefined} />
-          <Scatter data={rest} fill={CHART.series1} isAnimationActive={false} />
-          <Scatter data={top} fill={CHART.series1} isAnimationActive={false}>
+          <Scatter data={rest} fill={CHART.series1} isAnimationActive={false}
+                   onClick={handleClick}
+                   cursor={onPointClick ? "pointer" : undefined} />
+          <Scatter data={top} fill={CHART.series1} isAnimationActive={false}
+                   onClick={handleClick}
+                   cursor={onPointClick ? "pointer" : undefined}>
             <LabelList dataKey="name" position="top"
                        style={{ fill: CHART.ink, fontSize: 11 }} />
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
+      {onPointClick && (
+        <p className="chart-note">Bir noktaya tıklayınca oyuncu künyesi açılır.</p>
+      )}
     </div>
   );
 }

@@ -109,6 +109,12 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 .leader-card li a { color: var(--link); text-decoration: none; flex: 1; }
 .leader-team { color: var(--text-dim); font-size: 0.8rem; }
 .leader-card strong { font-variant-numeric: tabular-nums; }
+.leader-card.expanded ol { max-height: 420px; overflow-y: auto; }
+.leader-toggle {
+  background: none; border: none; color: var(--link);
+  cursor: pointer; font-size: 0.8rem; padding: 8px 0 0;
+}
+.leader-toggle:hover { text-decoration: underline; }
 
 .chart-box {
   background: var(--bg-soft); border: 1px solid var(--border);
@@ -116,12 +122,69 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 }
 .chart-note { color: var(--text-dim); font-size: 0.8rem; margin: 0 0 8px 12px; }
 
+.game-hero {
+  display: flex; align-items: center; gap: 24px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 24px; margin: 10px 0 20px;
+  font-size: 1.2rem; flex-wrap: wrap;
+}
+.game-hero > div { display: flex; align-items: center; gap: 14px; }
+.game-hero a { color: var(--text); text-decoration: none; font-weight: 600; }
+.game-hero a:hover { color: var(--link); }
+.game-hero strong { font-size: 1.8rem; font-variant-numeric: tabular-nums; }
+.game-at { color: var(--text-dim); }
+.game-card { cursor: pointer; }
+.game-card:hover { border-color: var(--text-dim); }
+
+/* sağdan kayan oyuncu künyesi */
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 40;
+}
+.drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 90vw;
+  background: var(--bg-soft); border-left: 1px solid var(--border);
+  padding: 20px; z-index: 50; overflow-y: auto;
+  transform: translateX(105%); transition: transform 0.25s ease;
+}
+.drawer.open { transform: translateX(0); }
+.drawer-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; color: var(--text-dim);
+  font-size: 1.1rem; cursor: pointer;
+}
+.drawer-close:hover { color: var(--text); }
+.drawer-stats { margin: 12px 0; }
+.drawer-row {
+  display: flex; justify-content: space-between;
+  padding: 7px 2px; border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.drawer-row span { color: var(--text-dim); }
+.drawer-row strong { font-variant-numeric: tabular-nums; }
+.drawer-link {
+  display: inline-block; margin-top: 14px; color: var(--link);
+  text-decoration: none; font-weight: 600;
+}
+
 .axis-label { color: var(--text-dim); font-size: 0.9rem; }
 .axis-select {
   background: var(--bg-soft); color: var(--text);
   border: 1px solid var(--border); border-radius: 6px;
   padding: 6px 10px; font-size: 0.9rem;
 }
+.axis-select.small { padding: 3px 6px; font-size: 0.8rem; }
+.compare-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg-soft); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 5px 12px; font-size: 0.9rem;
+}
+.chip-x {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 0.85rem;
+}
+.chip-x:hover { color: var(--text); }
 
 .insight-grid {
   display: grid; gap: 12px;

@@ -146,6 +146,28 @@ export const STAT_LABELS: Record<string, string> = {
   def_third_down_conv: "3. Down % (verilen)",
   def_rz_td_pct: "RZ TD % (verilen)",
   def_turnovers: "Top Çalma",
+  // oyuncu şema splitleri
+  split_play_action: "Play Action",
+  split_no_play_action: "PA'sız",
+  split_vs_blitz: "Blitze Karşı",
+  split_no_blitz: "Blitzsiz",
+  split_shotgun: "Shotgun",
+  split_under_center: "Under Center",
+  split_heavy_box: "8+ Box",
+  split_light_box: "Hafif Box",
+  split_screen: "Screen",
+  split: "Bağlam",
+  plays: "Play",
+  tds: "TD",
+  ints: "Int",
+  epa_play: "EPA/Play",
+  success_rate: "Success %",
+  // projeksiyon
+  proj_ppr: "Proj PPR",
+  proj_stat: "Proj Yds",
+  recent_avg: "Son 5 Ort",
+  season_avg: "Sezon Ort",
+  matchup_factor: "Matchup Çarpanı",
   // savunma şeması
   man_rate: "Man %",
   zone_rate: "Zone %",
@@ -167,6 +189,7 @@ export const PERCENT_COLS = new Set([
   "def_success_rate", "def_pass_rate", "def_sack_rate", "def_explosive_rate",
   "def_third_down_conv", "def_rz_td_pct",
   "man_rate", "zone_rate", "blitz_rate", "blitz_rate_ftn",
+  "success_rate",
 ]);
 
 export const label = (col: string) => STAT_LABELS[col] ?? col;
