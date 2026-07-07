@@ -102,6 +102,17 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Haftalık otomatik "Insights" raporu (Salı pipeline'ı `insights.json` üretir,
       arayüzdeki Insights sayfası gösterir; sezon içinde her hafta kendini yeniler)
 
+### ✅ Faz 5.5 — Derinleştirme (kullanıcı istekleri, 2. tur)
+- [x] Grafiklerde noktaya tıklayınca sağdan kayan **oyuncu künyesi** (drawer)
+- [x] **Maç detay** sayfası: skor, takım karşılaştırması, iki takımın oyuncu istatistikleri
+- [x] **Haftalık projeksiyonlar** (ağırlıklı form + rakip pozisyon-zafiyeti çarpanı)
+- [x] Oyuncuların **hücum şeması splitleri** (play action / blitz / shotgun / box / screen)
+      + insights'ta şema notları (blitze karşı QB profilleri, blitz-ağır eşleşmeler)
+- [x] Takımlar sayfası: kategori sekmeli birleşik **karşılaştırma tabloları**
+- [x] **Deep Charts**: oyuncu (sezon/red zone/NGS) + takım modları, serbest eksen seçimi
+- [x] Dashboard lider kartları **Top 30'a genişletilebilir**
+- [x] Karşılaştırma v2: oyuncu başına **ayrı sezon**, en iyi değer vurgusu, kümülatif mod
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
