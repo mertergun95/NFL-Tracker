@@ -159,6 +159,11 @@ def fetch_roster(season: int) -> pd.DataFrame | None:
     return _fetch_first(config.ROSTER_CANDIDATES, season=season)
 
 
+def fetch_injuries(season: int) -> pd.DataFrame | None:
+    """Resmi haftalık sakatlık raporları (Out/Doubtful/Questionable)."""
+    return _fetch_first(config.INJURY_CANDIDATES, season=season)
+
+
 def fetch_schedules() -> pd.DataFrame:
     for url in config.SCHEDULE_URLS:
         df = _fetch_csv(url)

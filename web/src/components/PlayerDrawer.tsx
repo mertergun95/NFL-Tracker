@@ -1,10 +1,18 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Line, LineChart, ResponsiveContainer } from "recharts";
 import TeamLogo from "./TeamLogo";
-import { loadPlayerIndex, loadPlayerSeason, loadProjections } from "../lib/data";
+import StatusBadge from "./StatusBadge";
+import { CHART, trendOf } from "./charts";
+import {
+  loadInjuries, loadPlayerIndex, loadPlayerSeason, loadPlayerWeeks,
+  loadProjections,
+} from "../lib/data";
 import { fmt, label, presetForPosition } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
+
+const TREND_COLOR = { hot: "#3fb950", cold: "#f0883e", flat: CHART.series1 };
 
 interface Props {
   playerId: string | null;
@@ -29,6 +37,30 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
     () => projections?.rows.find((p) => p.player_id === playerId) ?? null,
     [projections, playerId]);
   const currentTeam = String(meta?.current_team ?? proj?.team ?? "");
+
+  // haftalık form: mini eğri + trend rengi
+  const { data: weekRows } = useAsync(
+    async () => (playerId ? loadPlayerWeeks(season) : null), [playerId, season]);
+  const spark = useMemo(() => {
+    if (!weekRows || !playerId) return null;
+    const rows = weekRows
+      .filter((r) => r.player_id === playerId && r.season_type === "REG")
+      .sort((a, b) => Number(a.week) - Number(b.week));
+    if (rows.length < 3) return null;
+    return {
+      data: rows.map((r) => ({ v: Number(r.fantasy_points_ppr ?? 0) })),
+      trend: trendOf(rows, "fantasy_points_ppr"),
+    };
+  }, [weekRows, playerId]);
+
+  // güncel sakatlık durumu
+  const { data: injuryRows } = useAsync(() => loadInjuries(), []);
+  const injury = useMemo(() => {
+    if (!injuryRows || !playerId) return null;
+    const mine = injuryRows.filter((r) => r.player_id === playerId);
+    if (mine.length === 0) return null;
+    return mine.sort((a, b) => Number(b.week ?? 0) - Number(a.week ?? 0))[0];
+  }, [injuryRows, playerId]);
 
   const pos = String(meta?.position ?? row?.position ?? "");
   const stats = presetForPosition(pos || null);
@@ -61,6 +93,32 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 {meta.college_name ? `${meta.college_name} · ` : ""}
                 {meta.rookie_season ? `çaylak: ${meta.rookie_season}` : ""}
               </p>
+            )}
+            {injury?.report_status && (
+              <p style={{ margin: "4px 0" }}>
+                <StatusBadge status={String(injury.report_status)}
+                             note={String(injury.report_primary_injury ?? "")} />
+              </p>
+            )}
+            {spark && (
+              <div className="drawer-spark">
+                <div className="tile-label">
+                  Haftalık PPR formu{" "}
+                  <span className={`trend-chip ${spark.trend.kind}`}
+                        style={{ padding: "1px 8px", fontSize: "0.72rem" }}>
+                    {spark.trend.kind === "hot" ? "🔥 yükselişte"
+                      : spark.trend.kind === "cold" ? "🧊 düşüşte" : "stabil"}
+                  </span>
+                </div>
+                <ResponsiveContainer width="100%" height={54}>
+                  <LineChart data={spark.data}
+                             margin={{ top: 6, right: 4, bottom: 2, left: 4 }}>
+                    <Line dataKey="v" type="monotone" dot={false}
+                          stroke={TREND_COLOR[spark.trend.kind]} strokeWidth={2}
+                          isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             )}
             {currentTeam && currentTeam !== String(row?.team ?? "") && (
               <p className="sub">

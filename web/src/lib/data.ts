@@ -65,6 +65,7 @@ export const loadTeamScheme = (season: number | string) =>
 
 export const loadPlayerScheme = (season: number | string) =>
   loadOptional(`seasons/${season}/player_scheme.json`);
+export const loadInjuries = () => loadOptional("injuries.json");
 
 export interface ProjectionsPayload {
   generated_at: string;

@@ -1,7 +1,7 @@
 import {
-  Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart,
-  ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip,
-  XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, ComposedChart, LabelList, Legend, Line,
+  LineChart, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart,
+  Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { StatRow } from "../lib/types";
 import { fmt, label } from "../lib/columns";
@@ -32,32 +32,65 @@ interface WeeklyBarProps {
   stat: string;
 }
 
-/** Oyuncunun hafta hafta tek istatistiği — sütun grafiği. */
+/** Hafta hafta istatistik: sütunlar + 3 haftalık hareketli ortalama eğrisi
+    + sezon ortalaması referansı. */
 export function WeeklyBarChart({ rows, stat }: WeeklyBarProps) {
-  const data = rows.map((r) => ({
-    week: `${r.season_type === "POST" ? "P" : ""}${r.week}`,
-    value: Number(r[stat] ?? 0),
-  }));
+  const vals = rows.map((r) => Number(r[stat] ?? 0));
+  const data = rows.map((r, i) => {
+    const win = vals.slice(Math.max(0, i - 2), i + 1);
+    return {
+      week: `${r.season_type === "POST" ? "P" : ""}${r.week}`,
+      value: vals[i],
+      ma: Number((win.reduce((s, v) => s + v, 0) / win.length).toFixed(2)),
+    };
+  });
   if (data.length === 0) return null;
+  const seasonAvg = vals.reduce((s, v) => s + v, 0) / vals.length;
   return (
     <div className="chart-box">
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
-                  barCategoryGap="20%">
+      <ResponsiveContainer width="100%" height={230}>
+        <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+                       barCategoryGap="20%">
           <CartesianGrid vertical={false} stroke={CHART.grid} />
           <XAxis dataKey="week" tick={{ fill: CHART.muted, fontSize: 11 }}
                  axisLine={{ stroke: CHART.axis }} tickLine={false} />
           <YAxis tick={{ fill: CHART.muted, fontSize: 11 }}
                  axisLine={false} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
-                   formatter={(v) => [fmt(stat, Number(v)), label(stat)]}
+                   formatter={(v, name) =>
+                     [fmt(stat, Number(v)),
+                      name === "ma" ? "3 hafta ort." : label(stat)]}
                    labelFormatter={(w) => `Hafta ${w}`} />
+          <ReferenceLine y={seasonAvg} stroke={CHART.muted} strokeDasharray="5 5"
+                         label={{ value: "sezon ort.", position: "insideTopRight",
+                                  fill: CHART.muted, fontSize: 10 }} />
           <Bar dataKey="value" fill={CHART.series1} radius={[4, 4, 0, 0]}
                maxBarSize={28} name={label(stat)} isAnimationActive={false} />
-        </BarChart>
+          <Line dataKey="ma" type="monotone" stroke={CHART.series3}
+                strokeWidth={2} dot={false} isAnimationActive={false} name="ma" />
+        </ComposedChart>
       </ResponsiveContainer>
+      <p className="chart-note">
+        Turuncu eğri 3 haftalık hareketli ortalama; kesikli çizgi sezon ortalaması.
+      </p>
     </div>
   );
+}
+
+/** Trend durumu: son 3 hafta vs sezon ortalaması. */
+export function trendOf(rows: StatRow[], stat: string):
+  { kind: "hot" | "cold" | "flat"; recent: number; season: number } {
+  const vals = rows
+    .filter((r) => r.season_type === "REG")
+    .map((r) => Number(r[stat] ?? 0));
+  const season = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  const last3 = vals.slice(-3);
+  const recent = last3.length ? last3.reduce((s, v) => s + v, 0) / last3.length : 0;
+  if (vals.length < 5 || season === 0)
+    return { kind: "flat", recent, season };
+  const ratio = recent / season;
+  return { kind: ratio >= 1.25 ? "hot" : ratio <= 0.75 ? "cold" : "flat",
+           recent, season };
 }
 
 export interface CompareSeries {

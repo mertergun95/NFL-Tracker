@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import StatTable from "../components/StatTable";
+import StatusBadge from "../components/StatusBadge";
 import { Loading } from "../components/Pickers";
 import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 
 const COLS = ["player_name", "team", "opponent", "proj_ppr", "proj_stat",
-              "recent_avg", "season_avg", "matchup_factor"];
+              "recent_avg", "season_avg", "matchup_factor", "scheme_factor",
+              "snap_factor", "injury_status"];
 
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
@@ -52,10 +54,12 @@ export default function Projections() {
     <section>
       <h1>Haftalık Projeksiyonlar — {data.target.season} W{data.target.week}</h1>
       <p className="sub">
-        Model: son 5 maçın ağırlıklı ortalaması (%60) + sezon ortalaması (%40),
-        rakibin pozisyona karşı verdiği PPR'a göre çarpan (0.80–1.25 aralığında).
-        Veri: {data.data_season} sezonu. "Proj Yds" QB'de pas, RB'de koşu,
-        WR/TE'de rec yardası projeksiyonudur.
+        Model v2: son 5 maçın ağırlıklı formu (%60) + sezon ortalaması (%40)
+        × <strong>matchup</strong> (rakibin pozisyona verdiği)
+        × <strong>şema</strong> (blitz/box/coverage uyumu)
+        × <strong>snap trendi</strong> (son 3 haftanın snap payı)
+        × <strong>sakatlık</strong> (Out/Doubtful hariç, Questionable −%10).
+        Takımlar <strong>güncel kadrolardan</strong> alınır. Veri: {data.data_season} sezonu.
       </p>
       <div className="toolbar">
         <div className="pill-row">
@@ -87,6 +91,10 @@ export default function Projections() {
         render={{
           player_name: (row) => (
             <Link to={`/player/${row.player_id}`}>{String(row.player_name)}</Link>
+          ),
+          injury_status: (row) => (
+            <StatusBadge status={row.injury_status as string}
+                         note={row.injury_note as string} />
           ),
           team: (row) => <Link to={`/team/${row.team}`}>{String(row.team)}</Link>,
           opponent: (row) => (

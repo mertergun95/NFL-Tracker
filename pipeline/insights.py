@@ -36,7 +36,9 @@ def _read(season: int, name: str) -> pd.DataFrame | None:
 
 # ------------------------------------------------------------------ form
 
-def form_trends(pw: pd.DataFrame, last_week: int) -> tuple[list, list]:
+def form_trends(pw: pd.DataFrame, last_week: int,
+                cur_map: dict | None = None) -> tuple[list, list]:
+    cur_map = cur_map or {}
     reg = pw[(pw["season_type"] == "REG")
              & pw["position"].isin(SKILL_POS)
              & pw["fantasy_points_ppr"].notna()]
@@ -64,9 +66,10 @@ def form_trends(pw: pd.DataFrame, last_week: int) -> tuple[list, list]:
     def items(rows, emoji):
         out = []
         for pid, r in rows.iterrows():
+            team = cur_map.get(pid, r["team"])
             out.append({
-                "player_id": pid, "team": r["team"],
-                "title": f"{emoji} {r['name']} ({r['pos']}, {r['team']})",
+                "player_id": pid, "team": team,
+                "title": f"{emoji} {r['name']} ({r['pos']}, {team})",
                 "detail": (f"Son {FORM_WINDOW} haftada {r['recent']:.1f} PPR/maç — "
                            f"sezon ortalaması {r['avg']:.1f} ({r['diff']:+.1f})."
                            + real_stats(pid, r["pos"])),
@@ -81,7 +84,9 @@ def form_trends(pw: pd.DataFrame, last_week: int) -> tuple[list, list]:
 
 # ----------------------------------------------------------------- usage
 
-def usage_shifts(pw: pd.DataFrame, last_week: int) -> list:
+def usage_shifts(pw: pd.DataFrame, last_week: int,
+                 cur_map: dict | None = None) -> list:
+    cur_map = cur_map or {}
     out = []
     specs = [("target_share", ["WR", "TE", "RB"], 0.05, 0.15, "hedef payı"),
              ("carry_share", ["RB"], 0.08, 0.35, "koşu payı")]
@@ -101,9 +106,10 @@ def usage_shifts(pw: pd.DataFrame, last_week: int) -> list:
         j["diff"] = j["recent"] - j["avg"]
         for pid, r in (j[j["diff"] >= min_up]
                        .sort_values("diff", ascending=False).head(6)).iterrows():
+            team = cur_map.get(pid, r["team"])
             out.append({
-                "player_id": pid, "team": r["team"],
-                "title": f"📈 {r['name']} ({r['pos']}, {r['team']})",
+                "player_id": pid, "team": team,
+                "title": f"📈 {r['name']} ({r['pos']}, {team})",
                 "detail": (f"Son {FORM_WINDOW} haftada {label_tr} "
                            f"%{r['recent']*100:.0f} — sezon ortalaması "
                            f"%{r['avg']*100:.0f} (+{r['diff']*100:.0f} puan)."),
@@ -362,10 +368,65 @@ PROJ_STAT = {"QB": "passing_yards", "RB": "rushing_yards",
              "WR": "receiving_yards", "TE": "receiving_yards"}
 
 
+def current_team_map() -> dict:
+    """Güncel kadro eşlemesi (depth chart'tan): player_id -> takım."""
+    dc = transform.read_json(config.DATA_DIR / "depth_charts.json")
+    if dc is None or "player_id" not in dc.columns:
+        return {}
+    dc = dc[dc["player_id"].notna()].drop_duplicates("player_id")
+    return dict(zip(dc["player_id"], dc["team"]))
+
+
+def injury_map(target_season: int) -> dict:
+    """En güncel sakatlık durumu: player_id -> (status, sakatlık). Yalnızca
+    rapor hedef sezona aitse uygulanır (geçen sezonun raporu bayattır)."""
+    inj = transform.read_json(config.DATA_DIR / "injuries.json")
+    if inj is None or inj.empty or "player_id" not in inj.columns:
+        return {}
+    if "season" in inj.columns and int(inj["season"].max()) != target_season:
+        return {}
+    if "week" in inj.columns:
+        inj = inj[inj["week"] == inj["week"].max()]
+    inj = inj.drop_duplicates("player_id", keep="last")
+    out = {}
+    for _, r in inj.iterrows():
+        status = r.get("report_status")
+        if status and not pd.isna(status):
+            out[r["player_id"]] = (str(status), str(r.get("report_primary_injury") or ""))
+    return out
+
+
+def _scheme_context(data_season: int):
+    ps_scheme = _read(data_season, "player_scheme")
+    ts = _read(data_season, "team_scheme")
+    snaps = _read(data_season, "snap_counts")
+    return ps_scheme, ts, snaps
+
+
+def _split_epa(pscheme, pid, unit, split):
+    if pscheme is None:
+        return None
+    r = pscheme[(pscheme["player_id"] == pid) & (pscheme["unit"] == unit)
+                & (pscheme["split"] == split)]
+    return float(r["epa_play"].iloc[0]) if not r.empty else None
+
+
+def _clamp(v, lo, hi):
+    return max(lo, min(hi, v))
+
+
 def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
                       games: pd.DataFrame, next_season: int, next_week: int,
                       data_season: int) -> pd.DataFrame:
-    """Basit haftalık projeksiyon: ağırlıklı form + rakip pozisyon-zafiyeti çarpanı."""
+    """Projeksiyon v2: ağırlıklı form × matchup × şema uyumu × snap trendi × sakatlık.
+
+    - Takımlar GÜNCEL kadrolardan (depth chart) alınır — offseason transferleri dahil.
+    - Şema: rakip blitz-ağırsa QB'nin blitz splitine, box-ağırsa RB'nin box
+      splitine, coverage-ağırsa savunmanın o coverage'daki zafiyetine bakılır.
+    - Snap: son 3 haftanın snap payı sezon ortalamasından sapıyorsa fırsat çarpanı.
+    - Sakatlık: Out/Doubtful hariç tutulur, Questionable %10 kırpılır
+      (yalnızca rapor hedef sezona aitse).
+    """
     if games.empty:
         return pd.DataFrame()
     opp = {}
@@ -373,41 +434,108 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
         opp[g["home_team"]] = g["away_team"]
         opp[g["away_team"]] = g["home_team"]
 
+    cur_map = current_team_map()
+    injuries = injury_map(next_season)
+    pscheme, tscheme, snaps = _scheme_context(data_season)
+    ts = tscheme.set_index("team") if tscheme is not None else None
+    blitz_col = None
+    if ts is not None:
+        blitz_col = "blitz_rate_ftn" if "blitz_rate_ftn" in ts.columns else (
+            "blitz_rate" if "blitz_rate" in ts.columns else None)
+
     reg = pw[(pw["season_type"] == "REG") & pw["position"].isin(SKILL_POS)
              & pw["fantasy_points_ppr"].notna()].sort_values("week")
     league_avg = allowed.groupby("position")["ppr_allowed"].mean()
+
+    # snap trendi: oyuncu başına son3/sezon hücum snap payı oranı
+    snap_ratio: dict = {}
+    if snaps is not None and "offense_pct" in snaps.columns:
+        sreg = snaps[(snaps.get("game_type") == "REG")
+                     & snaps["player_id"].notna()].sort_values("week")
+        for pid, g in sreg.groupby("player_id"):
+            season_m = g["offense_pct"].mean()
+            if season_m and season_m >= 0.25:
+                snap_ratio[pid] = _clamp(
+                    float(g["offense_pct"].tail(3).mean() / season_m), 0.85, 1.15)
 
     rows = []
     for pid, g in reg.groupby("player_id"):
         if len(g) < 4:
             continue
-        team = g["team"].iloc[-1]
+        pos = g["position"].iloc[-1]
+        team = cur_map.get(pid, g["team"].iloc[-1])  # güncel kadro öncelikli
         if team not in opp:
             continue
-        pos = g["position"].iloc[-1]
+        opponent = opp[team]
+
+        injury_status, injury_note = injuries.get(pid, (None, None))
+        if injury_status in ("Out", "Doubtful"):
+            continue  # oynamayacak — Sakatlıklar sayfasında görünür
+
         stat_col = PROJ_STAT.get(pos)
         last5 = g.tail(5)
         w = pd.Series(range(1, len(last5) + 1), index=last5.index, dtype=float)
         recent = float((last5["fantasy_points_ppr"] * w).sum() / w.sum())
         season_avg = float(g["fantasy_points_ppr"].mean())
         base = 0.6 * recent + 0.4 * season_avg
-        opponent = opp[team]
+
+        # 1) matchup: rakibin pozisyona verdiği PPR
         row_a = allowed[(allowed["team"] == opponent) & (allowed["position"] == pos)]
-        factor = 1.0
+        matchup = 1.0
         if not row_a.empty and pos in league_avg.index and league_avg[pos] > 0:
-            factor = float(row_a["ppr_allowed"].iloc[0] / league_avg[pos])
-            factor = max(0.8, min(1.25, factor))
+            matchup = _clamp(float(row_a["ppr_allowed"].iloc[0] / league_avg[pos]),
+                             0.8, 1.25)
+
+        # 2) şema uyumu
+        scheme_f = 1.0
+        if ts is not None and opponent in ts.index:
+            d = ts.loc[opponent]
+            if pos == "QB" and blitz_col and not pd.isna(d.get(blitz_col)):
+                if d[blitz_col] >= ts[blitz_col].quantile(0.75):
+                    e_b = _split_epa(pscheme, pid, "QB", "vs_blitz")
+                    e_n = _split_epa(pscheme, pid, "QB", "no_blitz")
+                    if e_b is not None and e_n is not None:
+                        scheme_f *= _clamp(1 + (e_b - e_n) * 0.25, 0.92, 1.08)
+            if pos == "RB" and "avg_box" in ts.columns and not pd.isna(d.get("avg_box")):
+                if d["avg_box"] >= ts["avg_box"].quantile(0.75):
+                    e_h = _split_epa(pscheme, pid, "RUSH", "heavy_box")
+                    e_l = _split_epa(pscheme, pid, "RUSH", "light_box")
+                    if e_h is not None and e_l is not None:
+                        scheme_f *= _clamp(1 + (e_h - e_l) * 0.25, 0.92, 1.08)
+            if pos in ("WR", "TE") and "man_rate" in ts.columns:
+                for rate_col, epa_col in (("man_rate", "epa_vs_man"),
+                                          ("zone_rate", "epa_vs_zone")):
+                    r_v, e_v = d.get(rate_col), d.get(epa_col)
+                    if (r_v is not None and not pd.isna(r_v)
+                            and r_v >= ts[rate_col].quantile(0.75)
+                            and e_v is not None and not pd.isna(e_v)):
+                        mean_e = ts[epa_col].mean()
+                        scheme_f *= _clamp(1 + (e_v - mean_e) * 0.3, 0.94, 1.06)
+
+        # 3) snap trendi (fırsat) — QB'de snap payı bilgi taşımaz (W18 rotasyonu
+        # yanıltır), yalnızca top taşıyıcı/yakalayıcılarda uygula
+        snap_f = snap_ratio.get(pid, 1.0) if pos != "QB" else 1.0
+
+        # 4) sakatlık kırpması
+        inj_f = 0.9 if injury_status == "Questionable" else 1.0
+
+        total = matchup * scheme_f * snap_f * inj_f
         stat_proj = None
         if stat_col in g.columns:
             s_recent = float((last5[stat_col].fillna(0) * w).sum() / w.sum())
             s_season = float(g[stat_col].fillna(0).mean())
-            stat_proj = round((0.6 * s_recent + 0.4 * s_season) * factor, 1)
+            stat_proj = round((0.6 * s_recent + 0.4 * s_season) * total, 1)
+
         rows.append({
             "player_id": pid, "player_name": g["player_name"].iloc[-1],
             "position": pos, "team": team, "opponent": opponent,
-            "proj_ppr": round(base * factor, 1),
+            "proj_ppr": round(base * total, 1),
             "recent_avg": round(recent, 1), "season_avg": round(season_avg, 1),
-            "matchup_factor": round(factor, 2),
+            "matchup_factor": round(matchup, 2),
+            "scheme_factor": round(scheme_f, 2),
+            "snap_factor": round(snap_f, 2),
+            "injury_status": injury_status,
+            "injury_note": injury_note,
             "proj_stat": stat_proj, "proj_stat_name": stat_col,
         })
     df = pd.DataFrame(rows)
@@ -452,8 +580,14 @@ def build_and_write(schedules: pd.DataFrame) -> None:
     reg = pw[pw["season_type"] == "REG"]
     last_week = int(reg["week"].max())
 
-    hot, cold = form_trends(pw, last_week)
-    usage = usage_shifts(pw, last_week)
+    # Güncel kadro eşlemesi: matchup/insight'larda oyuncular YENİ takımlarıyla anılır
+    cur_map = current_team_map()
+    ps_cur = ps.copy()
+    if cur_map:
+        ps_cur["team"] = ps_cur["player_id"].map(cur_map).fillna(ps_cur["team"])
+
+    hot, cold = form_trends(pw, last_week, cur_map)
+    usage = usage_shifts(pw, last_week, cur_map)
     allowed = points_allowed(pw)
     games, next_season, next_week = upcoming_games(schedules, season)
     matchups = []
@@ -461,9 +595,9 @@ def build_and_write(schedules: pd.DataFrame) -> None:
     if ta is not None:
         power = team_power(ta)
         if not games.empty:
-            matchups = matchup_notes(games, _ranks(ta), allowed, ps, season)
+            matchups = matchup_notes(games, _ranks(ta), allowed, ps_cur, season)
     scheme = scheme_insights(_read(season, "player_scheme"),
-                             _read(season, "team_scheme"), games, ps, season)
+                             _read(season, "team_scheme"), games, ps_cur, season)
 
     # Matchup sayfası ve dış kullanım için yardımcı dosyalar
     transform.write_json(config.DATA_DIR / "pos_allowed.json", allowed)

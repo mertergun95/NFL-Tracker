@@ -7,7 +7,9 @@ import {
   loadPlayerWeeks, loadRedzone, loadSnapCounts,
 } from "../lib/data";
 import { label, presetForPosition } from "../lib/columns";
-import { WeeklyBarChart } from "../components/charts";
+import { trendOf, WeeklyBarChart } from "../components/charts";
+import StatusBadge from "../components/StatusBadge";
+import { loadInjuries } from "../lib/data";
 import StatTiles from "../components/StatTiles";
 import { downloadStatCard } from "../lib/statcard";
 import { useAsync } from "../lib/hooks";
@@ -100,6 +102,16 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
   const snapStat = ["QB", "RB", "FB", "WR", "TE", "K", "P", "T", "G", "C"]
     .includes(pos) ? "offense_pct" : "defense_pct";
 
+  // Sakatlık geçmişi (en güncel rapor sezonu)
+  const { data: injuries } = useAsync(async () => {
+    const rows = await loadInjuries();
+    if (!rows) return null;
+    return rows
+      .filter((r) => r.player_id === id)
+      .sort((a, b) => Number(b.week ?? 0) - Number(a.week ?? 0));
+  }, [id]);
+  const latestInjury = injuries?.[0] ?? null;
+
   // Hücum şeması splitleri (seçili sezon)
   const { data: scheme } = useAsync(async () => {
     const rows = await loadPlayerScheme(season);
@@ -130,6 +142,9 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
           <p className="sub">
             {pos || "?"} · {teamName(player?.team as string | null)}
             {player && ` · ${player.first_season}–${player.last_season}`}
+            {" "}
+            <StatusBadge status={latestInjury?.report_status as string}
+                         note={latestInjury?.report_primary_injury as string} />
           </p>
         </div>
       </div>
@@ -159,13 +174,26 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
       {weeksErr && <ErrorMsg msg={weeksErr} />}
       {weeks && weeks.length > 0 && (
         <>
-          <div className="pill-row">
-            {stats.map((s) => (
-              <button key={s} className={`pill small ${s === chartStat ? "active" : ""}`}
-                      onClick={() => setChartStat(s)}>
-                {label(s)}
-              </button>
-            ))}
+          <div className="toolbar">
+            <div className="pill-row">
+              {stats.map((s) => (
+                <button key={s} className={`pill small ${s === chartStat ? "active" : ""}`}
+                        onClick={() => setChartStat(s)}>
+                  {label(s)}
+                </button>
+              ))}
+            </div>
+            {(() => {
+              const t = trendOf(weeks, chartStat);
+              const txt = t.kind === "hot" ? "🔥 Yükselişte"
+                : t.kind === "cold" ? "🧊 Düşüşte" : "— Stabil";
+              return (
+                <span className={`trend-chip ${t.kind}`}
+                      title={`son 3 hafta ort. ${t.recent.toFixed(1)} / sezon ${t.season.toFixed(1)}`}>
+                  {txt} · son 3: {t.recent.toFixed(1)} vs sezon: {t.season.toFixed(1)}
+                </span>
+              );
+            })()}
           </div>
           <WeeklyBarChart rows={weeks} stat={chartStat} />
         </>
@@ -215,6 +243,16 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
           <p className="sub">week 0 satırı sezon toplamıdır.</p>
           <StatTable rows={ngs}
             columns={["week", ...NGS_VIEW_COLS[ngsType!]]}
+            defaultSort="week" />
+        </>
+      )}
+
+      {injuries && injuries.length > 0 && (
+        <>
+          <h2>Sakatlık Geçmişi ({String(injuries[0].season)})</h2>
+          <StatTable rows={injuries}
+            columns={["week", "team", "report_status", "report_primary_injury",
+                      "practice_status", "date_modified"]}
             defaultSort="week" />
         </>
       )}

@@ -100,6 +100,7 @@ def process_season(season: int, schedules, master) -> None:
 def update_current_roster() -> "object | None":
     """Güncel sezon kadroları + derinlik şeması (2026 varsa o, yoksa mevcut sezon)."""
     cur = current_season()
+    result = None
     for season in (cur + 1, cur):
         depth = sources.fetch_depth_charts(season)
         if depth is None:
@@ -109,9 +110,24 @@ def update_current_roster() -> "object | None":
         if not dc.empty:
             transform.write_json(config.DATA_DIR / "depth_charts.json", dc)
             log.info("Depth chart yazıldı: %s sezonu, %s satır", season, len(dc))
-            return roster if roster is not None else dc
-    log.warning("Depth chart verisi bulunamadı")
-    return None
+            result = roster if roster is not None else dc
+            break
+    if result is None:
+        log.warning("Depth chart verisi bulunamadı")
+
+    # Sakatlık raporları: yeni sezon yayınlanmadıysa son sezonunki
+    for season in (cur + 1, cur):
+        inj = sources.fetch_injuries(season)
+        if inj is None:
+            continue
+        keep = [c for c in config.INJURY_COLS if c in inj.columns]
+        inj = inj[keep].rename(columns={"gsis_id": "player_id",
+                                        "full_name": "player_name"})
+        transform.write_json(config.DATA_DIR / "injuries.json",
+                             inj.reset_index(drop=True))
+        log.info("Sakatlık raporları yazıldı: %s sezonu, %s satır", season, len(inj))
+        break
+    return result
 
 
 def rebuild_index_and_manifest(master, current_roster=None) -> None:

@@ -197,6 +197,11 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 }
 .drawer-row span { color: var(--text-dim); }
 .drawer-row strong { font-variant-numeric: tabular-nums; }
+.drawer-spark {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px 2px; margin: 8px 0;
+}
+
 .drawer-proj {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 8px; padding: 10px 12px; margin: 10px 0;
@@ -229,6 +234,18 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
   cursor: pointer; font-size: 0.85rem;
 }
 .chip-x:hover { color: var(--text); }
+
+.status-badge {
+  display: inline-block; border-radius: 10px; padding: 2px 9px;
+  font-size: 0.78rem; font-weight: 600;
+}
+.trend-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 12px; padding: 3px 11px; font-size: 0.82rem; font-weight: 600;
+}
+.trend-chip.hot { background: #12351f; color: #3fb950; }
+.trend-chip.cold { background: #3d1f12; color: #f0883e; }
+.trend-chip.flat { background: var(--border); color: var(--text-dim); }
 
 .rank-chip {
   display: inline-block; min-width: 34px; text-align: center;

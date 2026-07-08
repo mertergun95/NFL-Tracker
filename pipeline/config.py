@@ -57,6 +57,15 @@ ROSTER_CANDIDATES = [
     "{base}/rosters/roster_{season}.csv.gz",
     "{base}/rosters/roster_{season}.csv",
 ]
+INJURY_CANDIDATES = [
+    "{base}/injuries/injuries_{season}.csv.gz",
+    "{base}/injuries/injuries_{season}.csv",
+]
+INJURY_COLS = [
+    "season", "game_type", "week", "team", "gsis_id", "position", "full_name",
+    "report_primary_injury", "report_secondary_injury", "report_status",
+    "practice_primary_injury", "practice_status", "date_modified",
+]
 
 # nflverse'te henüz yayınlanmamış sezonlar için NFL'in kendi NGS API'si
 NGS_API_URL = ("https://appapi.ngs.nfl.com/statboard/{stat_type}"
