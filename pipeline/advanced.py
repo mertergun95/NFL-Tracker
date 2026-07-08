@@ -216,9 +216,12 @@ def build_depth_chart(raw: pd.DataFrame, roster: pd.DataFrame | None,
                       season: int) -> pd.DataFrame:
     """Güncel derinlik şeması: takım × pozisyon × öncelik sırası (son snapshot)."""
     df = raw.copy()
-    renames = {"club_code": "team", "depth_team": "depth",
+    # iki format: eski (club_code/depth_team/full_name) ve
+    # yeni 2025+ (team/pos_abb/pos_grp/pos_rank/gsis_id/player_name)
+    renames = {"club_code": "team", "depth_team": "depth", "pos_rank": "depth",
                "gsis_id": "player_id", "full_name": "player_name",
-               "jersey_number": "jersey", "depth_position": "position_slot"}
+               "jersey_number": "jersey", "depth_position": "position_slot",
+               "pos_abb": "position", "pos_grp": "formation"}
     # hedef kolon zaten varsa kaynağı at (duplicate kolon kaymasını önle)
     df = df.drop(columns=[k for k, v in renames.items()
                           if k in df.columns and v in df.columns])
@@ -248,6 +251,8 @@ def build_depth_chart(raw: pd.DataFrame, roster: pd.DataFrame | None,
     df["depth"] = pd.to_numeric(df["depth"], errors="coerce")
     df = df[df["depth"].notna()]
     df["depth"] = df["depth"].astype(int)
+    if not df.empty and df["depth"].min() == 0:  # yeni format 0 tabanlı
+        df["depth"] += 1
     dedup = [c for c in ("team", "formation", "position", "depth", "player_id")
              if c in df.columns]
     df = df.drop_duplicates(dedup, keep="first")
