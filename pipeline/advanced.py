@@ -219,6 +219,9 @@ def build_depth_chart(raw: pd.DataFrame, roster: pd.DataFrame | None,
     renames = {"club_code": "team", "depth_team": "depth",
                "gsis_id": "player_id", "full_name": "player_name",
                "jersey_number": "jersey", "depth_position": "position_slot"}
+    # hedef kolon zaten varsa kaynağı at (duplicate kolon kaymasını önle)
+    df = df.drop(columns=[k for k, v in renames.items()
+                          if k in df.columns and v in df.columns])
     df = df.rename(columns={k: v for k, v in renames.items() if k in df.columns})
     if "player_name" not in df.columns:
         if {"first_name", "last_name"} <= set(df.columns):
@@ -234,15 +237,20 @@ def build_depth_chart(raw: pd.DataFrame, roster: pd.DataFrame | None,
             df = df[df[time_col] == latest]
             break
 
+    log.info("Depth chart ham kolonlar: %s", list(raw.columns))
     keep = [c for c in ("team", "formation", "position", "position_slot",
                         "depth", "jersey", "player_id", "player_name")
             if c in df.columns]
+    if not {"team", "position", "depth"} <= set(keep):
+        log.warning("Depth chart beklenen kolonları içermiyor: %s", keep)
+        return pd.DataFrame()
     df = df[keep].copy()
-    df["depth"] = pd.to_numeric(df.get("depth"), errors="coerce")
+    df["depth"] = pd.to_numeric(df["depth"], errors="coerce")
     df = df[df["depth"].notna()]
     df["depth"] = df["depth"].astype(int)
-    df = df.drop_duplicates(["team", "formation", "position", "depth",
-                             "player_id"], keep="first")
+    dedup = [c for c in ("team", "formation", "position", "depth", "player_id")
+             if c in df.columns]
+    df = df.drop_duplicates(dedup, keep="first")
 
     if roster is not None and "gsis_id" in roster.columns:
         extra = [c for c in ("status", "headshot_url") if c in roster.columns]
