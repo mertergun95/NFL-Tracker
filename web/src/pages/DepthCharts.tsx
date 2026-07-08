@@ -8,10 +8,18 @@ import { TEAMS, teamName } from "../lib/teams";
 import type { StatRow } from "../lib/types";
 
 const FORMATIONS: [string, string][] = [
-  ["Offense", "Hücum"],
-  ["Defense", "Savunma"],
-  ["Special Teams", "Özel Takımlar"],
+  ["offense", "Hücum"],
+  ["defense", "Savunma"],
+  ["st", "Özel Takımlar"],
 ];
+
+// formation etiketi ("3WR 1TE", "Base 3-4 D", "Special Teams"…) -> birim
+function unitOf(formation: string): string {
+  const f = formation.toLowerCase();
+  if (f.includes("special")) return "st";
+  if (f.includes("base") || /\bd$/.test(f) || f.includes("defen")) return "defense";
+  return "offense";
+}
 
 // pozisyonları mantıklı sırada göster
 const POS_ORDER = ["QB", "RB", "FB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
@@ -20,7 +28,7 @@ const POS_ORDER = ["QB", "RB", "FB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
 
 export default function DepthCharts() {
   const [team, setTeam] = useState("KC");
-  const [formation, setFormation] = useState("Offense");
+  const [formation, setFormation] = useState("offense");
   const { data, loading } = useAsync(() => loadOptional("depth_charts.json"), []);
 
   const season = data?.[0]?.season;
@@ -28,7 +36,7 @@ export default function DepthCharts() {
   const groups = useMemo(() => {
     if (!data) return [];
     const rows = data.filter((r) => r.team === team
-      && String(r.formation ?? "").toLowerCase().startsWith(formation.toLowerCase().slice(0, 3)));
+      && unitOf(String(r.formation ?? "")) === formation);
     const byPos = new Map<string, StatRow[]>();
     for (const r of rows) {
       const pos = String(r.position ?? "?");

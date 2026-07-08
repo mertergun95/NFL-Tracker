@@ -113,6 +113,17 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Dashboard lider kartları **Top 30'a genişletilebilir**
 - [x] Karşılaştırma v2: oyuncu başına **ayrı sezon**, en iyi değer vurgusu, kümülatif mod
 
+### ✅ Faz 5.6 — Kadrolar ve grafik zenginleştirme (kullanıcı istekleri, 3. tur)
+- [x] **Güncel kadrolar + depth chart** sayfası (2026 resmi derinlik şeması,
+      logo ızgarasından takım seçimi, Hücum/Savunma/ST); oyuncu dizininde
+      güncel takım (offseason transferleri)
+- [x] **Takım logoları** (ESPN CDN) tablolarda, başlıklarda, maç kartlarında
+- [x] Deep Charts: eksen seçimine göre **"grafik nasıl okunur" rehberi**
+- [x] Künyede **sıradaki rakip + haftalık projeksiyon**
+- [x] **Sıralama (yatay bar)** görünümü — scatter'a alternatif
+- [x] Grafikte **arama**: oyuncu/takım yazınca turuncu halka + etiketle vurgulanır
+- [x] CI: pipeline değişikliğinde otomatik veri koşusu + log commit'i (teşhis)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
