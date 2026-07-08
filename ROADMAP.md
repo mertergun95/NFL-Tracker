@@ -137,6 +137,18 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Projeksiyonlar **maça göre** görünüm
 - [x] pos_allowed.json + next_schedule.json pipeline çıktıları
 
+### ✅ Faz 5.8 — Sakatlık sistemi ve projeksiyon v2 (kullanıcı istekleri, 5. tur)
+- [x] **Sakatlık takibi**: resmi NFL raporları (nflverse injuries) her Salı çekilir;
+      Sakatlıklar sayfası (takım filtreli, renkli durum rozetleri), oyuncu
+      sayfasında sakatlık geçmişi, künyede güncel durum
+- [x] **Projeksiyon v2**: güncel kadro bazlı (transferler dahil) ×
+      matchup × şema uyumu (blitz/box/coverage splitleri) × snap trendi ×
+      sakatlık (Out/Doubtful hariç, Questionable −%10, bayat rapor koruması)
+- [x] Insights'ta oyuncular **güncel takımlarıyla** anılır
+- [x] Haftalık grafiklerde **3 haftalık hareketli ortalama eğrisi + sezon
+      ortalaması çizgisi**; renkli **trend alarmları** (🔥/🧊); künyede trend
+      renkli **sparkline**
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
