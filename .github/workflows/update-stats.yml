@@ -47,9 +47,9 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode || 'update' }}"
           if [ "$MODE" = "backfill" ]; then
-            python run.py backfill --seasons "${{ github.event.inputs.seasons || '2021-2025' }}"
+            python run.py backfill --seasons "${{ github.event.inputs.seasons || '2021-2025' }}" 2>&1 | tee ../web/public/data/last_run.log
           else
-            python run.py update
+            python run.py update 2>&1 | tee ../web/public/data/last_run.log
           fi
 
       - name: Commit and push data
