@@ -5,6 +5,10 @@ on:
   schedule:
     # Her Salı 10:00 UTC — MNF bittikten ve nflverse gece güncellemesinden sonra
     - cron: "0 10 * * 2"
+  push:
+    # pipeline değişince mevcut sezonu yeniden işle (veri commit'leri tetiklemez)
+    branches: [main, claude/nfl-stats-tracker-plan-0o2c52]
+    paths: ["pipeline/**", ".github/workflows/update-stats.yml"]
   workflow_dispatch:
     inputs:
       mode:
