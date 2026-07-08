@@ -43,6 +43,8 @@ INFO Depth chart yazıldı: 2026 sezonu, 3171 satır
 INFO Eksik kolonlar (atlandı): ['entry_year', 'draft_club', 'draft_number']
 INFO Yazıldı: web/public/data/players/index.json (3691 satır, 722.8 KB)
 INFO Manifest güncellendi: 5 sezon
+INFO Yazıldı: web/public/data/pos_allowed.json (128 satır, 12.4 KB)
+INFO Yazıldı: web/public/data/next_schedule.json (272 satır, 38.7 KB)
 INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
 INFO Projeksiyonlar yazıldı: 292 oyuncu (2026 W1)
 INFO Pipeline başarıyla tamamlandı: [2025]
