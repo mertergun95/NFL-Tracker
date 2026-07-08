@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { loadPlayerIndex, loadPlayerSeason } from "../lib/data";
+import TeamLogo from "./TeamLogo";
+import { loadPlayerIndex, loadPlayerSeason, loadProjections } from "../lib/data";
 import { fmt, label, presetForPosition } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
@@ -16,12 +17,18 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
   const { data: index } = useAsync(() => loadPlayerIndex(), []);
   const { data: seasonRows } = useAsync(() => loadPlayerSeason(season), [season]);
 
+  const { data: projections } = useAsync(() => loadProjections(), []);
+
   const meta = useMemo(
     () => index?.find((p) => p.player_id === playerId) ?? null,
     [index, playerId]);
   const row = useMemo(
     () => seasonRows?.find((p) => p.player_id === playerId) ?? null,
     [seasonRows, playerId]);
+  const proj = useMemo(
+    () => projections?.rows.find((p) => p.player_id === playerId) ?? null,
+    [projections, playerId]);
+  const currentTeam = String(meta?.current_team ?? proj?.team ?? "");
 
   const pos = String(meta?.position ?? row?.position ?? "");
   const stats = presetForPosition(pos || null);
@@ -54,6 +61,30 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 {meta.college_name ? `${meta.college_name} · ` : ""}
                 {meta.rookie_season ? `çaylak: ${meta.rookie_season}` : ""}
               </p>
+            )}
+            {currentTeam && currentTeam !== String(row?.team ?? "") && (
+              <p className="sub">
+                Güncel takım: <TeamLogo abbr={currentTeam} size={18} />{" "}
+                {teamName(currentTeam)}
+              </p>
+            )}
+            {proj && projections && (
+              <div className="drawer-proj">
+                <div className="tile-label">
+                  Sıradaki maç — {projections.target.season} W{projections.target.week}
+                </div>
+                <div className="drawer-proj-line">
+                  <span>
+                    vs <TeamLogo abbr={String(proj.opponent)} size={18} />{" "}
+                    {String(proj.opponent)}
+                  </span>
+                  <strong>Proj: {fmt("proj_ppr", proj.proj_ppr)} PPR</strong>
+                </div>
+                <div className="drawer-proj-sub">
+                  matchup çarpanı {fmt("matchup_factor", proj.matchup_factor)} ·
+                  son 5: {fmt("recent_avg", proj.recent_avg)}
+                </div>
+              </div>
             )}
             {row ? (
               <div className="drawer-stats">

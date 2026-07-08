@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import StatTable from "../components/StatTable";
+import TeamLogo from "../components/TeamLogo";
 import { ErrorMsg, Loading } from "../components/Pickers";
 import { loadPlayerWeeks, loadSchedule, loadTeamWeeks } from "../lib/data";
 import { label } from "../lib/columns";
@@ -88,11 +89,13 @@ export default function GameDetail() {
       </p>
       <div className="game-hero">
         <div>
+          <TeamLogo abbr={away} size={44} />
           <Link to={`/team/${away}`}>{teamName(away)}</Link>
           <strong>{played ? String(game.away_score) : "—"}</strong>
         </div>
         <span className="game-at">@</span>
         <div>
+          <TeamLogo abbr={home} size={44} />
           <Link to={`/team/${home}`}>{teamName(home)}</Link>
           <strong>{played ? String(game.home_score) : "—"}</strong>
         </div>

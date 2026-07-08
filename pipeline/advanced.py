@@ -210,7 +210,49 @@ def build_ngs(raw: pd.DataFrame, stat_type: str, season: int) -> pd.DataFrame:
     return _round(df.reset_index(drop=True), 2)
 
 
-# ------------------------------------------------------------------ shares
+# ------------------------------------------------------------ depth chart
+
+def build_depth_chart(raw: pd.DataFrame, roster: pd.DataFrame | None,
+                      season: int) -> pd.DataFrame:
+    """Güncel derinlik şeması: takım × pozisyon × öncelik sırası (son snapshot)."""
+    df = raw.copy()
+    renames = {"club_code": "team", "depth_team": "depth",
+               "gsis_id": "player_id", "full_name": "player_name",
+               "jersey_number": "jersey", "depth_position": "position_slot"}
+    df = df.rename(columns={k: v for k, v in renames.items() if k in df.columns})
+    if "player_name" not in df.columns:
+        if {"first_name", "last_name"} <= set(df.columns):
+            df["player_name"] = (df["first_name"].astype(str) + " "
+                                 + df["last_name"].astype(str)).str.strip()
+        else:
+            df["player_name"] = df.get("football_name", "")
+
+    # takım başına en güncel snapshot (hafta ya da tarih kolonu üzerinden)
+    for time_col in ("week", "dt"):
+        if time_col in df.columns and df[time_col].notna().any() and "team" in df.columns:
+            latest = df.groupby("team")[time_col].transform("max")
+            df = df[df[time_col] == latest]
+            break
+
+    keep = [c for c in ("team", "formation", "position", "position_slot",
+                        "depth", "jersey", "player_id", "player_name")
+            if c in df.columns]
+    df = df[keep].copy()
+    df["depth"] = pd.to_numeric(df.get("depth"), errors="coerce")
+    df = df[df["depth"].notna()]
+    df["depth"] = df["depth"].astype(int)
+    df = df.drop_duplicates(["team", "formation", "position", "depth",
+                             "player_id"], keep="first")
+
+    if roster is not None and "gsis_id" in roster.columns:
+        extra = [c for c in ("status", "headshot_url") if c in roster.columns]
+        if extra:
+            r = roster.drop_duplicates("gsis_id")[["gsis_id", *extra]]
+            df = df.merge(r.rename(columns={"gsis_id": "player_id"}),
+                          on="player_id", how="left")
+    df["season"] = season
+    order = [c for c in ("team", "formation", "position") if c in df.columns]
+    return df.sort_values([*order, "depth"]).reset_index(drop=True)
 
 SHARE_SPECS = [
     # (oyuncu kolonu, takım kolonu, çıktı adı)

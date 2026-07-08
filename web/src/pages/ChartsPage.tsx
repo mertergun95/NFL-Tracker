@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { PlayerScatterChart } from "../components/charts";
+import { BarRankingChart, PlayerScatterChart } from "../components/charts";
 import PlayerDrawer from "../components/PlayerDrawer";
 import { ErrorMsg, Loading, PositionPicker, SeasonPicker } from "../components/Pickers";
 import {
@@ -44,6 +44,28 @@ const META_COLS = new Set([
   "week", "season", "games", "player_id", "first_season", "last_season",
 ]);
 
+// Eksen seçimine göre grafiğin nasıl okunacağını anlatan dinamik rehber
+function describeMetric(col: string): string {
+  const l = label(col).toLowerCase();
+  if (col.includes("epa")) return `${label(col)} (play başına eklenen sayı beklentisi — verimlilik; 0 üstü iyi)`;
+  if (col.endsWith("_share") || col.includes("rate") || col.includes("pct"))
+    return `${label(col)} (oran — hacimden bağımsız pay/yüzde)`;
+  return l;
+}
+
+function interpretChart(x: string, y: string, mode: string, view: string): string {
+  const entity = mode === "team" ? "takımı" : "oyuncuyu";
+  if (view === "bars")
+    return `Bu sıralama, ${describeMetric(y)} metriğinde en iyileri gösterir; ` +
+      `çubuk ne kadar uzunsa değer o kadar yüksek. Turuncu çubuk arama eşleşmenizdir.`;
+  return `Her nokta bir ${entity} temsil eder. Yatay eksen ${describeMetric(x)}, ` +
+    `dikey eksen ${describeMetric(y)}. ` +
+    `Sağ üst köşe her iki metrikte de yüksek olanlar (genelde en değerliler); ` +
+    `sol üst, ${label(x)} düşükken ${label(y)} yükseklere ulaşanlar (verimli ama az hacimli); ` +
+    `sağ alt ise yüksek ${label(x)}'e rağmen ${label(y)} üretemeyenlerdir. ` +
+    `Eğilimden sapan noktalar (çizgiden uzak olanlar) incelemeye değer hikâyelerdir.`;
+}
+
 function numericCols(rows: StatRow[]): string[] {
   if (rows.length === 0) return [];
   const sample = rows.slice(0, 50);
@@ -57,10 +79,12 @@ function numericCols(rows: StatRow[]): string[] {
 export default function ChartsPage({ seasons }: { seasons: number[] }) {
   const [season, setSeason] = useState(seasons[0]);
   const [mode, setMode] = useState<"player" | "team">("player");
+  const [view, setView] = useState<"scatter" | "bars">("scatter");
   const [dataset, setDataset] = useState<Dataset>("season");
   const [pos, setPos] = useState("WR");
   const [axes, setAxes] = useState<Record<string, [string, string]>>({});
   const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   // oyuncu veri setleri
   const { data: seasonRows, error, loading } = useAsync(
@@ -147,29 +171,52 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
         </div>
       )}
       <div className="toolbar">
+        <div className="pill-row">
+          <button className={`pill small ${view === "scatter" ? "active" : ""}`}
+                  onClick={() => setView("scatter")}>◈ Dağılım</button>
+          <button className={`pill small ${view === "bars" ? "active" : ""}`}
+                  onClick={() => setView("bars")}>▤ Sıralama</button>
+        </div>
+        {view === "scatter" && (
+          <label className="axis-label">
+            X:{" "}
+            <select className="axis-select" value={x ?? ""}
+                    onChange={(e) => setAxis(0, e.target.value)}>
+              {options.map((s) => <option key={s} value={s}>{label(s)}</option>)}
+            </select>
+          </label>
+        )}
         <label className="axis-label">
-          X:{" "}
-          <select className="axis-select" value={x ?? ""}
-                  onChange={(e) => setAxis(0, e.target.value)}>
-            {options.map((s) => <option key={s} value={s}>{label(s)}</option>)}
-          </select>
-        </label>
-        <label className="axis-label">
-          Y:{" "}
+          {view === "bars" ? "Metrik:" : "Y:"}{" "}
           <select className="axis-select" value={y ?? ""}
                   onChange={(e) => setAxis(1, e.target.value)}>
             {options.map((s) => <option key={s} value={s}>{label(s)}</option>)}
           </select>
         </label>
+        <input className="search"
+               placeholder={mode === "team" ? "Takım ara…" : "Oyuncu ara…"}
+               value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
+      {x && y && (
+        <div className="interpret-box">
+          💡 {interpretChart(x, y, mode, view)}
+        </div>
+      )}
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
-      {rows.length > 0 && x && y && (
+      {rows.length > 0 && x && y && view === "scatter" && (
         mode === "team"
           ? <PlayerScatterChart rows={rows} x={x} y={y}
-              nameKey="team" idKey="team" labelTop={32} />
-          : <PlayerScatterChart rows={rows} x={x} y={y}
+              nameKey="team" idKey="team" labelTop={32} highlight={search} />
+          : <PlayerScatterChart rows={rows} x={x} y={y} highlight={search}
               onPointClick={(id) => setDrawerId(id)} />
+      )}
+      {rows.length > 0 && y && view === "bars" && (
+        <BarRankingChart rows={rows} metric={y} highlight={search}
+          nameKey={mode === "team" ? "team" : "player_name"}
+          idKey={mode === "team" ? "team" : "player_id"}
+          count={mode === "team" ? 32 : 20}
+          onPointClick={mode === "player" ? (id) => setDrawerId(id) : undefined} />
       )}
       {rows.length === 0 && !loading && (
         <p className="empty">Bu veri seti bu sezon için mevcut değil.</p>

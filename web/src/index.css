@@ -122,6 +122,40 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 }
 .chart-note { color: var(--text-dim); font-size: 0.8rem; margin: 0 0 8px 12px; }
 
+.team-logo { vertical-align: middle; object-fit: contain; }
+.team-cell { display: inline-flex; align-items: center; gap: 7px; }
+
+.logo-grid { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 16px; }
+.logo-btn {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 7px; cursor: pointer; line-height: 0;
+}
+.logo-btn:hover { border-color: var(--text-dim); }
+.logo-btn.active { border-color: var(--accent); background: #2d1618; }
+
+.depth-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  margin-top: 14px;
+}
+.depth-card {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.depth-card h3 { margin: 0 0 8px; font-size: 0.95rem; color: var(--text-dim); }
+.depth-card ol { margin: 0; padding: 0; list-style: none; }
+.depth-card li {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 4px 0; font-size: 0.9rem;
+}
+.depth-card li.starter a, .depth-card li.starter span:nth-child(2) { font-weight: 700; }
+.depth-card a { color: var(--link); text-decoration: none; }
+.depth-no {
+  color: var(--text-dim); font-size: 0.75rem; min-width: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.jersey { color: var(--text-dim); font-size: 0.75rem; margin-left: auto; }
+
 .game-hero {
   display: flex; align-items: center; gap: 24px;
   background: var(--bg-soft); border: 1px solid var(--border);
@@ -163,6 +197,16 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 }
 .drawer-row span { color: var(--text-dim); }
 .drawer-row strong { font-variant-numeric: tabular-nums; }
+.drawer-proj {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; margin: 10px 0;
+}
+.drawer-proj-line {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 4px; font-size: 0.92rem;
+}
+.drawer-proj-sub { color: var(--text-dim); font-size: 0.75rem; margin-top: 4px; }
+
 .drawer-link {
   display: inline-block; margin-top: 14px; color: var(--link);
   text-decoration: none; font-weight: 600;
@@ -185,6 +229,13 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
   cursor: pointer; font-size: 0.85rem;
 }
 .chip-x:hover { color: var(--text); }
+
+.interpret-box {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px; padding: 10px 14px; margin: 6px 0 12px;
+  color: var(--text-dim); font-size: 0.85rem; line-height: 1.5;
+}
 
 .insight-grid {
   display: grid; gap: 12px;

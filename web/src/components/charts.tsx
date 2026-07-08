@@ -1,5 +1,5 @@
 import {
-  Bar, BarChart, CartesianGrid, LabelList, Legend, Line, LineChart,
+  Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart,
   ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip,
   XAxis, YAxis,
 } from "recharts";
@@ -109,16 +109,22 @@ export function CompareLineChart({ series, stat }:
 
 /** Genel amaçlı dağılım grafiği: x/y istatistik, isim etiketli, tıklanabilir. */
 export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "player_name",
-                                     idKey = "player_id", onPointClick }: {
+                                     idKey = "player_id", onPointClick, highlight }: {
   rows: StatRow[]; x: string; y: string; labelTop?: number;
   nameKey?: string; idKey?: string;
   onPointClick?: (id: string) => void;
+  /** arama vurgusu: isim bu sorguyu içeriyorsa turuncu + etiketli gösterilir */
+  highlight?: string;
 }) {
-  const data = rows
+  const q = (highlight ?? "").trim().toLowerCase();
+  const all = rows
     .filter((r) => typeof r[x] === "number" && typeof r[y] === "number")
     .map((r) => ({ name: String(r[nameKey]), id: String(r[idKey] ?? ""),
                    xv: Number(r[x]), yv: Number(r[y]) }));
-  if (data.length === 0) return null;
+  if (all.length === 0) return null;
+  const hits = q ? all.filter((d) => d.name.toLowerCase().includes(q)) : [];
+  const hitSet = new Set(hits.map((d) => d.name));
+  const data = all.filter((d) => !hitSet.has(d.name));
   const top = [...data].sort((a, b) => b.yv - a.yv).slice(0, labelTop);
   const topSet = new Set(top.map((d) => d.name));
   const rest = data.filter((d) => !topSet.has(d.name));
@@ -163,11 +169,86 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "playe
             <LabelList dataKey="name" position="top"
                        style={{ fill: CHART.ink, fontSize: 11 }} />
           </Scatter>
+          {hits.length > 0 && (
+            <Scatter data={hits} fill={CHART.series3} isAnimationActive={false}
+                     onClick={handleClick}
+                     cursor={onPointClick ? "pointer" : undefined}
+                     shape={(props: unknown) => {
+                       const { cx, cy } = props as { cx: number; cy: number };
+                       return (
+                         <g>
+                           <circle cx={cx} cy={cy} r={9} fill="none"
+                                   stroke={CHART.series3} strokeWidth={2} />
+                           <circle cx={cx} cy={cy} r={4.5} fill={CHART.series3} />
+                         </g>
+                       );
+                     }}>
+              <LabelList dataKey="name" position="top"
+                         style={{ fill: CHART.series3, fontSize: 12, fontWeight: 700 }} />
+            </Scatter>
+          )}
         </ScatterChart>
       </ResponsiveContainer>
       {onPointClick && (
         <p className="chart-note">Bir noktaya tıklayınca oyuncu künyesi açılır.</p>
       )}
+    </div>
+  );
+}
+
+/** Yatay bar sıralaması: seçilen metrikte en iyiler, isim etiketli. */
+export function BarRankingChart({ rows, metric, nameKey = "player_name",
+                                  idKey = "player_id", count = 20,
+                                  onPointClick, highlight }: {
+  rows: StatRow[]; metric: string; nameKey?: string; idKey?: string;
+  count?: number; onPointClick?: (id: string) => void; highlight?: string;
+}) {
+  const q = (highlight ?? "").trim().toLowerCase();
+  const data = rows
+    .filter((r) => typeof r[metric] === "number")
+    .map((r) => ({ name: String(r[nameKey]), id: String(r[idKey] ?? ""),
+                   value: Number(r[metric]) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, count);
+  if (data.length === 0) return null;
+  return (
+    <div className="chart-box">
+      <ResponsiveContainer width="100%" height={Math.max(220, data.length * 28 + 40)}>
+        <BarChart data={data} layout="vertical"
+                  margin={{ top: 4, right: 56, bottom: 4, left: 8 }}>
+          <CartesianGrid horizontal={false} stroke={CHART.grid} />
+          <XAxis type="number" tick={{ fill: CHART.muted, fontSize: 11 }}
+                 tickFormatter={(v) => fmt(metric, Number(v))}
+                 axisLine={{ stroke: CHART.axis }} tickLine={false} />
+          <YAxis type="category" dataKey="name" width={150}
+                 tick={{ fill: CHART.ink, fontSize: 12 }}
+                 axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={{
+                     backgroundColor: CHART.surface, border: `1px solid ${CHART.axis}`,
+                     borderRadius: 8, color: CHART.ink, fontSize: 13,
+                   }}
+                   cursor={{ fill: "#ffffff10" }}
+                   formatter={(v) => [fmt(metric, Number(v)), label(metric)]} />
+          <Bar dataKey="value" isAnimationActive={false} maxBarSize={18}
+               radius={[0, 4, 4, 0]}
+               onClick={onPointClick ? (d: unknown) => {
+                 const p = (d as { payload?: { id?: string } })?.payload
+                   ?? (d as { id?: string });
+                 if (p?.id) onPointClick(p.id);
+               } : undefined}
+               cursor={onPointClick ? "pointer" : undefined}>
+            {data.map((d) => (
+              <Cell key={d.name}
+                    fill={q && d.name.toLowerCase().includes(q)
+                          ? CHART.series3 : CHART.series1} />
+            ))}
+            <LabelList dataKey="value" position="right"
+                       formatter={((v: unknown) =>
+                         fmt(metric, Number(v))) as never}
+                       style={{ fill: CHART.muted, fontSize: 11 }} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

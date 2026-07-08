@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import TeamLogo from "../components/TeamLogo";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import { loadSchedule } from "../lib/data";
 import { useAsync } from "../lib/hooks";
@@ -43,11 +44,17 @@ export default function Games({ seasons }: { seasons: number[] }) {
                  onClick={() => navigate(`/game/${season}/${g.game_id}`)}>
               <div className="game-date">{String(g.gameday)} · {String(g.game_type)}</div>
               <div className="game-line">
-                <Link to={`/team/${g.away_team}`}>{teamName(String(g.away_team))}</Link>
+                <Link to={`/team/${g.away_team}`} className="team-cell">
+                  <TeamLogo abbr={String(g.away_team)} size={20} />{" "}
+                  {teamName(String(g.away_team))}
+                </Link>
                 <strong>{played ? String(g.away_score) : ""}</strong>
               </div>
               <div className="game-line">
-                <Link to={`/team/${g.home_team}`}>{teamName(String(g.home_team))}</Link>
+                <Link to={`/team/${g.home_team}`} className="team-cell">
+                  <TeamLogo abbr={String(g.home_team)} size={20} />{" "}
+                  {teamName(String(g.home_team))}
+                </Link>
                 <strong>{played ? String(g.home_score) : ""}</strong>
               </div>
             </div>

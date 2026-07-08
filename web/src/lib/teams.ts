@@ -41,3 +41,11 @@ export const TEAMS: Record<string, TeamInfo> = {
 
 export const teamName = (abbr: string | null) =>
   (abbr && TEAMS[abbr]?.name) || abbr || "—";
+
+// ESPN CDN logo kodları (bizim kısaltmalardan farklı olanlar)
+const ESPN_CODES: Record<string, string> = { WAS: "wsh", LA: "lar", LAR: "lar" };
+
+export const teamLogoUrl = (abbr: string | null) =>
+  abbr
+    ? `https://a.espncdn.com/i/teamlogos/nfl/500/${(ESPN_CODES[abbr] ?? abbr).toLowerCase()}.png`
+    : "";

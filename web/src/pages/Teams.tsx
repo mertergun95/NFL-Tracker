@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import StatTable from "../components/StatTable";
+import TeamLogo from "../components/TeamLogo";
 import { TeamScatterChart } from "../components/charts";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import { loadTeamAdvanced, loadTeamScheme, loadTeamSeason } from "../lib/data";
@@ -78,7 +79,10 @@ export default function Teams({ seasons }: { seasons: number[] }) {
             defaultSort={presentCols[1] ?? "wins"}
             render={{
               team: (row) => (
-                <Link to={`/team/${row.team}`}>{teamName(String(row.team))}</Link>
+                <Link to={`/team/${row.team}`} className="team-cell">
+                  <TeamLogo abbr={String(row.team)} size={20} />{" "}
+                  {teamName(String(row.team))}
+                </Link>
               ),
             }}
           />

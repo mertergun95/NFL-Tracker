@@ -49,6 +49,15 @@ NGS_CANDIDATES = [  # stat_type: passing | rushing | receiving
     # tüm sezonları içeren birleşik dosya (sezon filtresi build_ngs'te)
     "{base}/nextgen_stats/ngs_{stat_type}.csv.gz",
 ]
+DEPTH_CHART_CANDIDATES = [
+    "{base}/depth_charts/depth_charts_{season}.csv.gz",
+    "{base}/depth_charts/depth_charts_{season}.csv",
+]
+ROSTER_CANDIDATES = [
+    "{base}/rosters/roster_{season}.csv.gz",
+    "{base}/rosters/roster_{season}.csv",
+]
+
 # nflverse'te henüz yayınlanmamış sezonlar için NFL'in kendi NGS API'si
 NGS_API_URL = ("https://appapi.ngs.nfl.com/statboard/{stat_type}"
                "?season={season}&seasonType=REG")

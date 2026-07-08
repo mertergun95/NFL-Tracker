@@ -97,13 +97,39 @@ def process_season(season: int, schedules, master) -> None:
     _optional("next gen stats", do_ngs)
 
 
-def rebuild_index_and_manifest(master) -> None:
+def update_current_roster() -> "object | None":
+    """Güncel sezon kadroları + derinlik şeması (2026 varsa o, yoksa mevcut sezon)."""
+    cur = current_season()
+    for season in (cur + 1, cur):
+        depth = sources.fetch_depth_charts(season)
+        if depth is None:
+            continue
+        roster = sources.fetch_roster(season)
+        dc = advanced.build_depth_chart(depth, roster, season)
+        if not dc.empty:
+            transform.write_json(config.DATA_DIR / "depth_charts.json", dc)
+            log.info("Depth chart yazıldı: %s sezonu, %s satır", season, len(dc))
+            return roster if roster is not None else dc
+    log.warning("Depth chart verisi bulunamadı")
+    return None
+
+
+def rebuild_index_and_manifest(master, current_roster=None) -> None:
     season_dfs = {}
     for sdir in sorted((config.DATA_DIR / "seasons").glob("*")):
         ps = transform.read_json(sdir / "player_season.json")
         if ps is not None:
             season_dfs[int(sdir.name)] = ps
     idx = transform.build_players_index(season_dfs, master)
+    # Güncel takım bilgisi (offseason transferleri dahil)
+    if current_roster is not None:
+        id_col = "gsis_id" if "gsis_id" in current_roster.columns else "player_id"
+        team_col = "team" if "team" in current_roster.columns else None
+        if team_col and id_col in current_roster.columns:
+            cur = (current_roster.drop_duplicates(id_col)
+                   [[id_col, team_col]]
+                   .rename(columns={id_col: "player_id", team_col: "current_team"}))
+            idx = idx.merge(cur, on="player_id", how="left")
     transform.write_json(config.DATA_DIR / "players" / "index.json", idx)
     transform.build_manifest(config.DATA_DIR)
 
@@ -144,7 +170,14 @@ def main() -> int:
         log.error("Hiçbir sezon işlenemedi, çıkılıyor")
         return 1
 
-    rebuild_index_and_manifest(master)
+    current_roster = None
+
+    def do_roster():
+        nonlocal current_roster
+        current_roster = update_current_roster()
+
+    _optional("güncel kadro/depth chart", do_roster)
+    rebuild_index_and_manifest(master, current_roster)
     _optional("insights", lambda: insights.build_and_write(schedules))
     if failed:
         log.warning("Tamamlandı ama şu sezonlar başarısız: %s", failed)

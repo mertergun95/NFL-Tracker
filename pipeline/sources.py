@@ -151,6 +151,14 @@ def fetch_ftn(season: int) -> pd.DataFrame | None:
     return _fetch_first(config.FTN_CANDIDATES, season=season)
 
 
+def fetch_depth_charts(season: int) -> pd.DataFrame | None:
+    return _fetch_first(config.DEPTH_CHART_CANDIDATES, season=season)
+
+
+def fetch_roster(season: int) -> pd.DataFrame | None:
+    return _fetch_first(config.ROSTER_CANDIDATES, season=season)
+
+
 def fetch_schedules() -> pd.DataFrame:
     for url in config.SCHEDULE_URLS:
         df = _fetch_csv(url)

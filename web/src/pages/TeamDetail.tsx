@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import StatTable from "../components/StatTable";
 import StatTiles, { leagueAverages } from "../components/StatTiles";
+import TeamLogo from "../components/TeamLogo";
 import { ErrorMsg, Loading, PositionPicker, SeasonPicker } from "../components/Pickers";
 import {
   loadPlayerSeason, loadPlayerWeeks, loadSchedule,
@@ -190,8 +191,9 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1 style={{ borderLeft: `6px solid ${info?.color ?? "#888"}`, paddingLeft: 12 }}>
-        {teamName(abbr ?? null)}
+      <h1 style={{ borderLeft: `6px solid ${info?.color ?? "#888"}`, paddingLeft: 12,
+                   display: "flex", alignItems: "center", gap: 12 }}>
+        <TeamLogo abbr={abbr ?? null} size={40} /> {teamName(abbr ?? null)}
       </h1>
       <p className="sub">{info?.division ?? ""}</p>
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
