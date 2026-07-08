@@ -1,0 +1,52 @@
+INFO OK 7548 satır <- http://www.habitatring.com/games.csv
+INFO OK 25033 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
+INFO === 2025 sezonu işleniyor ===
+INFO OK 19421 satır <- https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.csv.gz
+INFO Eksik kolonlar (atlandı): ['def_fumble_recovery_opp']
+INFO OK 570 satır <- https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2025.csv.gz
+INFO Eksik kolonlar (atlandı): ['fantasy_points', 'fantasy_points_ppr']
+INFO Yazıldı: web/public/data/seasons/2025/player_weeks.json (19421 satır, 5200.6 KB)
+INFO Yazıldı: web/public/data/seasons/2025/player_season.json (2019 satır, 516.6 KB)
+INFO Yazıldı: web/public/data/seasons/2025/team_weeks.json (570 satır, 40.2 KB)
+INFO Yazıldı: web/public/data/seasons/2025/team_season.json (32 satır, 3.2 KB)
+INFO Yazıldı: web/public/data/seasons/2025/schedule.json (285 satır, 40.3 KB)
+INFO OK 48771 satır <- https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2025.csv.gz
+INFO Yazıldı: web/public/data/seasons/2025/player_redzone.json (482 satır, 35.5 KB)
+INFO Yazıldı: web/public/data/seasons/2025/team_advanced.json (32 satır, 4.5 KB)
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/ftn_charting/ftn_charting_2025.csv.gz
+INFO OK 47316 satır <- https://github.com/nflverse/nflverse-data/releases/download/ftn_charting/ftn_charting_2025.csv
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2025.csv.gz
+INFO OK 45184 satır <- https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2025.csv
+INFO Yazıldı: web/public/data/seasons/2025/team_scheme.json (32 satır, 1.9 KB)
+INFO Oyuncu şema splitleri: 1274 satır (FTN: True)
+INFO Yazıldı: web/public/data/seasons/2025/player_scheme.json (1274 satır, 103.5 KB)
+INFO OK 26612 satır <- https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2025.csv.gz
+INFO Snap counts gsis eşleşme oranı: 99.8%
+INFO Yazıldı: web/public/data/seasons/2025/snap_counts.json (26612 satır, 2105.2 KB)
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_passing.csv.gz
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_passing.csv
+INFO OK 5933 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_passing.csv.gz
+INFO Yazıldı: web/public/data/seasons/2025/ngs_passing.json (605 satır, 69.5 KB)
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_rushing.csv.gz
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_rushing.csv
+INFO OK 6059 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_rushing.csv.gz
+INFO Yazıldı: web/public/data/seasons/2025/ngs_rushing.json (648 satır, 58.4 KB)
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv.gz
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv
+INFO OK 14731 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_receiving.csv.gz
+INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 135.6 KB)
+INFO OK 312066 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
+INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
+INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
+WARNING Depth chart beklenen kolonları içermiyor: ['team', 'player_id', 'player_name']
+INFO OK 554215 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2025.csv.gz
+INFO OK 3137 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2025.csv.gz
+INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
+WARNING Depth chart beklenen kolonları içermiyor: ['team', 'player_id', 'player_name']
+WARNING Depth chart verisi bulunamadı
+INFO Eksik kolonlar (atlandı): ['entry_year', 'draft_club', 'draft_number']
+INFO Yazıldı: web/public/data/players/index.json (3691 satır, 703.3 KB)
+INFO Manifest güncellendi: 5 sezon
+INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
+INFO Projeksiyonlar yazıldı: 292 oyuncu (2026 W1)
+INFO Pipeline başarıyla tamamlandı: [2025]
