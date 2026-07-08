@@ -49,6 +49,18 @@ def form_trends(pw: pd.DataFrame, last_week: int) -> tuple[list, list]:
     j = j[(j["games"] >= MIN_GAMES) & (j["avg"] >= MIN_PPR_AVG)]
     j["diff"] = j["recent"] - j["avg"]
 
+    def real_stats(pid: str, pos: str) -> str:
+        """Gerçek istatistik karşılaştırması: son pencere vs sezon ortalaması."""
+        cols = [c for c, _ in POS_STAT_LINES.get(pos, [])]
+        cols = [c for c in cols if c in reg.columns]
+        if not cols:
+            return ""
+        s = reg[reg["player_id"] == pid][cols].mean()
+        w = window[window["player_id"] == pid][cols].mean()
+        parts = [f"{w[c]:.1f}/{s[c]:.1f} {lbl}"
+                 for c, lbl in POS_STAT_LINES.get(pos, []) if c in cols]
+        return " Son 3 vs sezon: " + ", ".join(parts) + "."
+
     def items(rows, emoji):
         out = []
         for pid, r in rows.iterrows():
@@ -56,7 +68,8 @@ def form_trends(pw: pd.DataFrame, last_week: int) -> tuple[list, list]:
                 "player_id": pid, "team": r["team"],
                 "title": f"{emoji} {r['name']} ({r['pos']}, {r['team']})",
                 "detail": (f"Son {FORM_WINDOW} haftada {r['recent']:.1f} PPR/maç — "
-                           f"sezon ortalaması {r['avg']:.1f} ({r['diff']:+.1f})."),
+                           f"sezon ortalaması {r['avg']:.1f} ({r['diff']:+.1f})."
+                           + real_stats(pid, r["pos"])),
                 "value": round(float(r["diff"]), 1),
             })
         return out
@@ -101,18 +114,58 @@ def usage_shifts(pw: pd.DataFrame, last_week: int) -> list:
 
 # ------------------------------------------------- pozisyona karşı verilen
 
+ALLOWED_STATS = [
+    "fantasy_points_ppr", "receptions", "receiving_yards", "receiving_tds",
+    "carries", "rushing_yards", "rushing_tds",
+    "passing_yards", "passing_tds", "passing_interceptions",
+]
+
+
 def points_allowed(pw: pd.DataFrame) -> pd.DataFrame:
-    """Takım başına pozisyona verilen PPR/maç ve lig sırası (yüksek sıra = çok veriyor)."""
+    """Takım başına pozisyona verilen GERÇEK istatistikler (maç başı) ve lig sıraları.
+
+    rank_* kolonlarında 1 = o istatistiği en çok veren (en cömert) savunma.
+    """
     reg = pw[(pw["season_type"] == "REG") & pw["position"].isin(SKILL_POS)]
-    per_game = (reg.groupby(["opponent_team", "position", "week"])
-                   ["fantasy_points_ppr"].sum().reset_index())
-    avg = (per_game.groupby(["opponent_team", "position"])
-                   ["fantasy_points_ppr"].mean().reset_index()
-                   .rename(columns={"opponent_team": "team",
-                                    "fantasy_points_ppr": "ppr_allowed"}))
-    avg["rank"] = avg.groupby("position")["ppr_allowed"].rank(
-        ascending=False, method="min").astype(int)  # 1 = en çok veren
+    stats = [c for c in ALLOWED_STATS if c in reg.columns]
+    per_game = (reg.groupby(["opponent_team", "position", "week"])[stats]
+                   .sum().reset_index())
+    avg = (per_game.groupby(["opponent_team", "position"])[stats]
+                   .mean().reset_index()
+                   .rename(columns={"opponent_team": "team"}))
+    for c in stats:
+        asc = c == "passing_interceptions"  # int'te çok veren = az çalan değil; yine desc mantıklı
+        avg[f"rank_{c}"] = avg.groupby("position")[c].rank(
+            ascending=asc, method="min").astype(int)
+    for c in stats:
+        avg[c] = avg[c].round(2)
+    # geriye dönük uyumluluk
+    avg["ppr_allowed"] = avg["fantasy_points_ppr"]
+    avg["rank"] = avg["rank_fantasy_points_ppr"]
     return avg
+
+
+# pozisyona göre "gerçek stat" özet metni
+POS_STAT_LINES = {
+    "QB": [("passing_yards", "pas yd"), ("passing_tds", "pas TD"),
+           ("passing_interceptions", "int")],
+    "RB": [("rushing_yards", "koşu yd"), ("rushing_tds", "koşu TD"),
+           ("receptions", "rec")],
+    "WR": [("receptions", "rec"), ("receiving_yards", "rec yd"),
+           ("receiving_tds", "rec TD")],
+    "TE": [("receptions", "rec"), ("receiving_yards", "rec yd"),
+           ("receiving_tds", "rec TD")],
+}
+
+
+def _stat_line(row, pos: str) -> str:
+    parts = []
+    for col, lbl in POS_STAT_LINES.get(pos, []):
+        v = row.get(col)
+        if v is None or pd.isna(v):
+            continue
+        parts.append(f"{float(v):.1f} {lbl}")
+    return ", ".join(parts)
 
 
 # ------------------------------------------------------------- matchuplar
@@ -167,23 +220,27 @@ def matchup_notes(games: pd.DataFrame, ranks: pd.DataFrame,
                                    f"({data_season} verisi). Patlama potansiyeli."),
                         "value": d - o,
                     })
-            # pozisyona karşı en cömert savunmalar
-            for pos in ("WR", "RB", "TE"):
-                row = allowed[(allowed["team"] == deff) & (allowed["position"] == pos)]
-                if row.empty:
+            # pozisyona karşı en cömert savunmalar (gerçek istatistiklerle)
+            headline_rank = {"WR": "rank_receiving_yards", "TE": "rank_receiving_yards",
+                             "RB": "rank_rushing_yards", "QB": "rank_passing_yards"}
+            for pos in ("WR", "RB", "TE", "QB"):
+                r = allowed[(allowed["team"] == deff) & (allowed["position"] == pos)]
+                if r.empty:
                     continue
-                rank, val = int(row["rank"].iloc[0]), float(row["ppr_allowed"].iloc[0])
+                row = r.iloc[0]
+                hr_col = headline_rank[pos]
+                rank = int(row.get(hr_col, row["rank"]))
                 if rank <= 4:
-                    players = top_players(off, pos)
-                    if players:
-                        notes.append({
-                            "team": off, "game": game_lbl,
-                            "title": f"🎯 {game_lbl}: {deff}, {pos} pozisyonuna cömert",
-                            "detail": (f"{deff} savunması {pos}'lara maç başına "
-                                       f"{val:.1f} PPR verdi (lig #{rank}, "
-                                       f"{data_season}). Takip et: {players}."),
-                            "value": 33 - rank,
-                        })
+                    players = top_players(off, pos) if pos != "QB" else ""
+                    stat_txt = _stat_line(row, pos)
+                    notes.append({
+                        "team": off, "game": game_lbl,
+                        "title": f"🎯 {game_lbl}: {deff}, {pos} pozisyonuna cömert",
+                        "detail": (f"{deff} savunması {pos}'lara maç başına "
+                                   f"{stat_txt} verdi (lig #{rank}, {data_season})."
+                                   + (f" Takip et: {players}." if players else "")),
+                        "value": 33 - rank,
+                    })
     return sorted(notes, key=lambda x: -x["value"])[:14]
 
 
@@ -218,6 +275,50 @@ def scheme_insights(pscheme: pd.DataFrame | None,
                        f"{r['epa_play']:+.2f} ({data_season})."),
             "value": float(r["epa_play"]),
         })
+    # gelecek hafta: coverage şeması (man/zone) uyumu
+    if tscheme is not None and not games.empty and "man_rate" in tscheme.columns:
+        ts = tscheme.set_index("team")
+        man_hi = ts["man_rate"].quantile(0.8)
+        zone_hi = ts["zone_rate"].quantile(0.8)
+        wrs = ps[ps["position"] == "WR"]
+        for _, g in games.iterrows():
+            for off, deff in ((g["away_team"], g["home_team"]),
+                              (g["home_team"], g["away_team"])):
+                if deff not in ts.index:
+                    continue
+                d = ts.loc[deff]
+                for cov, rate_col, epa_col, lbl in (
+                    ("man", "man_rate", "epa_vs_man", "man (adam adama)"),
+                    ("zone", "zone_rate", "epa_vs_zone", "zone (alan)"),
+                ):
+                    rate = d.get(rate_col)
+                    if rate is None or pd.isna(rate):
+                        continue
+                    if (cov == "man" and rate < man_hi) or (cov == "zone" and rate < zone_hi):
+                        continue
+                    epa = d.get(epa_col)
+                    if epa is None or pd.isna(epa):
+                        continue
+                    weak = epa > ts[epa_col].quantile(0.7)   # coverage'ında çok EPA veriyor
+                    strong = epa < ts[epa_col].quantile(0.3)
+                    if not (weak or strong):
+                        continue
+                    top_wr = (wrs[wrs["team"] == off]
+                              .sort_values("receiving_yards", ascending=False)
+                              .head(2)["player_name"].tolist())
+                    out.append({
+                        "team": off, "game": f"{g['away_team']} @ {g['home_team']}",
+                        "title": (f"{'🎯' if weak else '🛡️'} "
+                                  f"{g['away_team']} @ {g['home_team']}: {deff} "
+                                  f"%{rate*100:.0f} {lbl} oynuyor"),
+                        "detail": (f"{deff} bu coverage'da EPA/play {epa:+.2f} "
+                                   f"({'lig ortalamasının üstünde yol veriyor' if weak else 'ligin en sıkılarından'}, "
+                                   f"{data_season})."
+                                   + (f" {off} tarafında izle: {', '.join(top_wr)}."
+                                      if top_wr else "")),
+                        "value": float(abs(epa)) + 0.5,
+                    })
+
     # gelecek hafta: blitz-ağır rakip + QB blitz profili
     if tscheme is not None and not games.empty:
         bcol = "blitz_rate_ftn" if "blitz_rate_ftn" in tscheme.columns else "blitz_rate"
@@ -363,6 +464,12 @@ def build_and_write(schedules: pd.DataFrame) -> None:
             matchups = matchup_notes(games, _ranks(ta), allowed, ps, season)
     scheme = scheme_insights(_read(season, "player_scheme"),
                              _read(season, "team_scheme"), games, ps, season)
+
+    # Matchup sayfası ve dış kullanım için yardımcı dosyalar
+    transform.write_json(config.DATA_DIR / "pos_allowed.json", allowed)
+    next_sched = transform.build_schedule(schedules, next_season)
+    if not next_sched.empty:
+        transform.write_json(config.DATA_DIR / "next_schedule.json", next_sched)
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

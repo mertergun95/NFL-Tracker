@@ -124,6 +124,19 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Grafikte **arama**: oyuncu/takım yazınca turuncu halka + etiketle vurgulanır
 - [x] CI: pipeline değişikliğinde otomatik veri koşusu + log commit'i (teşhis)
 
+### ✅ Faz 5.7 — Matchup merkezi ve analitik derinlik (kullanıcı istekleri, 4. tur)
+- [x] **Matchuplar sayfası**: haftalık maç bazlı analiz — güç karşılaştırması
+      (lig sırası çipleriyle), savunma şemaları yan yana, pozisyonlara verilen
+      gerçek istatistikler, iki tarafın projeksiyon liderleri
+- [x] **Puan Durumu** sayfası (8 divizyon tablosu, averaj renkli)
+- [x] Takım sayfasında **2026 fikstürü**
+- [x] Insights **gerçek istatistik bazlı** (rec/yds/TD verilen + form karşılaştırması)
+      ve **coverage bazlı** (man/zone-ağır savunmalara karşı eşleşme notları)
+- [x] Deep Charts: **lig ortalaması çizgileri + eğilim doğrusu + korelasyon**,
+      **hafta aralığı** filtresi (W nazaran client-side toplama)
+- [x] Projeksiyonlar **maça göre** görünüm
+- [x] pos_allowed.json + next_schedule.json pipeline çıktıları
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

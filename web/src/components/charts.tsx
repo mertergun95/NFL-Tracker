@@ -128,6 +128,25 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "playe
   const top = [...data].sort((a, b) => b.yv - a.yv).slice(0, labelTop);
   const topSet = new Set(top.map((d) => d.name));
   const rest = data.filter((d) => !topSet.has(d.name));
+
+  // lig ortalamaları + en küçük kareler trend doğrusu + korelasyon
+  const n = all.length;
+  const meanX = all.reduce((s, d) => s + d.xv, 0) / n;
+  const meanY = all.reduce((s, d) => s + d.yv, 0) / n;
+  let sxx = 0, sxy = 0, syy = 0;
+  for (const d of all) {
+    sxx += (d.xv - meanX) ** 2;
+    sxy += (d.xv - meanX) * (d.yv - meanY);
+    syy += (d.yv - meanY) ** 2;
+  }
+  const slope = sxx > 0 ? sxy / sxx : 0;
+  const corr = sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
+  const xMin = Math.min(...all.map((d) => d.xv));
+  const xMax = Math.max(...all.map((d) => d.xv));
+  const trend = n >= 8 && Math.abs(corr) >= 0.2
+    ? { x1: xMin, y1: meanY + slope * (xMin - meanX),
+        x2: xMax, y2: meanY + slope * (xMax - meanX) }
+    : null;
   const handleClick = onPointClick
     ? (d: unknown) => {
         const p = (d as { payload?: { id?: string } })?.payload
@@ -160,6 +179,16 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "playe
                       name === "xv" ? label(x) : label(y)]}
                    labelFormatter={() => ""}
                    content={undefined} />
+          <ReferenceLine x={meanX} stroke={CHART.axis} strokeDasharray="5 5"
+                         label={{ value: "lig ort.", position: "insideTopLeft",
+                                  fill: CHART.muted, fontSize: 10 }} />
+          <ReferenceLine y={meanY} stroke={CHART.axis} strokeDasharray="5 5" />
+          {trend && (
+            <ReferenceLine segment={[{ x: trend.x1, y: trend.y1 },
+                                     { x: trend.x2, y: trend.y2 }]}
+                           stroke={CHART.series2} strokeWidth={1.5}
+                           strokeDasharray="7 4" ifOverflow="hidden" />
+          )}
           <Scatter data={rest} fill={CHART.series1} isAnimationActive={false}
                    onClick={handleClick}
                    cursor={onPointClick ? "pointer" : undefined} />
@@ -189,9 +218,13 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "playe
           )}
         </ScatterChart>
       </ResponsiveContainer>
-      {onPointClick && (
-        <p className="chart-note">Bir noktaya tıklayınca oyuncu künyesi açılır.</p>
-      )}
+      <p className="chart-note">
+        Kesikli gri çizgiler lig ortalaması{trend
+          ? `; yeşil kesikli çizgi eğilim doğrusu (korelasyon r=${corr.toFixed(2)} — ` +
+            `${Math.abs(corr) >= 0.7 ? "güçlü" : Math.abs(corr) >= 0.4 ? "orta" : "zayıf"} ilişki)`
+          : ""}.
+        {onPointClick ? " Bir noktaya tıklayınca künye açılır." : ""}
+      </p>
     </div>
   );
 }

@@ -3,10 +3,10 @@ import { BarRankingChart, PlayerScatterChart } from "../components/charts";
 import PlayerDrawer from "../components/PlayerDrawer";
 import { ErrorMsg, Loading, PositionPicker, SeasonPicker } from "../components/Pickers";
 import {
-  loadNgs, loadPlayerSeason, loadRedzone, loadTeamAdvanced,
-  loadTeamScheme, loadTeamSeason,
+  loadNgs, loadPlayerSeason, loadPlayerWeeks, loadRedzone,
+  loadTeamAdvanced, loadTeamScheme, loadTeamSeason, loadTeamWeeks,
 } from "../lib/data";
-import { label } from "../lib/columns";
+import { label, PERCENT_COLS } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 
@@ -66,6 +66,33 @@ function interpretChart(x: string, y: string, mode: string, view: string): strin
     `Eğilimden sapan noktalar (çizgiden uzak olanlar) incelemeye değer hikâyelerdir.`;
 }
 
+/** Haftalık satırları [w1,w2] aralığında oyuncu/takım bazında toplar (REG). */
+function aggregateWeeks(rows: StatRow[], idKey: string, w1: number, w2: number,
+                        metaCols: string[]): StatRow[] {
+  const filtered = rows.filter((r) => r.season_type === "REG"
+    && Number(r.week) >= w1 && Number(r.week) <= w2);
+  const groups = new Map<string, StatRow[]>();
+  for (const r of filtered) {
+    const k = String(r[idKey]);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(r);
+  }
+  const out: StatRow[] = [];
+  for (const [, g] of groups) {
+    const agg: StatRow = { games: g.length };
+    for (const m of [idKey, ...metaCols]) agg[m] = g[g.length - 1][m];
+    for (const [k, v] of Object.entries(g[0])) {
+      if (typeof v !== "number" || k === "week" || k === "season") continue;
+      const vals = g.map((r) => Number(r[k] ?? 0));
+      agg[k] = PERCENT_COLS.has(k)
+        ? Number((vals.reduce((s, x) => s + x, 0) / vals.length).toFixed(3))
+        : Number(vals.reduce((s, x) => s + x, 0).toFixed(1));
+    }
+    out.push(agg);
+  }
+  return out;
+}
+
 function numericCols(rows: StatRow[]): string[] {
   if (rows.length === 0) return [];
   const sample = rows.slice(0, 50);
@@ -85,6 +112,7 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
   const [axes, setAxes] = useState<Record<string, [string, string]>>({});
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [weekRange, setWeekRange] = useState<[number, number] | null>(null);
 
   // oyuncu veri setleri
   const { data: seasonRows, error, loading } = useAsync(
@@ -93,6 +121,19 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
   const ngsType = NGS_TYPE[pos] ?? "receiving";
   const { data: ngsRows } = useAsync(
     () => loadNgs(season, ngsType), [season, ngsType]);
+
+  // hafta aralığı seçiliyse haftalık verilerden topla
+  const { data: weekAgg } = useAsync(async () => {
+    if (!weekRange) return null;
+    const [w1, w2] = weekRange;
+    if (mode === "team") {
+      const rows = await loadTeamWeeks(season);
+      return aggregateWeeks(rows, "team", w1, w2, []);
+    }
+    const rows = await loadPlayerWeeks(season);
+    return aggregateWeeks(rows, "player_id", w1, w2,
+                          ["player_name", "position", "team"]);
+  }, [season, mode, weekRange?.join()]);
 
   // takım veri seti: team_season + advanced + şema birleşik
   const { data: teamRows } = useAsync(async () => {
@@ -108,6 +149,14 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
   }, [season]);
 
   const { rows, options, axisKey } = useMemo(() => {
+    // hafta aralığı aktifse (yalnızca sezon/temel veri setinde) toplanmış veri
+    if (weekRange && weekAgg && (mode === "team" || dataset === "season")) {
+      let r = weekAgg;
+      if (mode === "player")
+        r = r.filter((p) => POS_FILTER[pos](p) && Number(p.games ?? 0) >= 1);
+      return { rows: r, options: numericCols(r),
+               axisKey: mode === "team" ? "team:wk" : `${pos}:season:wk` };
+    }
     if (mode === "team") {
       const r = teamRows ?? [];
       return { rows: r, options: numericCols(r), axisKey: "team" };
@@ -123,7 +172,8 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
       r = (ngsRows ?? []).filter((p) => Number(p.week) === 0);
     }
     return { rows: r, options: numericCols(r), axisKey: `${pos}:${dataset}` };
-  }, [mode, dataset, pos, seasonRows, rzRows, ngsRows, teamRows]);
+  }, [mode, dataset, pos, seasonRows, rzRows, ngsRows, teamRows,
+      weekRange, weekAgg]);
 
   const defaults: [string, string] = useMemo(() => {
     if (mode === "team") return ["off_epa_play", "def_epa_play"];
@@ -197,6 +247,40 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
                placeholder={mode === "team" ? "Takım ara…" : "Oyuncu ara…"}
                value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
+      {(mode === "team" || dataset === "season") && (
+        <div className="toolbar">
+          <span className="axis-label">Hafta aralığı:</span>
+          <button className={`pill small ${weekRange === null ? "active" : ""}`}
+                  onClick={() => setWeekRange(null)}>Tüm sezon</button>
+          <label className="axis-label">
+            <select className="axis-select small"
+                    value={weekRange?.[0] ?? 1}
+                    onChange={(e) => setWeekRange([Number(e.target.value),
+                                                   weekRange?.[1] ?? 18])}>
+              {Array.from({ length: 18 }, (_, i) => i + 1).map((w) => (
+                <option key={w} value={w}>W{w}</option>
+              ))}
+            </select>
+          </label>
+          <span className="axis-label">–</span>
+          <label className="axis-label">
+            <select className="axis-select small"
+                    value={weekRange?.[1] ?? 18}
+                    onChange={(e) => setWeekRange([weekRange?.[0] ?? 1,
+                                                   Number(e.target.value)])}>
+              {Array.from({ length: 18 }, (_, i) => i + 1).map((w) => (
+                <option key={w} value={w}>W{w}</option>
+              ))}
+            </select>
+          </label>
+          {weekRange && (
+            <span className="sub" style={{ margin: 0 }}>
+              W{weekRange[0]}–W{weekRange[1]} toplamları gösteriliyor
+              (advanced/şema metrikleri yalnızca tüm sezonda).
+            </span>
+          )}
+        </div>
+      )}
       {x && y && (
         <div className="interpret-box">
           💡 {interpretChart(x, y, mode, view)}

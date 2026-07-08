@@ -11,6 +11,8 @@ import Insights from "./pages/Insights";
 import Projections from "./pages/Projections";
 import GameDetail from "./pages/GameDetail";
 import DepthCharts from "./pages/DepthCharts";
+import Standings from "./pages/Standings";
+import Matchups from "./pages/Matchups";
 import { loadManifest, seasonsFromManifest } from "./lib/data";
 import { useAsync } from "./lib/hooks";
 import { ErrorMsg, Loading } from "./components/Pickers";
@@ -19,8 +21,10 @@ const NAV = [
   { to: "/", label: "Dashboard" },
   { to: "/players", label: "Oyuncular" },
   { to: "/teams", label: "Takımlar" },
+  { to: "/standings", label: "Puan Durumu" },
   { to: "/depth", label: "Kadrolar" },
   { to: "/games", label: "Maçlar" },
+  { to: "/matchups", label: "Matchuplar" },
   { to: "/compare", label: "Karşılaştır" },
   { to: "/charts", label: "Deep Charts" },
   { to: "/projections", label: "Projeksiyonlar" },
@@ -56,6 +60,8 @@ export default function App() {
             <Route path="/charts" element={<ChartsPage seasons={seasons} />} />
             <Route path="/projections" element={<Projections />} />
             <Route path="/depth" element={<DepthCharts />} />
+            <Route path="/standings" element={<Standings seasons={seasons} />} />
+            <Route path="/matchups" element={<Matchups />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/game/:season/:gameId" element={<GameDetail />} />
           </Routes>

@@ -5,7 +5,7 @@ import StatTiles, { leagueAverages } from "../components/StatTiles";
 import TeamLogo from "../components/TeamLogo";
 import { ErrorMsg, Loading, PositionPicker, SeasonPicker } from "../components/Pickers";
 import {
-  loadPlayerSeason, loadPlayerWeeks, loadSchedule,
+  loadOptional, loadPlayerSeason, loadPlayerWeeks, loadSchedule,
   loadTeamAdvanced, loadTeamScheme,
 } from "../lib/data";
 import { useAsync } from "../lib/hooks";
@@ -189,6 +189,21 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
     [roster],
   );
 
+  // Gelecek sezon fikstürü (pipeline'ın next_schedule.json çıktısı)
+  const { data: nextFixture } = useAsync(async () => {
+    const rows = await loadOptional("next_schedule.json");
+    if (!rows) return null;
+    return rows
+      .filter((g) => g.home_team === abbr || g.away_team === abbr)
+      .sort((a, b) => Number(a.week) - Number(b.week))
+      .map((g) => ({
+        week: g.week, gameday: g.gameday, gametime: g.gametime,
+        opponent: g.home_team === abbr ? g.away_team : g.home_team,
+        where: g.home_team === abbr ? "Ev" : "Dep",
+        season: g.season,
+      }));
+  }, [abbr]);
+
   return (
     <section>
       <h1 style={{ borderLeft: `6px solid ${info?.color ?? "#888"}`, paddingLeft: 12,
@@ -224,6 +239,23 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
                 ),
               }}
             />
+          )}
+          {nextFixture && nextFixture.length > 0 && (
+            <>
+              <h2>{String(nextFixture[0].season)} Fikstürü</h2>
+              <StatTable rows={nextFixture}
+                columns={["week", "gameday", "gametime", "opponent", "where"]}
+                defaultSort="week"
+                render={{
+                  opponent: (row) => (
+                    <Link to={`/team/${row.opponent}`} className="team-cell">
+                      <TeamLogo abbr={String(row.opponent)} size={18} />{" "}
+                      {String(row.opponent)}
+                    </Link>
+                  ),
+                }}
+              />
+            </>
           )}
           <h2>Kadro — Sezon İstatistikleri</h2>
           {roster && (
