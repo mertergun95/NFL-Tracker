@@ -38,14 +38,10 @@ INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 13
 INFO OK 312066 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
 INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
 INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-WARNING Depth chart beklenen kolonları içermiyor: ['team', 'player_id', 'player_name']
-INFO OK 554215 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2025.csv.gz
-INFO OK 3137 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2025.csv.gz
-INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-WARNING Depth chart beklenen kolonları içermiyor: ['team', 'player_id', 'player_name']
-WARNING Depth chart verisi bulunamadı
+INFO Yazıldı: web/public/data/depth_charts.json (3171 satır, 407.3 KB)
+INFO Depth chart yazıldı: 2026 sezonu, 3171 satır
 INFO Eksik kolonlar (atlandı): ['entry_year', 'draft_club', 'draft_number']
-INFO Yazıldı: web/public/data/players/index.json (3691 satır, 703.3 KB)
+INFO Yazıldı: web/public/data/players/index.json (3691 satır, 722.8 KB)
 INFO Manifest güncellendi: 5 sezon
 INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
 INFO Projeksiyonlar yazıldı: 292 oyuncu (2026 W1)
