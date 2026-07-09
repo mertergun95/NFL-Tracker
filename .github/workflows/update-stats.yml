@@ -46,8 +46,14 @@ jobs:
         working-directory: pipeline
         run: |
           MODE="${{ github.event.inputs.mode || 'update' }}"
+          SEASONS_OVERRIDE=""
+          # commit mesajında [backfill:YYYY-YYYY] varsa push'ta backfill çalıştır
+          MSG="$(git log -1 --pretty=%B)"
+          if [[ "$MSG" =~ \[backfill:([0-9]{4}-[0-9]{4})\] ]]; then
+            MODE="backfill"; SEASONS_OVERRIDE="${BASH_REMATCH[1]}"
+          fi
           if [ "$MODE" = "backfill" ]; then
-            python run.py backfill --seasons "${{ github.event.inputs.seasons || '2021-2025' }}" 2>&1 | tee ../web/public/data/last_run.txt
+            python run.py backfill --seasons "${SEASONS_OVERRIDE:-${{ github.event.inputs.seasons || '2021-2025' }}}" 2>&1 | tee ../web/public/data/last_run.txt
           else
             python run.py update 2>&1 | tee ../web/public/data/last_run.txt
           fi

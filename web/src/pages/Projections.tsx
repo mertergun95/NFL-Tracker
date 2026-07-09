@@ -24,8 +24,7 @@ const POS_SORT: Record<string, string> = {
   QB: "proj_passing_yards", RB: "proj_rushing_yards",
   WR: "proj_receiving_yards", TE: "proj_receiving_yards",
 };
-const FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor",
-                     "injury_status"];
+const HEUR_FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor"];
 const GAME_COLS = ["proj_passing_yards", "proj_carries", "proj_rushing_yards",
                    "proj_targets", "proj_receptions", "proj_receiving_yards"];
 
@@ -72,14 +71,17 @@ export default function Projections() {
     <section>
       <h1>Haftalık Projeksiyonlar — {data.target.season} W{data.target.week}</h1>
       <p className="sub">
-        <strong>Gerçek istatistik tahminleri</strong> (P· = projeksiyon):
-        her stat için son 5 maçın ağırlıklı formu (%60) + sezon ortalaması (%40)
-        × o statın <strong>kendi matchup çarpanı</strong> (rakibin o pozisyona
-        o statta verdiği / lig ort.) × <strong>şema uyumu</strong>
-        × <strong>snap trendi</strong> × <strong>sakatlık</strong> (Out/Doubtful
-        hariç, Questionable −%10). Takımlar güncel kadrolardan.
-        Doğruluk geçmişi için <Link to="/accuracy">Karne</Link> sayfasına bak.
-        Veri: {data.data_season} sezonu.
+        <strong>Gerçek istatistik tahminleri</strong> (P· = projeksiyon).
+        {data.engine === "ml" ? (
+          <> Motor: <strong>ML (gradient boosting)</strong> — tüm geçmiş
+          sezonlarla her Salı yeniden eğitilir; form, rakip-zafiyeti, önceki
+          sezon ve ev/deplasman özelliklerinden öğrenir. Sakatlıklar ayrıca
+          uygulanır (Out/Doubtful hariç, Questionable −%10).</>
+        ) : (
+          <> Motor: sezgisel model (form × matchup × şema × snap × sakatlık).</>
+        )}{" "}
+        Takımlar güncel kadrolardan. Doğruluk kıyaslaması için{" "}
+        <Link to="/accuracy">Karne</Link>. Veri: {data.data_season} sezonu.
       </p>
       <div className="toolbar">
         <div className="pill-row">
@@ -110,7 +112,8 @@ export default function Projections() {
           ? ["player_name", "position", "team", "opponent", ...GAME_COLS,
              "injury_status"]
           : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? []),
-             ...FACTOR_COLS]}
+             ...(data.engine === "ml" ? [] : HEUR_FACTOR_COLS),
+             "injury_status"]}
         defaultSort={view === "game" ? "proj_receiving_yards" : POS_SORT[pos]}
         maxRows={60}
         render={{

@@ -8,13 +8,14 @@ import type { StatRow } from "../lib/types";
 
 const BASE = `${import.meta.env.BASE_URL}data`;
 
+type StatMetrics = Record<string, { n: number; mae: number; bias: number;
+                                    corr: number | null }>;
 interface EvalPayload {
   generated_at: string;
   data_season: number;
   method: string;
-  weeks: { week: number; n: number;
-           stats: Record<string, { n: number; mae: number; bias: number;
-                                   corr: number | null }> }[];
+  weeks: { week: number; n?: number; stats: StatMetrics;
+           methods?: Record<string, StatMetrics> }[];
   players: StatRow[];
 }
 
@@ -46,6 +47,7 @@ export default function Accuracy() {
   const [stat, setStat] = useState("receiving_yards");
   const [view, setView] = useState<"stat" | "game">("stat");
   const [gameKey, setGameKey] = useState<string | null>(null);
+  const [method, setMethod] = useState<"ml" | "heuristic">("ml");
   const { data, loading } = useAsync(async () => {
     try {
       const res = await fetch(`${BASE}/proj_eval.json`);
@@ -115,6 +117,14 @@ export default function Accuracy() {
       </p>
 
       <h2>Haftalık Doğruluk Özeti</h2>
+      {data.weeks.some((w) => w.methods?.heuristic) && (
+        <div className="pill-row">
+          <button className={`pill small ${method === "ml" ? "active" : ""}`}
+                  onClick={() => setMethod("ml")}>🤖 ML (gradient boosting)</button>
+          <button className={`pill small ${method === "heuristic" ? "active" : ""}`}
+                  onClick={() => setMethod("heuristic")}>🧮 Sezgisel model</button>
+        </div>
+      )}
       <div className="table-wrap">
         <table className="stat-table">
           <thead>
@@ -138,7 +148,7 @@ export default function Accuracy() {
               <tr key={w.week}>
                 <td>W{w.week}</td>
                 {statCols.map((s) => {
-                  const m = w.stats[s];
+                  const m = (w.methods?.[method] ?? w.stats)[s];
                   return m ? (
                     <>
                       <td key={`${s}m`} className="num">{m.mae}</td>

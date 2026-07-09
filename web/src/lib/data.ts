@@ -70,6 +70,7 @@ export const loadInjuries = () => loadOptional("injuries.json");
 export interface ProjectionsPayload {
   generated_at: string;
   data_season: number;
+  engine?: string; // "ml" | "heuristic"
   target: { season: number; week: number };
   rows: StatRow[];
 }
@@ -79,13 +80,14 @@ export async function loadProjections(): Promise<ProjectionsPayload | null> {
     const res = await fetch(`${BASE}/projections.json`);
     if (!res.ok) return null;
     const raw = await res.json() as {
-      generated_at: string; data_season: number;
+      generated_at: string; data_season: number; engine?: string;
       target: { season: number; week: number };
       columns: string[]; rows: (string | number | null)[][];
     };
     return {
       generated_at: raw.generated_at,
       data_season: raw.data_season,
+      engine: raw.engine,
       target: raw.target,
       rows: toRows({ columns: raw.columns, rows: raw.rows }),
     };

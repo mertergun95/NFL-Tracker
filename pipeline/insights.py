@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 import config
+import ml
 import transform
 
 log = logging.getLogger(__name__)
@@ -584,16 +585,97 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
     return df.reset_index(drop=True)
 
 
+# ------------------------------------------------------- ML projeksiyon
+
+def _pseudo_ppr(row: dict) -> float:
+    """Tahmin edilen statlardan PPR yaklaşıklığı (sıralama/karne için)."""
+    def v(c):
+        x = row.get(f"proj_{c}")
+        return float(x) if x is not None and not pd.isna(x) else 0.0
+    return round(
+        v("receptions") + 0.1 * (v("receiving_yards") + v("rushing_yards"))
+        + 6 * (v("receiving_tds") + v("rushing_tds"))
+        + 0.04 * v("passing_yards") + 4 * v("passing_tds")
+        - 2 * v("passing_interceptions"), 1)
+
+
+def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
+                         schedules: pd.DataFrame, games: pd.DataFrame,
+                         target_season: int, target_week: int,
+                         cur_map: dict | None = None,
+                         injuries: dict | None = None) -> pd.DataFrame:
+    """GBM modelleriyle gerçek stat projeksiyonları (canlı ve karne için ortak)."""
+    if games.empty or history.empty:
+        return pd.DataFrame()
+    models = ml.train_models(feat_df, target_season, target_week)
+    if not models:
+        return pd.DataFrame()
+    rows = ml.inference_rows(history, schedules, games,
+                             target_season, target_week, team_of=cur_map)
+    if rows.empty:
+        return pd.DataFrame()
+    preds = ml.predict(models, rows)
+    out = rows[["player_id", "player_name", "position", "team",
+                "opponent"]].merge(preds, on="player_id")
+
+    injuries = injuries or {}
+    recs = []
+    for _, r in out.iterrows():
+        status, note = injuries.get(r["player_id"], (None, None))
+        if status in ("Out", "Doubtful"):
+            continue
+        rec = {
+            "player_id": r["player_id"], "player_name": r["player_name"],
+            "position": r["position"], "team": r["team"],
+            "opponent": r["opponent"],
+            "injury_status": status, "injury_note": note,
+        }
+        for stat in POS_PROJ_STATS.get(str(r["position"]), []):
+            val = r.get(f"proj_{stat}")
+            if val is not None and not pd.isna(val):
+                rec[f"proj_{stat}"] = float(val) * (0.9 if status == "Questionable" else 1.0)
+                rec[f"proj_{stat}"] = round(rec[f"proj_{stat}"], 1)
+        rec["proj_ppr"] = _pseudo_ppr(rec)
+        recs.append(rec)
+    df = pd.DataFrame(recs)
+    if df.empty:
+        return df
+    df = df[df["proj_ppr"] >= 4].sort_values("proj_ppr", ascending=False)
+    return df.reset_index(drop=True)
+
+
 # -------------------------------------------------- projeksiyon karnesi
 
 EVAL_WEEKS = 4
 
 
+def _method_metrics(proj: pd.DataFrame, actual: pd.DataFrame,
+                    all_stats: list) -> tuple[dict, pd.DataFrame]:
+    j = proj.merge(actual, on="player_id", how="inner", suffixes=("", "_act"))
+    metrics = {}
+    for stat in all_stats:
+        pc = f"proj_{stat}"
+        if pc not in j.columns or stat not in j.columns:
+            continue
+        sub = j[j[pc].notna() & j[stat].notna()]
+        if len(sub) < 10:
+            continue
+        diff = sub[pc] - sub[stat]
+        corr = float(sub[pc].corr(sub[stat])) if len(sub) > 2 else None
+        metrics[stat] = {
+            "n": int(len(sub)),
+            "mae": round(float(diff.abs().mean()), 2),
+            "bias": round(float(diff.mean()), 2),
+            "corr": round(corr, 3) if corr is not None and not pd.isna(corr) else None,
+        }
+    return metrics, j
+
+
 def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
                          data_season: int) -> None:
     """Geriye dönük test: son N tamamlanmış haftayı, yalnızca ÖNCEKİ haftaların
-    verisiyle projekte edip gerçekleşenlerle karşılaştırır. Sezon içinde her
-    Salı kendini günceller — projeksiyon tutarlılığının karnesi.
+    verisiyle her iki motorla (ML + sezgisel) projekte edip gerçekleşenlerle
+    karşılaştırır. Sezon içinde her Salı kendini günceller.
     """
     reg = pw[pw["season_type"] == "REG"]
     last_week = int(reg["week"].max())
@@ -602,6 +684,11 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
     all_stats = sorted({s for lst in POS_PROJ_STATS.values() for s in lst})
     week_summaries = []
     players_latest: list[dict] = []
+
+    # ML: tüm tarihi bir kez yükle + özellikleri bir kez çıkar
+    history_all = ml.load_all_weeks()
+    feat_all = (ml.build_features(history_all, schedules)
+                if not history_all.empty else pd.DataFrame())
 
     for wk in weeks:
         cut = pw[(pw["season_type"] == "REG") & (pw["week"] < wk)]
@@ -612,45 +699,43 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
                             & (schedules["week"] == wk)]
         if games_w.empty:
             continue
-        proj = build_projections(cut, points_allowed(cut), games_w,
+        actual = reg[reg["week"] == wk]
+
+        methods: dict = {}
+        j_ml = None
+
+        heur = build_projections(cut, points_allowed(cut), games_w,
                                  data_season, wk, data_season,
                                  use_current=False, apply_injuries=False)
-        if proj.empty:
-            continue
-        actual = reg[reg["week"] == wk]
-        j = proj.merge(actual, on="player_id", how="inner",
-                       suffixes=("", "_act"))
-        if j.empty:
-            continue
+        if not heur.empty:
+            methods["heuristic"], _ = _method_metrics(heur, actual, all_stats)
 
-        stat_metrics = {}
-        for stat in all_stats:
-            pc, ac = f"proj_{stat}", stat
-            if pc not in j.columns or ac not in j.columns:
-                continue
-            sub = j[j[pc].notna() & j[ac].notna()]
-            if len(sub) < 10:
-                continue
-            diff = sub[pc] - sub[ac]
-            corr = float(sub[pc].corr(sub[ac])) if len(sub) > 2 else None
-            stat_metrics[stat] = {
-                "n": int(len(sub)),
-                "mae": round(float(diff.abs().mean()), 2),
-                "bias": round(float(diff.mean()), 2),
-                "corr": round(corr, 3) if corr is not None and not pd.isna(corr) else None,
-            }
-        week_summaries.append({"week": wk, "n": int(len(j)), "stats": stat_metrics})
+        if not feat_all.empty:
+            hist_cut = history_all[(history_all["season"] < data_season)
+                                   | ((history_all["season"] == data_season)
+                                      & (history_all["week"] < wk))]
+            proj_ml = build_projections_ml(hist_cut, feat_all, schedules,
+                                           games_w, data_season, wk)
+            if not proj_ml.empty:
+                methods["ml"], j_ml = _method_metrics(proj_ml, actual, all_stats)
 
-        if wk == weeks[-1]:
+        if not methods:
+            continue
+        week_summaries.append({"week": wk, "methods": methods,
+                               # geriye dönük uyumluluk: varsayılan görünüm ML
+                               "stats": methods.get("ml",
+                                                    methods.get("heuristic", {}))})
+
+        if wk == weeks[-1] and j_ml is not None:
             keep_cols = ["player_id", "player_name", "position", "team",
                          "opponent", "proj_ppr"]
             for stat in all_stats:
-                if f"proj_{stat}" in j.columns:
+                if f"proj_{stat}" in j_ml.columns:
                     keep_cols += [f"proj_{stat}"]
-            detail = j[[c for c in keep_cols if c in j.columns]].copy()
+            detail = j_ml[[c for c in keep_cols if c in j_ml.columns]].copy()
             for stat in all_stats:
-                if stat in j.columns:
-                    detail[f"act_{stat}"] = j[stat]
+                if stat in j_ml.columns:
+                    detail[f"act_{stat}"] = j_ml[stat]
             detail["week"] = wk
             # float kolonlarda None NaN'a geri döner; object'e çevirerek koru
             detail = detail.astype(object).where(pd.notna(detail), None)
@@ -750,12 +835,29 @@ def build_and_write(schedules: pd.DataFrame) -> None:
              n, season, last_week)
 
     # Haftalık projeksiyonlar (sıradaki oynanmamış hafta için)
-    proj = build_projections(pw, allowed, games, next_season, next_week, season)
+    # Önce ML motoru; olmazsa sezgisel modele düş
+    engine = "heuristic"
+    proj = pd.DataFrame()
+    try:
+        history_all = ml.load_all_weeks()
+        if not history_all.empty:
+            feat_all = ml.build_features(history_all, schedules)
+            proj = build_projections_ml(
+                history_all, feat_all, schedules, games,
+                next_season, next_week,
+                cur_map=cur_map, injuries=injury_map(next_season))
+            if not proj.empty:
+                engine = "ml"
+    except Exception:
+        log.exception("ML projeksiyonu başarısız, sezgisel modele dönülüyor")
+    if proj.empty:
+        proj = build_projections(pw, allowed, games, next_season, next_week, season)
     if not proj.empty:
         proj_safe = proj.astype(object).where(pd.notna(proj), None)
         payload_p = {
             "generated_at": payload["generated_at"],
             "data_season": season,
+            "engine": engine,
             "target": {"season": next_season, "week": next_week},
             "columns": list(proj.columns),
             "rows": proj_safe.values.tolist(),
