@@ -35,11 +35,13 @@ WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/ne
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv
 INFO OK 14731 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_receiving.csv.gz
 INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 135.6 KB)
-INFO OK 315237 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
+INFO OK 318409 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
 INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
 INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-INFO Yazıldı: web/public/data/depth_charts.json (3171 satır, 407.3 KB)
-INFO Depth chart yazıldı: 2026 sezonu, 3171 satır
+INFO Yazıldı: web/public/data/depth_charts.json (3172 satır, 407.4 KB)
+INFO Depth chart yazıldı: 2026 sezonu, 3172 satır
+INFO Yazıldı: web/public/data/current_teams.json (3610 satır, 90.2 KB)
+INFO Güncel takım haritası: 3610 oyuncu (2026)
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv.gz
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv
 INFO OK 6068 satır <- https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2025.csv.gz
@@ -51,6 +53,6 @@ INFO Manifest güncellendi: 5 sezon
 INFO Yazıldı: web/public/data/pos_allowed.json (128 satır, 12.4 KB)
 INFO Yazıldı: web/public/data/next_schedule.json (272 satır, 38.7 KB)
 INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
-INFO Projeksiyonlar yazıldı: 292 oyuncu (2026 W1)
+INFO Projeksiyonlar yazıldı: 276 oyuncu (2026 W1)
 INFO Projeksiyon karnesi yazıldı: 4 hafta, son hafta 181 oyuncu
 INFO Pipeline başarıyla tamamlandı: [2025]
