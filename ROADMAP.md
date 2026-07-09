@@ -175,6 +175,15 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Karne **maça göre** görünüm: seçilen maçtaki her oyuncu için tahmin vs
       gerçekleşen kompakt satırlar
 
+### ✅ Faz 5.11 — ML projeksiyon motoru (8. tur)
+- [x] Veri seti 8 sezona genişletildi (2018–2025, arayüzde de seçilebilir)
+- [x] ml.py: sızıntısız özellik seti + stat başına gradient boosting
+      (44k satırla her Salı yeniden eğitilir); canlı projeksiyonlar ML'den,
+      sezgisel model fallback; önceki-sezon özellikleri W1-4 soğuk
+      başlangıcını çözer
+- [x] Karne iki motoru walk-forward yan yana ölçer (ML/Sezgisel seçici);
+      ML çoğu statta önde (pas TD r 0.24→0.36, koşu yd r 0.60→0.63)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
