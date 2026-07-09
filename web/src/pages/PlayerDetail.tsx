@@ -6,7 +6,7 @@ import {
   loadNgs, loadPlayerIndex, loadPlayerScheme, loadPlayerSeason,
   loadPlayerWeeks, loadRedzone, loadSnapCounts,
 } from "../lib/data";
-import { label, presetForPosition } from "../lib/columns";
+import { fmt as fmtStat, label, presetForPosition } from "../lib/columns";
 import { trendOf, WeeklyBarChart } from "../components/charts";
 import StatusBadge from "../components/StatusBadge";
 import { loadInjuries } from "../lib/data";
@@ -81,7 +81,25 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
   const stats = presetForPosition(pos || null);
   const [statChoice, setStatChoice] = useState<string | null>(null);
   const chartStat = statChoice ?? stats[0];
-  const setChartStat = setStatChoice;
+  const setChartStat = (s: string) => { setStatChoice(s); setThrChoice(null); };
+
+  // Sürüklenebilir eşik: varsayılan sezon ortalaması; stat/sezon değişince sıfırlanır
+  const [thrChoice, setThrChoice] = useState<number | null>(null);
+  const regWeeks = useMemo(
+    () => (weeks ?? []).filter((r) => r.season_type === "REG"), [weeks]);
+  const threshold = useMemo(() => {
+    if (thrChoice !== null) return thrChoice;
+    if (regWeeks.length === 0) return null;
+    const vals = regWeeks.map((r) => Number(r[chartStat] ?? 0));
+    return Number((vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1));
+  }, [thrChoice, regWeeks, chartStat]);
+  const overCount = useMemo(() => {
+    if (threshold === null) return null;
+    const over = regWeeks.filter(
+      (r) => Number(r[chartStat] ?? 0) >= threshold).length;
+    return { over, total: regWeeks.length,
+             pct: regWeeks.length ? Math.round(100 * over / regWeeks.length) : 0 };
+  }, [threshold, regWeeks, chartStat]);
 
   // Red zone (seçili sezon)
   const { data: rz } = useAsync(async () => {
@@ -195,7 +213,24 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
               );
             })()}
           </div>
-          <WeeklyBarChart rows={weeks} stat={chartStat} />
+          {threshold !== null && overCount && (
+            <div className="toolbar" style={{ marginBottom: 4 }}>
+              <span className="thr-chip">
+                🎯 Eşik <strong>{fmtStat(chartStat, threshold)}</strong>
+                {" — "}
+                <strong>{overCount.over}/{overCount.total}</strong> maçta eşiğin
+                üzerinde (%{overCount.pct})
+              </span>
+              <input className="axis-select small" type="number" step="0.5"
+                     style={{ width: 90 }}
+                     value={threshold}
+                     onChange={(e) => setThrChoice(Number(e.target.value))} />
+            </div>
+          )}
+          <WeeklyBarChart rows={weeks} stat={chartStat}
+                          threshold={threshold}
+                          onThresholdChange={(v) =>
+                            setThrChoice(Number(v.toFixed(1)))} />
         </>
       )}
       {weeks && (

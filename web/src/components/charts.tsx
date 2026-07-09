@@ -30,11 +30,19 @@ const tooltipStyle = {
 interface WeeklyBarProps {
   rows: StatRow[]; // tek oyuncunun haftalık satırları (week sıralı)
   stat: string;
+  /** sürüklenebilir eşik çizgisi (değer) — verilirse çizilir */
+  threshold?: number | null;
+  onThresholdChange?: (v: number) => void;
 }
 
+// eşik sürükleme geometrisi (sabit yükseklik/marjinlerle piksel<->değer eşleme)
+const WK_H = 230, WK_PLOT_TOP = 8, WK_XAXIS_H = 30;
+const WK_PLOT_H = WK_H - WK_PLOT_TOP - WK_XAXIS_H;
+
 /** Hafta hafta istatistik: sütunlar + 3 haftalık hareketli ortalama eğrisi
-    + sezon ortalaması referansı. */
-export function WeeklyBarChart({ rows, stat }: WeeklyBarProps) {
+    + sezon ortalaması + (opsiyonel) sürüklenebilir eşik çizgisi. */
+export function WeeklyBarChart({ rows, stat, threshold, onThresholdChange }:
+  WeeklyBarProps) {
   const vals = rows.map((r) => Number(r[stat] ?? 0));
   const data = rows.map((r, i) => {
     const win = vals.slice(Math.max(0, i - 2), i + 1);
@@ -46,32 +54,86 @@ export function WeeklyBarChart({ rows, stat }: WeeklyBarProps) {
   });
   if (data.length === 0) return null;
   const seasonAvg = vals.reduce((s, v) => s + v, 0) / vals.length;
+  const hasThr = threshold !== null && threshold !== undefined;
+  const yMax = Math.max(...vals, hasThr ? Number(threshold) : 0) * 1.1 || 1;
+  const thrTop = hasThr
+    ? WK_PLOT_TOP + (1 - Number(threshold) / yMax) * WK_PLOT_H
+    : 0;
+
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!onThresholdChange) return;
+    const box = (e.currentTarget.parentElement as HTMLElement)
+      .getBoundingClientRect();
+    const move = (ev: PointerEvent) => {
+      const y = ev.clientY - box.top;
+      const v = (1 - (y - WK_PLOT_TOP) / WK_PLOT_H) * yMax;
+      onThresholdChange(Math.max(0, Math.min(yMax, v)));
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    e.preventDefault();
+  };
+
   return (
     <div className="chart-box">
-      <ResponsiveContainer width="100%" height={230}>
-        <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
-                       barCategoryGap="20%">
-          <CartesianGrid vertical={false} stroke={CHART.grid} />
-          <XAxis dataKey="week" tick={{ fill: CHART.muted, fontSize: 11 }}
-                 axisLine={{ stroke: CHART.axis }} tickLine={false} />
-          <YAxis tick={{ fill: CHART.muted, fontSize: 11 }}
-                 axisLine={false} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
-                   formatter={(v, name) =>
-                     [fmt(stat, Number(v)),
-                      name === "ma" ? "3 hafta ort." : label(stat)]}
-                   labelFormatter={(w) => `Hafta ${w}`} />
-          <ReferenceLine y={seasonAvg} stroke={CHART.muted} strokeDasharray="5 5"
-                         label={{ value: "sezon ort.", position: "insideTopRight",
-                                  fill: CHART.muted, fontSize: 10 }} />
-          <Bar dataKey="value" fill={CHART.series1} radius={[4, 4, 0, 0]}
-               maxBarSize={28} name={label(stat)} isAnimationActive={false} />
-          <Line dataKey="ma" type="monotone" stroke={CHART.series3}
-                strokeWidth={2} dot={false} isAnimationActive={false} name="ma" />
-        </ComposedChart>
-      </ResponsiveContainer>
+      <div className="chart-rel" style={{ height: WK_H }}>
+        <ResponsiveContainer width="100%" height={WK_H}>
+          <ComposedChart data={data} margin={{ top: WK_PLOT_TOP, right: 8,
+                                               bottom: 0, left: -16 }}
+                         barCategoryGap="20%">
+            <CartesianGrid vertical={false} stroke={CHART.grid} />
+            <XAxis dataKey="week" tick={{ fill: CHART.muted, fontSize: 11 }}
+                   axisLine={{ stroke: CHART.axis }} tickLine={false}
+                   height={WK_XAXIS_H} />
+            <YAxis tick={{ fill: CHART.muted, fontSize: 11 }}
+                   domain={[0, yMax]} allowDataOverflow
+                   tickFormatter={(v) => fmt(stat, Number(v))}
+                   axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
+                     formatter={(v, name) =>
+                       [fmt(stat, Number(v)),
+                        name === "ma" ? "3 hafta ort." : label(stat)]}
+                     labelFormatter={(w) => `Hafta ${w}`} />
+            <ReferenceLine y={seasonAvg} stroke={CHART.muted} strokeDasharray="5 5"
+                           label={{ value: "sezon ort.", position: "insideTopRight",
+                                    fill: CHART.muted, fontSize: 10 }} />
+            {hasThr && (
+              <ReferenceLine y={Number(threshold)} stroke="#d50a0a"
+                             strokeWidth={2}
+                             label={{ value: `eşik ${fmt(stat, Number(threshold))}`,
+                                      position: "insideLeft",
+                                      fill: "#f85149", fontSize: 11 }} />
+            )}
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}
+                 maxBarSize={28} name={label(stat)} isAnimationActive={false}>
+              {data.map((d, i) => (
+                <Cell key={i}
+                      fill={hasThr && d.value >= Number(threshold)
+                            ? CHART.series2 : CHART.series1}
+                      opacity={hasThr && d.value < Number(threshold) ? 0.55 : 1} />
+              ))}
+            </Bar>
+            <Line dataKey="ma" type="monotone" stroke={CHART.series3}
+                  strokeWidth={2} dot={false} isAnimationActive={false} name="ma" />
+          </ComposedChart>
+        </ResponsiveContainer>
+        {hasThr && onThresholdChange && (
+          <div className="thr-handle" style={{ top: thrTop - 9 }}
+               onPointerDown={startDrag}
+               title="Eşiği sürükleyerek ayarla">
+            <span className="thr-grip">⇕</span>
+          </div>
+        )}
+      </div>
       <p className="chart-note">
-        Turuncu eğri 3 haftalık hareketli ortalama; kesikli çizgi sezon ortalaması.
+        Turuncu eğri 3 haftalık hareketli ortalama; gri kesikli çizgi sezon
+        ortalaması.{hasThr
+          ? " Kırmızı eşik çizgisini sürükleyerek (⇕) yukarı/aşağı oynatabilirsin; eşiği aşan maçlar yeşil boyanır."
+          : ""}
       </p>
     </div>
   );

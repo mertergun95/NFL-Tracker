@@ -175,6 +175,25 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
   background: var(--bg-soft); border: 1px solid var(--border);
   border-radius: 10px; padding: 14px 10px 6px; margin: 10px 0 18px;
 }
+.chart-rel { position: relative; }
+.thr-handle {
+  position: absolute; right: 4px; left: auto; height: 18px; width: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: ns-resize; z-index: 5; touch-action: none;
+}
+.thr-grip {
+  background: #d50a0a; color: #fff; border-radius: 8px;
+  font-size: 11px; line-height: 1; padding: 3px 8px; user-select: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.thr-handle:hover .thr-grip { background: #f85149; }
+.thr-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-soft); border: 1px solid #6e2c2c;
+  border-radius: 14px; padding: 5px 14px; font-size: 0.86rem;
+  color: var(--text-dim);
+}
+.thr-chip strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .chart-note { color: var(--text-dim); font-size: 0.8rem; margin: 0 0 8px 12px; }
 
 .team-logo { vertical-align: middle; object-fit: contain; }
