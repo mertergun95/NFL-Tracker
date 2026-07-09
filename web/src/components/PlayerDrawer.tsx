@@ -14,6 +14,21 @@ import { teamName } from "../lib/teams";
 
 const TREND_COLOR = { hot: "#3fb950", cold: "#f0883e", flat: CHART.series1 };
 
+/** Pozisyona göre gerçek stat projeksiyon satırı. */
+function projStatLine(p: Record<string, unknown>): string {
+  const v = (c: string) =>
+    p[c] !== null && p[c] !== undefined ? String(p[c]) : "—";
+  const pos = String(p.position);
+  if (pos === "QB")
+    return `${v("proj_completions")}/${v("proj_attempts")} · ${v("proj_passing_yards")} pas yd · ` +
+           `${v("proj_passing_tds")} TD · ${v("proj_passing_interceptions")} int`;
+  if (pos === "RB")
+    return `${v("proj_carries")} koşu · ${v("proj_rushing_yards")} koşu yd · ` +
+           `${v("proj_receptions")} rec · ${v("proj_receiving_yards")} rec yd`;
+  return `${v("proj_targets")} tgt · ${v("proj_receptions")} rec · ` +
+         `${v("proj_receiving_yards")} yd · ${v("proj_receiving_tds")} TD`;
+}
+
 interface Props {
   playerId: string | null;
   season: number;
@@ -136,11 +151,14 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                     vs <TeamLogo abbr={String(proj.opponent)} size={18} />{" "}
                     {String(proj.opponent)}
                   </span>
-                  <strong>Proj: {fmt("proj_ppr", proj.proj_ppr)} PPR</strong>
+                </div>
+                <div className="drawer-proj-stats">
+                  {projStatLine(proj)}
                 </div>
                 <div className="drawer-proj-sub">
-                  matchup çarpanı {fmt("matchup_factor", proj.matchup_factor)} ·
-                  son 5: {fmt("recent_avg", proj.recent_avg)}
+                  çarpanlar: matchup {fmt("matchup_factor", proj.matchup_factor)}
+                  {" · "}şema {fmt("scheme_factor", proj.scheme_factor)}
+                  {" · "}snap {fmt("snap_factor", proj.snap_factor)}
                 </div>
               </div>
             )}

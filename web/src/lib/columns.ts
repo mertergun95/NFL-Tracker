@@ -199,7 +199,12 @@ export const PERCENT_COLS = new Set([
   "success_rate",
 ]);
 
-export const label = (col: string) => STAT_LABELS[col] ?? col;
+export const label = (col: string): string => {
+  if (STAT_LABELS[col]) return STAT_LABELS[col];
+  if (col.startsWith("proj_")) return `P·${label(col.slice(5))}`;
+  if (col.startsWith("act_")) return `G·${label(col.slice(4))}`;
+  return col;
+};
 
 // Pozisyon grubuna göre gösterilecek istatistik kolonları
 export const POSITION_PRESETS: Record<string, string[]> = {

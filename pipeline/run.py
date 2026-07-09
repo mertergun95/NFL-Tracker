@@ -115,7 +115,13 @@ def update_current_roster() -> "object | None":
     if result is None:
         log.warning("Depth chart verisi bulunamadı")
 
-    # Sakatlık raporları: yeni sezon yayınlanmadıysa son sezonunki
+    update_injuries()
+    return result
+
+
+def update_injuries() -> None:
+    """Resmi sakatlık raporlarını çek ve yaz (yeni sezon yoksa son sezon)."""
+    cur = current_season()
     for season in (cur + 1, cur):
         inj = sources.fetch_injuries(season)
         if inj is None:
@@ -126,8 +132,46 @@ def update_current_roster() -> "object | None":
         transform.write_json(config.DATA_DIR / "injuries.json",
                              inj.reset_index(drop=True))
         log.info("Sakatlık raporları yazıldı: %s sezonu, %s satır", season, len(inj))
-        break
-    return result
+        return
+    log.warning("Sakatlık raporu bulunamadı")
+
+
+def kickoff_within(schedules, hours: float = 4.75) -> bool:
+    """Önümüzdeki `hours` saat içinde başlayacak maç var mı? (ET -> UTC)"""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    et, utc = ZoneInfo("America/New_York"), ZoneInfo("UTC")
+    now = datetime.now(tz=utc)
+    cur = current_season()
+    upcoming = schedules[schedules["season"].isin([cur, cur + 1])
+                         & schedules["home_score"].isna()
+                         & schedules["gameday"].notna()]
+    for _, g in upcoming.iterrows():
+        try:
+            t = str(g.get("gametime") or "13:00")
+            kick = datetime.strptime(f"{g['gameday']} {t}", "%Y-%m-%d %H:%M")
+            kick = kick.replace(tzinfo=et).astimezone(utc)
+        except (ValueError, TypeError):
+            continue
+        delta = (kick - now).total_seconds() / 3600
+        if 0 <= delta <= hours:
+            log.info("Yaklaşan maç: %s @ %s, kickoff'a %.1f saat",
+                     g["away_team"], g["home_team"], delta)
+            return True
+    return False
+
+
+def gameday_update() -> int:
+    """Maç gününe 4/2 saat kala: yalnızca sakatlıkları tazele ve
+    projeksiyon/insight'ları yeniden üret. Yaklaşan maç yoksa no-op."""
+    schedules = sources.fetch_schedules()
+    if not kickoff_within(schedules):
+        log.info("4.75 saat içinde maç yok — güncelleme atlandı")
+        return 0
+    update_injuries()
+    insights.build_and_write(schedules)
+    return 0
 
 
 def rebuild_index_and_manifest(master, current_roster=None) -> None:
@@ -153,10 +197,13 @@ def rebuild_index_and_manifest(master, current_roster=None) -> None:
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["backfill", "update"])
+    ap.add_argument("mode", choices=["backfill", "update", "gameday"])
     ap.add_argument("--seasons", default=None,
                     help="backfill için aralık, ör. 2021-2025")
     args = ap.parse_args()
+
+    if args.mode == "gameday":
+        return gameday_update()
 
     if args.mode == "backfill":
         if args.seasons:

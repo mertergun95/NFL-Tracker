@@ -364,8 +364,20 @@ def scheme_insights(pscheme: pd.DataFrame | None,
 
 # ------------------------------------------------------------ projeksiyon
 
-PROJ_STAT = {"QB": "passing_yards", "RB": "rushing_yards",
-             "WR": "receiving_yards", "TE": "receiving_yards"}
+# Pozisyona göre tahmin edilecek GERÇEK istatistikler
+POS_PROJ_STATS = {
+    "QB": ["attempts", "completions", "passing_yards", "passing_tds",
+           "passing_interceptions", "carries", "rushing_yards"],
+    "RB": ["carries", "rushing_yards", "rushing_tds", "targets",
+           "receptions", "receiving_yards"],
+    "WR": ["targets", "receptions", "receiving_yards", "receiving_tds"],
+    "TE": ["targets", "receptions", "receiving_yards", "receiving_tds"],
+}
+# matchup çarpanı için stat -> pos_allowed kolonu (yoksa vekil)
+FACTOR_PROXY = {"attempts": "passing_yards", "completions": "passing_yards"}
+# pozisyonun birincil stati (sıralama/karne için)
+POS_PRIMARY = {"QB": "passing_yards", "RB": "rushing_yards",
+               "WR": "receiving_yards", "TE": "receiving_yards"}
 
 
 def current_team_map() -> dict:
@@ -417,15 +429,14 @@ def _clamp(v, lo, hi):
 
 def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
                       games: pd.DataFrame, next_season: int, next_week: int,
-                      data_season: int) -> pd.DataFrame:
-    """Projeksiyon v2: ağırlıklı form × matchup × şema uyumu × snap trendi × sakatlık.
+                      data_season: int, use_current: bool = True,
+                      apply_injuries: bool = True) -> pd.DataFrame:
+    """Projeksiyon v3: pozisyona göre GERÇEK istatistik tahminleri.
 
-    - Takımlar GÜNCEL kadrolardan (depth chart) alınır — offseason transferleri dahil.
-    - Şema: rakip blitz-ağırsa QB'nin blitz splitine, box-ağırsa RB'nin box
-      splitine, coverage-ağırsa savunmanın o coverage'daki zafiyetine bakılır.
-    - Snap: son 3 haftanın snap payı sezon ortalamasından sapıyorsa fırsat çarpanı.
-    - Sakatlık: Out/Doubtful hariç tutulur, Questionable %10 kırpılır
-      (yalnızca rapor hedef sezona aitse).
+    Her stat için: (son 5 maçın ağırlıklı formu ×0.6 + sezon ort. ×0.4)
+    × o statın kendi matchup çarpanı (rakibin o pozisyona o statta verdiği
+    / lig ort.) × şema uyumu × snap trendi × sakatlık.
+    use_current/apply_injuries=False geriye dönük test (karne) için kullanılır.
     """
     if games.empty:
         return pd.DataFrame()
@@ -434,8 +445,8 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
         opp[g["home_team"]] = g["away_team"]
         opp[g["away_team"]] = g["home_team"]
 
-    cur_map = current_team_map()
-    injuries = injury_map(next_season)
+    cur_map = current_team_map() if use_current else {}
+    injuries = injury_map(next_season) if apply_injuries else {}
     pscheme, tscheme, snaps = _scheme_context(data_season)
     ts = tscheme.set_index("team") if tscheme is not None else None
     blitz_col = None
@@ -446,6 +457,9 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
     reg = pw[(pw["season_type"] == "REG") & pw["position"].isin(SKILL_POS)
              & pw["fantasy_points_ppr"].notna()].sort_values("week")
     league_avg = allowed.groupby("position")["ppr_allowed"].mean()
+    # stat bazlı lig ortalamaları: pozisyon -> stat -> maç başı ortalama
+    stat_league = allowed.groupby("position")[
+        [c for c in ALLOWED_STATS if c in allowed.columns]].mean()
 
     # snap trendi: oyuncu başına son3/sezon hücum snap payı oranı
     snap_ratio: dict = {}
@@ -472,19 +486,31 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
         if injury_status in ("Out", "Doubtful"):
             continue  # oynamayacak — Sakatlıklar sayfasında görünür
 
-        stat_col = PROJ_STAT.get(pos)
         last5 = g.tail(5)
         w = pd.Series(range(1, len(last5) + 1), index=last5.index, dtype=float)
         recent = float((last5["fantasy_points_ppr"] * w).sum() / w.sum())
         season_avg = float(g["fantasy_points_ppr"].mean())
         base = 0.6 * recent + 0.4 * season_avg
 
-        # 1) matchup: rakibin pozisyona verdiği PPR
+        # 1) matchup: genel (PPR bazlı, sıralama için) + stat bazlı çarpanlar
         row_a = allowed[(allowed["team"] == opponent) & (allowed["position"] == pos)]
         matchup = 1.0
         if not row_a.empty and pos in league_avg.index and league_avg[pos] > 0:
             matchup = _clamp(float(row_a["ppr_allowed"].iloc[0] / league_avg[pos]),
                              0.8, 1.25)
+
+        def stat_factor(stat: str) -> float:
+            src = FACTOR_PROXY.get(stat, stat)
+            if (row_a.empty or src not in allowed.columns
+                    or pos not in stat_league.index):
+                return matchup
+            lg = stat_league.loc[pos].get(src)
+            if lg is None or pd.isna(lg) or lg <= 0:
+                return matchup
+            v = row_a[src].iloc[0]
+            if v is None or pd.isna(v):
+                return matchup
+            return _clamp(float(v / lg), 0.75, 1.3)
 
         # 2) şema uyumu
         scheme_f = 1.0
@@ -519,30 +545,122 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
         # 4) sakatlık kırpması
         inj_f = 0.9 if injury_status == "Questionable" else 1.0
 
-        total = matchup * scheme_f * snap_f * inj_f
-        stat_proj = None
-        if stat_col in g.columns:
-            s_recent = float((last5[stat_col].fillna(0) * w).sum() / w.sum())
-            s_season = float(g[stat_col].fillna(0).mean())
-            stat_proj = round((0.6 * s_recent + 0.4 * s_season) * total, 1)
+        common_f = scheme_f * snap_f * inj_f
 
-        rows.append({
+        # GERÇEK istatistik projeksiyonları (pozisyona göre)
+        row = {
             "player_id": pid, "player_name": g["player_name"].iloc[-1],
             "position": pos, "team": team, "opponent": opponent,
-            "proj_ppr": round(base * total, 1),
+            "proj_ppr": round(base * matchup * common_f, 1),  # sıralama/karne referansı
             "recent_avg": round(recent, 1), "season_avg": round(season_avg, 1),
             "matchup_factor": round(matchup, 2),
             "scheme_factor": round(scheme_f, 2),
             "snap_factor": round(snap_f, 2),
             "injury_status": injury_status,
             "injury_note": injury_note,
-            "proj_stat": stat_proj, "proj_stat_name": stat_col,
-        })
+        }
+        for stat in POS_PROJ_STATS.get(pos, []):
+            if stat not in g.columns:
+                continue
+            s_recent = float((last5[stat].fillna(0) * w).sum() / w.sum())
+            s_season = float(g[stat].fillna(0).mean())
+            val = (0.6 * s_recent + 0.4 * s_season) * stat_factor(stat) * common_f
+            row[f"proj_{stat}"] = round(val, 1)
+        rows.append(row)
+
     df = pd.DataFrame(rows)
     if df.empty:
         return df
     df = df[df["proj_ppr"] >= 4].sort_values("proj_ppr", ascending=False)
     return df.reset_index(drop=True)
+
+
+# -------------------------------------------------- projeksiyon karnesi
+
+EVAL_WEEKS = 4
+
+
+def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
+                         data_season: int) -> None:
+    """Geriye dönük test: son N tamamlanmış haftayı, yalnızca ÖNCEKİ haftaların
+    verisiyle projekte edip gerçekleşenlerle karşılaştırır. Sezon içinde her
+    Salı kendini günceller — projeksiyon tutarlılığının karnesi.
+    """
+    reg = pw[pw["season_type"] == "REG"]
+    last_week = int(reg["week"].max())
+    weeks = [w for w in range(max(6, last_week - EVAL_WEEKS + 1), last_week + 1)]
+
+    all_stats = sorted({s for lst in POS_PROJ_STATS.values() for s in lst})
+    week_summaries = []
+    players_latest: list[dict] = []
+
+    for wk in weeks:
+        cut = pw[(pw["season_type"] == "REG") & (pw["week"] < wk)]
+        if cut.empty:
+            continue
+        games_w = schedules[(schedules["season"] == data_season)
+                            & (schedules["game_type"] == "REG")
+                            & (schedules["week"] == wk)]
+        if games_w.empty:
+            continue
+        proj = build_projections(cut, points_allowed(cut), games_w,
+                                 data_season, wk, data_season,
+                                 use_current=False, apply_injuries=False)
+        if proj.empty:
+            continue
+        actual = reg[reg["week"] == wk]
+        j = proj.merge(actual, on="player_id", how="inner",
+                       suffixes=("", "_act"))
+        if j.empty:
+            continue
+
+        stat_metrics = {}
+        for stat in all_stats:
+            pc, ac = f"proj_{stat}", stat
+            if pc not in j.columns or ac not in j.columns:
+                continue
+            sub = j[j[pc].notna() & j[ac].notna()]
+            if len(sub) < 10:
+                continue
+            diff = sub[pc] - sub[ac]
+            corr = float(sub[pc].corr(sub[ac])) if len(sub) > 2 else None
+            stat_metrics[stat] = {
+                "n": int(len(sub)),
+                "mae": round(float(diff.abs().mean()), 2),
+                "bias": round(float(diff.mean()), 2),
+                "corr": round(corr, 3) if corr is not None and not pd.isna(corr) else None,
+            }
+        week_summaries.append({"week": wk, "n": int(len(j)), "stats": stat_metrics})
+
+        if wk == weeks[-1]:
+            keep_cols = ["player_id", "player_name", "position", "team",
+                         "opponent", "proj_ppr"]
+            for stat in all_stats:
+                if f"proj_{stat}" in j.columns:
+                    keep_cols += [f"proj_{stat}"]
+            detail = j[[c for c in keep_cols if c in j.columns]].copy()
+            for stat in all_stats:
+                if stat in j.columns:
+                    detail[f"act_{stat}"] = j[stat]
+            detail["week"] = wk
+            # float kolonlarda None NaN'a geri döner; object'e çevirerek koru
+            detail = detail.astype(object).where(pd.notna(detail), None)
+            players_latest = detail.to_dict("records")
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "data_season": data_season,
+        "method": ("Her hafta yalnızca öncesindeki haftaların verisiyle projekte "
+                   "edilip gerçek sonuçlarla karşılaştırıldı (güncel kadro ve "
+                   "sakatlık düzeltmeleri geriye dönük testte kapalı)."),
+        "weeks": week_summaries,
+        "players": players_latest,
+    }
+    with open(config.DATA_DIR / "proj_eval.json", "w") as f:
+        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"),
+                  allow_nan=False)
+    log.info("Projeksiyon karnesi yazıldı: %s hafta, son hafta %s oyuncu",
+             len(week_summaries), len(players_latest))
 
 
 # ------------------------------------------------------------- takım gücü
@@ -625,14 +743,22 @@ def build_and_write(schedules: pd.DataFrame) -> None:
     # Haftalık projeksiyonlar (sıradaki oynanmamış hafta için)
     proj = build_projections(pw, allowed, games, next_season, next_week, season)
     if not proj.empty:
+        proj_safe = proj.astype(object).where(pd.notna(proj), None)
         payload_p = {
             "generated_at": payload["generated_at"],
             "data_season": season,
             "target": {"season": next_season, "week": next_week},
             "columns": list(proj.columns),
-            "rows": proj.where(pd.notna(proj), None).values.tolist(),
+            "rows": proj_safe.values.tolist(),
         }
         with open(config.DATA_DIR / "projections.json", "w") as f:
-            json.dump(payload_p, f, ensure_ascii=False, separators=(",", ":"))
+            json.dump(payload_p, f, ensure_ascii=False, separators=(",", ":"),
+                      allow_nan=False)
         log.info("Projeksiyonlar yazıldı: %s oyuncu (%s W%s)",
                  len(proj), next_season, next_week)
+
+    # Projeksiyon karnesi (geriye dönük test)
+    try:
+        evaluate_projections(pw, schedules, season)
+    except Exception:
+        log.exception("Projeksiyon karnesi üretilemedi")

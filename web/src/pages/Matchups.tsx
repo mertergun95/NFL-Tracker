@@ -188,17 +188,22 @@ export default function Matchups() {
             {[away, home].map((t) => (
               <div className="matchup-card" key={t}>
                 <h3><TeamLogo abbr={t} size={20} /> {teamName(t)}</h3>
-                {projFor(t).map((p) => (
-                  <div key={String(p.player_id)} className="allowed-row">
-                    <Link to={`/player/${p.player_id}`}>
-                      {String(p.player_name)} ({String(p.position)})
-                    </Link>
-                    <span>
-                      <strong>{fmt("proj_ppr", p.proj_ppr)} PPR</strong>
-                      {" · "}çarpan {fmt("matchup_factor", p.matchup_factor)}
-                    </span>
-                  </div>
-                ))}
+                {projFor(t).map((p) => {
+                  const pos = String(p.position);
+                  const line = pos === "QB"
+                    ? `${p.proj_passing_yards ?? "—"} pas yd · ${p.proj_passing_tds ?? "—"} TD`
+                    : pos === "RB"
+                      ? `${p.proj_carries ?? "—"} koşu · ${p.proj_rushing_yards ?? "—"} yd`
+                      : `${p.proj_receptions ?? "—"} rec · ${p.proj_receiving_yards ?? "—"} yd`;
+                  return (
+                    <div key={String(p.player_id)} className="allowed-row">
+                      <Link to={`/player/${p.player_id}`}>
+                        {String(p.player_name)} ({pos})
+                      </Link>
+                      <span><strong>{line}</strong></span>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>

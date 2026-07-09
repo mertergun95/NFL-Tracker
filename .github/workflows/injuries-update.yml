@@ -1,0 +1,53 @@
+# Maç günlerinde sakatlık raporlarını tazeler (kickoff'a ~4 ve ~2 saat kala).
+# İş, önümüzdeki 4.75 saatte maç yoksa hiçbir şey yapmadan çıkar; bu sayede
+# cron kaba aralıklı olsa da güncellemeler fiilen T-4/T-2 pencerelerine düşer.
+# Diğer tüm istatistikler Salı cron'unda (update-stats.yml) güncellenir.
+name: Gameday Injuries
+
+on:
+  schedule:
+    # UTC saatleri; NFL kickoff pencereleri (Paz erken/öğlen/akşam, Pzt/Per/Cum/Cts akşam)
+    - cron: "0 9,11,13,15,17,19,21,23 * * 0"   # Pazar
+    - cron: "0 19,21,23 * * 1"                 # Pazartesi (MNF)
+    - cron: "0 19,21,23 * * 4"                 # Perşembe (TNF)
+    - cron: "0 19,21,23 * * 5"                 # Cuma (özel maçlar)
+    - cron: "0 15,17,19,21,23 * * 6"           # Cumartesi (sezon sonu)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gameday-injuries
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Refresh injuries if kickoff is near
+        working-directory: pipeline
+        run: python run.py gameday
+
+      - name: Commit and push data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/public/data
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok"
+          else
+            git commit -m "data: maç günü sakatlık güncellemesi ($(date -u +%Y-%m-%dT%H:%M))"
+            git push
+          fi

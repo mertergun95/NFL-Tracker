@@ -7,9 +7,26 @@ import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 
-const COLS = ["player_name", "team", "opponent", "proj_ppr", "proj_stat",
-              "recent_avg", "season_avg", "matchup_factor", "scheme_factor",
-              "snap_factor", "injury_status"];
+// pozisyona göre gösterilecek GERÇEK stat projeksiyonları
+const POS_COLS: Record<string, string[]> = {
+  QB: ["proj_attempts", "proj_completions", "proj_passing_yards",
+       "proj_passing_tds", "proj_passing_interceptions", "proj_carries",
+       "proj_rushing_yards"],
+  RB: ["proj_carries", "proj_rushing_yards", "proj_rushing_tds",
+       "proj_targets", "proj_receptions", "proj_receiving_yards"],
+  WR: ["proj_targets", "proj_receptions", "proj_receiving_yards",
+       "proj_receiving_tds"],
+  TE: ["proj_targets", "proj_receptions", "proj_receiving_yards",
+       "proj_receiving_tds"],
+};
+const POS_SORT: Record<string, string> = {
+  QB: "proj_passing_yards", RB: "proj_rushing_yards",
+  WR: "proj_receiving_yards", TE: "proj_receiving_yards",
+};
+const FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor",
+                     "injury_status"];
+const GAME_COLS = ["proj_passing_yards", "proj_carries", "proj_rushing_yards",
+                   "proj_targets", "proj_receptions", "proj_receiving_yards"];
 
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
@@ -54,12 +71,14 @@ export default function Projections() {
     <section>
       <h1>Haftalık Projeksiyonlar — {data.target.season} W{data.target.week}</h1>
       <p className="sub">
-        Model v2: son 5 maçın ağırlıklı formu (%60) + sezon ortalaması (%40)
-        × <strong>matchup</strong> (rakibin pozisyona verdiği)
-        × <strong>şema</strong> (blitz/box/coverage uyumu)
-        × <strong>snap trendi</strong> (son 3 haftanın snap payı)
-        × <strong>sakatlık</strong> (Out/Doubtful hariç, Questionable −%10).
-        Takımlar <strong>güncel kadrolardan</strong> alınır. Veri: {data.data_season} sezonu.
+        <strong>Gerçek istatistik tahminleri</strong> (P· = projeksiyon):
+        her stat için son 5 maçın ağırlıklı formu (%60) + sezon ortalaması (%40)
+        × o statın <strong>kendi matchup çarpanı</strong> (rakibin o pozisyona
+        o statta verdiği / lig ort.) × <strong>şema uyumu</strong>
+        × <strong>snap trendi</strong> × <strong>sakatlık</strong> (Out/Doubtful
+        hariç, Questionable −%10). Takımlar güncel kadrolardan.
+        Doğruluk geçmişi için <Link to="/accuracy">Karne</Link> sayfasına bak.
+        Veri: {data.data_season} sezonu.
       </p>
       <div className="toolbar">
         <div className="pill-row">
@@ -86,8 +105,13 @@ export default function Projections() {
         </div>
       )}
       <StatTable rows={view === "game" ? gameRows : rows}
-        columns={view === "game" ? ["player_name", "position", ...COLS.slice(1)] : COLS}
-        defaultSort="proj_ppr" maxRows={60}
+        columns={view === "game"
+          ? ["player_name", "position", "team", "opponent", ...GAME_COLS,
+             "injury_status"]
+          : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? []),
+             ...FACTOR_COLS]}
+        defaultSort={view === "game" ? "proj_receiving_yards" : POS_SORT[pos]}
+        maxRows={60}
         render={{
           player_name: (row) => (
             <Link to={`/player/${row.player_id}`}>{String(row.player_name)}</Link>

@@ -149,6 +149,19 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       ortalaması çizgisi**; renkli **trend alarmları** (🔥/🧊); künyede trend
       renkli **sparkline**
 
+### ✅ Faz 5.9 — Gerçek stat projeksiyonları, maç günü sakatlık ve karne (6. tur)
+- [x] **Projeksiyon v3**: PPR değil GERÇEK istatistik tahminleri — QB
+      att/cmp/pas yds/TD/int, RB koşu/yds/TD/tgt/rec, WR-TE tgt/rec/yds/TD;
+      her stat rakibin o pozisyona o statta verdiğine göre kendi çarpanıyla
+- [x] **Maç günü sakatlık güncellemesi**: ayrı workflow, kickoff'a ~4 ve ~2
+      saat kala injuries + projeksiyonları tazeler (maç yoksa no-op);
+      diğer istatistikler Salı cron'unda kalır
+- [x] **Projeksiyon Karnesi** sayfası: son 4 tamamlanmış hafta geriye dönük
+      test — stat bazında MAE/bias/korelasyon tablosu, tahmin-vs-gerçek
+      scatter, oyuncu detay tablosu; sezon boyunca her Salı kendini yeniler
+- [x] NaN/JSON güvenliği: tarayıcıda parse hatasına yol açan pandas NaN
+      sızıntısı kapatıldı (allow_nan=False korumasıyla)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
