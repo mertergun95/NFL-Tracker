@@ -1,3 +1,4 @@
+import PName from "../components/PName";
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import StatTable from "../components/StatTable";
@@ -32,7 +33,8 @@ function TeamPlayerTable({ rows, team }: { rows: StatRow[]; team: string }) {
         defaultSort="fantasy_points_ppr" maxRows={30}
         render={{
           player_name: (row) => (
-            <Link to={`/player/${row.player_id}`}>{String(row.player_name)}</Link>
+            <PName name={String(row.player_name)} pos={String(row.position ?? "")}
+                   id={String(row.player_id)} />
           ),
         }}
       />

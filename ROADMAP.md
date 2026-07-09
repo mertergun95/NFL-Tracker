@@ -162,6 +162,19 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] NaN/JSON güvenliği: tarayıcıda parse hatasına yol açan pandas NaN
       sızıntısı kapatıldı (allow_nan=False korumasıyla)
 
+### ✅ Faz 5.10 — Kadro doğruluğu, akan dashboard ve karne detayı (7. tur)
+- [x] Projeksiyonlar **sıkı güncel-kadro modu**: kadroda olmayan oyuncu (FA/
+      emekli) projeksiyona girmez; roster+depth birleşik current_teams.json
+- [x] **Dashboard v2**: haftanın yıldızları şeridi (headshot kartları, gerçek
+      stat satırları), hafta skorları, istatistiksel değişim akışı, altta
+      genişletilebilir Stats Leaders
+- [x] Oyuncu isimlerinin yanında **pozisyon alt-simgesi** (tüm sayfalarda)
+- [x] Takımlar haritası **tam konfigüre edilebilir**: tüm takım statları +
+      izin verilen pas/koşu/rec (pozisyona göre) + savunma şeması eksenleri,
+      hazır kombinasyon pilleri
+- [x] Karne **maça göre** görünüm: seçilen maçtaki her oyuncu için tahmin vs
+      gerçekleşen kompakt satırlar
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

@@ -1,5 +1,5 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { CompareLineChart, SERIES_COLORS } from "../components/charts";
 import { Loading } from "../components/Pickers";
 import { loadPlayerIndex, loadPlayerSeason, loadPlayerWeeks } from "../lib/data";
@@ -147,7 +147,9 @@ export default function Compare({ seasons }: { seasons: number[] }) {
                   <th>İstatistik</th>
                   {players.map((p) => (
                     <th key={p.id + p.season}>
-                      <Link to={`/player/${p.id}`}>{colName(p)}</Link>
+                      <PName name={colName(p)}
+                             pos={String(p.season_row?.position ?? "")}
+                             id={p.id} />
                     </th>
                   ))}
                 </tr>

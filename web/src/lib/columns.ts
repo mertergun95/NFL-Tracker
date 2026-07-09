@@ -203,6 +203,9 @@ export const label = (col: string): string => {
   if (STAT_LABELS[col]) return STAT_LABELS[col];
   if (col.startsWith("proj_")) return `P·${label(col.slice(5))}`;
   if (col.startsWith("act_")) return `G·${label(col.slice(4))}`;
+  // allowed_qb_passing_yards -> "QB'ye Pas Yds (verilen)"
+  const m = col.match(/^allowed_(qb|rb|wr|te)_(.+)$/);
+  if (m) return `${m[1].toUpperCase()}'ye ${label(m[2])} (verilen)`;
   return col;
 };
 

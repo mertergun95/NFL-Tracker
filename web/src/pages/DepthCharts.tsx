@@ -1,5 +1,5 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import TeamLogo from "../components/TeamLogo";
 import { Loading } from "../components/Pickers";
 import { loadOptional } from "../lib/data";
@@ -95,13 +95,9 @@ export default function DepthCharts() {
                 <li key={`${p.player_id}-${i}`}
                     className={Number(p.depth) === 1 ? "starter" : ""}>
                   <span className="depth-no">{String(p.depth)}</span>
-                  {p.player_id ? (
-                    <Link to={`/player/${p.player_id}`}>
-                      {String(p.player_name)}
-                    </Link>
-                  ) : (
-                    <span>{String(p.player_name)}</span>
-                  )}
+                  <PName name={String(p.player_name)}
+                         pos={String(p.position_slot ?? "")}
+                         id={p.player_id ? String(p.player_id) : undefined} />
                   {p.jersey !== null && p.jersey !== undefined && (
                     <span className="jersey">#{String(p.jersey)}</span>
                   )}

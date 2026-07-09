@@ -381,12 +381,13 @@ POS_PRIMARY = {"QB": "passing_yards", "RB": "rushing_yards",
 
 
 def current_team_map() -> dict:
-    """Güncel kadro eşlemesi (depth chart'tan): player_id -> takım."""
-    dc = transform.read_json(config.DATA_DIR / "depth_charts.json")
-    if dc is None or "player_id" not in dc.columns:
-        return {}
-    dc = dc[dc["player_id"].notna()].drop_duplicates("player_id")
-    return dict(zip(dc["player_id"], dc["team"]))
+    """Güncel kadro eşlemesi: player_id -> takım (roster+depth birleşik dosyadan)."""
+    for name in ("current_teams.json", "depth_charts.json"):
+        df = transform.read_json(config.DATA_DIR / name)
+        if df is not None and "player_id" in df.columns:
+            df = df[df["player_id"].notna()].drop_duplicates("player_id")
+            return dict(zip(df["player_id"], df["team"]))
+    return {}
 
 
 def injury_map(target_season: int) -> dict:
@@ -477,7 +478,15 @@ def build_projections(pw: pd.DataFrame, allowed: pd.DataFrame,
         if len(g) < 4:
             continue
         pos = g["position"].iloc[-1]
-        team = cur_map.get(pid, g["team"].iloc[-1])  # güncel kadro öncelikli
+        if use_current and cur_map:
+            # SIKI mod: güncel kadroda olmayan oyuncu (free agent / emekli /
+            # takımsız) projeksiyona girmez — eski takımında "varmış gibi"
+            # görünmesin (ör. transfer olan/ayrılan oyuncular)
+            team = cur_map.get(pid)
+            if team is None:
+                continue
+        else:
+            team = g["team"].iloc[-1]
         if team not in opp:
             continue
         opponent = opp[team]

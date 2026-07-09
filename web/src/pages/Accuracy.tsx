@@ -1,5 +1,5 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { PlayerScatterChart } from "../components/charts";
 import { Loading } from "../components/Pickers";
 import { label } from "../lib/columns";
@@ -28,8 +28,24 @@ const POS_OF_STAT: Record<string, string[]> = {
   targets: ["WR", "TE", "RB"], receiving_tds: ["WR", "TE"],
 };
 
+// pozisyona göre tahmin/gerçek kompakt satır
+function pairLine(p: StatRow, kind: "proj" | "act"): string {
+  const v = (c: string) => {
+    const val = p[`${kind}_${c}`];
+    return val !== null && val !== undefined ? String(val) : "—";
+  };
+  const pos = String(p.position);
+  if (pos === "QB")
+    return `${v("completions")}/${v("attempts")} · ${v("passing_yards")} yd · ${v("passing_tds")} TD · ${v("passing_interceptions")} int`;
+  if (pos === "RB")
+    return `${v("carries")} koşu · ${v("rushing_yards")} yd · ${v("receptions")} rec`;
+  return `${v("targets")} tgt · ${v("receptions")} rec · ${v("receiving_yards")} yd`;
+}
+
 export default function Accuracy() {
   const [stat, setStat] = useState("receiving_yards");
+  const [view, setView] = useState<"stat" | "game">("stat");
+  const [gameKey, setGameKey] = useState<string | null>(null);
   const { data, loading } = useAsync(async () => {
     try {
       const res = await fetch(`${BASE}/proj_eval.json`);
@@ -61,6 +77,26 @@ export default function Accuracy() {
       .sort((a, b) => Number(b[`act_${stat}`]) - Number(a[`act_${stat}`]))
       .slice(0, 40),
     [rows, stat]);
+
+  // son değerlendirilen haftanın maçları (takım-rakip çiftlerinden)
+  const games = useMemo(() => {
+    const m = new Map<string, [string, string]>();
+    for (const p of data?.players ?? []) {
+      const t = String(p.team), o = String(p.opponent);
+      const key = [t, o].sort().join("@");
+      if (!m.has(key)) m.set(key, [t, o]);
+    }
+    return [...m.entries()];
+  }, [data]);
+  const activeGame = gameKey ?? games[0]?.[0] ?? null;
+  const gameTeams = games.find(([k]) => k === activeGame)?.[1] ?? null;
+  const gameRows = useMemo(() => {
+    if (!gameTeams) return [];
+    return (data?.players ?? [])
+      .filter((p) => gameTeams.includes(String(p.team)))
+      .sort((a, b) => String(a.team).localeCompare(String(b.team))
+        || Number(b.proj_ppr ?? 0) - Number(a.proj_ppr ?? 0));
+  }, [data, gameTeams]);
 
   if (loading) return <Loading />;
   if (!data)
@@ -129,6 +165,58 @@ export default function Accuracy() {
       </div>
 
       <h2>Tahmin vs Gerçekleşen — W{lastWeek}</h2>
+      <div className="toolbar">
+        <div className="pill-row">
+          <button className={`pill ${view === "stat" ? "active" : ""}`}
+                  onClick={() => setView("stat")}>İstatistiğe göre</button>
+          <button className={`pill ${view === "game" ? "active" : ""}`}
+                  onClick={() => setView("game")}>Maça göre</button>
+        </div>
+      </div>
+
+      {view === "game" && (
+        <>
+          <div className="pill-row">
+            {games.map(([key, [a, b]]) => (
+              <button key={key}
+                      className={`pill small ${key === activeGame ? "active" : ""}`}
+                      onClick={() => setGameKey(key)}>{a} – {b}</button>
+            ))}
+          </div>
+          <div className="table-wrap">
+            <table className="stat-table">
+              <thead>
+                <tr>
+                  <th>Oyuncu</th><th>Takım</th>
+                  <th>Tahmin</th><th>Gerçekleşen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gameRows.map((p) => (
+                  <tr key={String(p.player_id)}>
+                    <td>
+                      <PName name={String(p.player_name)}
+                             pos={String(p.position ?? "")}
+                             id={String(p.player_id)} />
+                    </td>
+                    <td>{String(p.team)}</td>
+                    <td className="num" style={{ whiteSpace: "nowrap" }}>
+                      {pairLine(p, "proj")}
+                    </td>
+                    <td className="num" style={{ whiteSpace: "nowrap",
+                                                 color: "var(--text)" }}>
+                      <strong>{pairLine(p, "act")}</strong>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {view === "stat" && (
+      <>
       <div className="pill-row">
         {statCols.map((s) => (
           <button key={s} className={`pill small ${s === stat ? "active" : ""}`}
@@ -155,7 +243,8 @@ export default function Accuracy() {
             {tableRows.map((p) => (
               <tr key={String(p.player_id)}>
                 <td>
-                  <Link to={`/player/${p.player_id}`}>{String(p.player_name)}</Link>
+                  <PName name={String(p.player_name)} pos={String(p.position ?? "")}
+                         id={String(p.player_id)} />
                 </td>
                 <td>{String(p.position)}</td>
                 <td>{String(p.team)}</td>
@@ -172,6 +261,8 @@ export default function Accuracy() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import StatTable from "../components/StatTable";
@@ -114,7 +115,8 @@ export default function Projections() {
         maxRows={60}
         render={{
           player_name: (row) => (
-            <Link to={`/player/${row.player_id}`}>{String(row.player_name)}</Link>
+            <PName name={String(row.player_name)} pos={String(row.position ?? "")}
+                   id={String(row.player_id)} />
           ),
           injury_status: (row) => (
             <StatusBadge status={row.injury_status as string}

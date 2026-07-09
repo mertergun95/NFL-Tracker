@@ -1,3 +1,4 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import TeamLogo from "../components/TeamLogo";
@@ -197,9 +198,8 @@ export default function Matchups() {
                       : `${p.proj_receptions ?? "—"} rec · ${p.proj_receiving_yards ?? "—"} yd`;
                   return (
                     <div key={String(p.player_id)} className="allowed-row">
-                      <Link to={`/player/${p.player_id}`}>
-                        {String(p.player_name)} ({pos})
-                      </Link>
+                      <PName name={String(p.player_name)} pos={pos}
+                             id={String(p.player_id)} />
                       <span><strong>{line}</strong></span>
                     </div>
                   );

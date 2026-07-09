@@ -1,3 +1,4 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import StatusBadge from "../components/StatusBadge";
@@ -65,11 +66,8 @@ export default function Injuries() {
             {filtered.map((r, i) => (
               <tr key={i}>
                 <td>
-                  {r.player_id ? (
-                    <Link to={`/player/${r.player_id}`}>
-                      {String(r.player_name)}
-                    </Link>
-                  ) : String(r.player_name)}
+                  <PName name={String(r.player_name)} pos={String(r.position ?? "")}
+                         id={r.player_id ? String(r.player_id) : undefined} />
                 </td>
                 <td>{String(r.position ?? "—")}</td>
                 <td>

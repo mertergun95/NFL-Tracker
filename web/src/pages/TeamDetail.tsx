@@ -1,3 +1,4 @@
+import PName from "../components/PName";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import StatTable from "../components/StatTable";
@@ -99,7 +100,8 @@ function GameLogs({ abbr, season, against }:
         <StatTable rows={rows} columns={cols} defaultSort={LOG_SORT[pos]} maxRows={150}
           render={{
             player_name: (row) => (
-              <Link to={`/player/${row.player_id}`}>{String(row.player_name)}</Link>
+              <PName name={String(row.player_name)} pos={String(row.position ?? "")}
+                     id={String(row.player_id)} />
             ),
             team: (row) => <Link to={`/team/${row.team}`}>{String(row.team)}</Link>,
             opponent_team: (row) => (
@@ -264,7 +266,8 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
               defaultSort="receiving_yards" maxRows={40}
               render={{
                 player_name: (row) => (
-                  <Link to={`/player/${row.player_id}`}>{String(row.player_name)}</Link>
+                  <PName name={String(row.player_name)} pos={String(row.position ?? "")}
+                         id={String(row.player_id)} />
                 ),
               }}
             />

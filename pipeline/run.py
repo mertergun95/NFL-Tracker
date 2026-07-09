@@ -9,6 +9,8 @@ import logging
 import sys
 from datetime import date
 
+import pandas as pd
+
 import advanced
 import config
 import insights
@@ -111,6 +113,20 @@ def update_current_roster() -> "object | None":
             transform.write_json(config.DATA_DIR / "depth_charts.json", dc)
             log.info("Depth chart yazıldı: %s sezonu, %s satır", season, len(dc))
             result = roster if roster is not None else dc
+
+            # Güncel takım haritası: roster (geniş kapsam) + depth chart birleşimi.
+            # Projeksiyonlar YALNIZCA bu haritadaki oyuncuları kullanır.
+            frames = []
+            if roster is not None and "gsis_id" in roster.columns:
+                r = roster[roster["gsis_id"].notna()]
+                frames.append(r.rename(columns={"gsis_id": "player_id"})
+                               [["player_id", "team"]])
+            frames.append(dc[dc["player_id"].notna()][["player_id", "team"]])
+            cur = (pd.concat(frames, ignore_index=True)
+                     .drop_duplicates("player_id", keep="first"))
+            cur["season"] = season
+            transform.write_json(config.DATA_DIR / "current_teams.json", cur)
+            log.info("Güncel takım haritası: %s oyuncu (%s)", len(cur), season)
             break
     if result is None:
         log.warning("Depth chart verisi bulunamadı")
