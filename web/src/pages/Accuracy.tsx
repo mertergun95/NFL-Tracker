@@ -63,12 +63,20 @@ export default function Accuracy() {
     return STAT_CHOICES.filter((s) => set.has(s));
   }, [data]);
 
+  // players tüm değerlendirme haftalarını içerir — seçili haftaya süz
+  const [weekChoice, setWeekChoice] = useState<number | null>(null);
+  const lastWeek = data?.weeks[data.weeks.length - 1]?.week ?? null;
+  const activeWeek = weekChoice ?? lastWeek;
+  const wkPlayers = useMemo(() =>
+    (data?.players ?? []).filter((p) => Number(p.week) === activeWeek),
+    [data, activeWeek]);
+
   const rows = useMemo(() => {
     const poss = POS_OF_STAT[stat] ?? [];
-    return (data?.players ?? []).filter((p) =>
+    return wkPlayers.filter((p) =>
       poss.includes(String(p.position))
       && p[`proj_${stat}`] !== null && p[`act_${stat}`] !== null);
-  }, [data, stat]);
+  }, [wkPlayers, stat]);
 
   const tableRows = useMemo(() =>
     rows
@@ -80,31 +88,30 @@ export default function Accuracy() {
       .slice(0, 40),
     [rows, stat]);
 
-  // son değerlendirilen haftanın maçları (takım-rakip çiftlerinden)
+  // seçili haftanın maçları (takım-rakip çiftlerinden)
   const games = useMemo(() => {
     const m = new Map<string, [string, string]>();
-    for (const p of data?.players ?? []) {
+    for (const p of wkPlayers) {
       const t = String(p.team), o = String(p.opponent);
       const key = [t, o].sort().join("@");
       if (!m.has(key)) m.set(key, [t, o]);
     }
     return [...m.entries()];
-  }, [data]);
-  const activeGame = gameKey ?? games[0]?.[0] ?? null;
+  }, [wkPlayers]);
+  const activeGame = games.some(([k]) => k === gameKey)
+    ? gameKey : games[0]?.[0] ?? null;
   const gameTeams = games.find(([k]) => k === activeGame)?.[1] ?? null;
   const gameRows = useMemo(() => {
     if (!gameTeams) return [];
-    return (data?.players ?? [])
+    return wkPlayers
       .filter((p) => gameTeams.includes(String(p.team)))
       .sort((a, b) => String(a.team).localeCompare(String(b.team))
         || Number(b.proj_ppr ?? 0) - Number(a.proj_ppr ?? 0));
-  }, [data, gameTeams]);
+  }, [wkPlayers, gameTeams]);
 
   if (loading) return <Loading />;
   if (!data)
     return <p className="empty">Karne henüz üretilmedi — pipeline'ı bekleyin.</p>;
-
-  const lastWeek = data.weeks[data.weeks.length - 1]?.week;
 
   return (
     <section>
@@ -174,13 +181,20 @@ export default function Accuracy() {
         </table>
       </div>
 
-      <h2>Tahmin vs Gerçekleşen — W{lastWeek}</h2>
+      <h2>Tahmin vs Gerçekleşen — W{activeWeek}</h2>
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${view === "stat" ? "active" : ""}`}
                   onClick={() => setView("stat")}>İstatistiğe göre</button>
           <button className={`pill ${view === "game" ? "active" : ""}`}
                   onClick={() => setView("game")}>Maça göre</button>
+        </div>
+        <div className="pill-row">
+          {data.weeks.map((w) => (
+            <button key={w.week}
+                    className={`pill small ${w.week === activeWeek ? "active" : ""}`}
+                    onClick={() => setWeekChoice(w.week)}>W{w.week}</button>
+          ))}
         </div>
       </div>
 

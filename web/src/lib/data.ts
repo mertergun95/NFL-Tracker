@@ -96,6 +96,29 @@ export async function loadProjections(): Promise<ProjectionsPayload | null> {
   }
 }
 
+export type EvalStatMetrics = Record<string, {
+  n: number; mae: number; bias: number; corr: number | null;
+}>;
+
+export interface ProjEvalPayload {
+  generated_at: string;
+  data_season: number;
+  method: string;
+  weeks: { week: number; stats: EvalStatMetrics;
+           methods?: Record<string, EvalStatMetrics> }[];
+  players: StatRow[];
+}
+
+export async function loadProjEval(): Promise<ProjEvalPayload | null> {
+  try {
+    const res = await fetch(`${BASE}/proj_eval.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as ProjEvalPayload;
+  } catch {
+    return null;
+  }
+}
+
 export interface Insight {
   title: string;
   detail: string;

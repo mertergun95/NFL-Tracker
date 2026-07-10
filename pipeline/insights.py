@@ -646,7 +646,9 @@ def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
 
 # -------------------------------------------------- projeksiyon karnesi
 
-EVAL_WEEKS = 4
+# Karne: sezonun 6. haftasından itibaren tüm tamamlanmış haftalar
+# değerlendirilir (oyuncu bazlı projeksiyon geçmişi için)
+EVAL_WEEKS = 13
 
 
 def _method_metrics(proj: pd.DataFrame, actual: pd.DataFrame,
@@ -726,7 +728,8 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
                                "stats": methods.get("ml",
                                                     methods.get("heuristic", {}))})
 
-        if wk == weeks[-1] and j_ml is not None:
+        # oyuncu bazlı tahmin-vs-gerçek detayı: TÜM değerlendirilen haftalar
+        if j_ml is not None:
             keep_cols = ["player_id", "player_name", "position", "team",
                          "opponent", "proj_ppr"]
             for stat in all_stats:
@@ -739,7 +742,7 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
             detail["week"] = wk
             # float kolonlarda None NaN'a geri döner; object'e çevirerek koru
             detail = detail.astype(object).where(pd.notna(detail), None)
-            players_latest = detail.to_dict("records")
+            players_latest.extend(detail.to_dict("records"))
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -778,7 +781,7 @@ def team_power(ta: pd.DataFrame) -> list:
 
 # ------------------------------------------------------------------ main
 
-def build_and_write(schedules: pd.DataFrame) -> None:
+def build_and_write(schedules: pd.DataFrame, run_eval: bool = True) -> None:
     season = _latest_season()
     if season is None:
         log.warning("İşlenmiş sezon yok, insights atlandı")
@@ -868,8 +871,9 @@ def build_and_write(schedules: pd.DataFrame) -> None:
         log.info("Projeksiyonlar yazıldı: %s oyuncu (%s W%s)",
                  len(proj), next_season, next_week)
 
-    # Projeksiyon karnesi (geriye dönük test)
-    try:
-        evaluate_projections(pw, schedules, season)
-    except Exception:
-        log.exception("Projeksiyon karnesi üretilemedi")
+    # Projeksiyon karnesi (geriye dönük test) — gameday koşusunda atlanır
+    if run_eval:
+        try:
+            evaluate_projections(pw, schedules, season)
+        except Exception:
+            log.exception("Projeksiyon karnesi üretilemedi")

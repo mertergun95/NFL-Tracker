@@ -4,8 +4,11 @@ import StatTable from "../components/StatTable";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import {
   loadNgs, loadPlayerIndex, loadPlayerScheme, loadPlayerSeason,
-  loadPlayerWeeks, loadRedzone, loadSnapCounts,
+  loadPlayerWeeks, loadProjections, loadProjEval, loadRedzone,
+  loadSnapCounts,
 } from "../lib/data";
+import { projLine, PRIMARY_STAT } from "../lib/projText";
+import TeamLogo from "../components/TeamLogo";
 import { fmt as fmtStat, label, presetForPosition } from "../lib/columns";
 import { trendOf, WeeklyBarChart } from "../components/charts";
 import StatusBadge from "../components/StatusBadge";
@@ -120,6 +123,34 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
   const snapStat = ["QB", "RB", "FB", "WR", "TE", "K", "P", "T", "G", "C"]
     .includes(pos) ? "offense_pct" : "defense_pct";
 
+  // Bu haftanın projeksiyonu + geçmiş tahmin-vs-gerçek karnesi
+  const { data: projections } = useAsync(() => loadProjections(), []);
+  const myProj = useMemo(
+    () => projections?.rows.find((p) => p.player_id === id) ?? null,
+    [projections, id]);
+  const { data: projEval } = useAsync(() => loadProjEval(), []);
+  const projHistory = useMemo(() => {
+    if (!projEval) return [];
+    return projEval.players
+      .filter((p) => p.player_id === id)
+      .sort((a, b) => Number(b.week) - Number(a.week));
+  }, [projEval, id]);
+  const histAccuracy = useMemo(() => {
+    if (projHistory.length === 0) return null;
+    const prim = PRIMARY_STAT[String(projHistory[0].position)] ?? "receiving_yards";
+    const diffs = projHistory
+      .filter((p) => p[`proj_${prim}`] !== null && p[`act_${prim}`] !== null)
+      .map((p) => ({
+        abs: Math.abs(Number(p[`proj_${prim}`]) - Number(p[`act_${prim}`])),
+        act: Number(p[`act_${prim}`]),
+      }));
+    if (diffs.length === 0) return null;
+    const mae = diffs.reduce((s, d) => s + d.abs, 0) / diffs.length;
+    const close = diffs.filter((d) => d.abs <= Math.max(15, d.act * 0.25)).length;
+    return { prim, mae: mae.toFixed(1), n: diffs.length,
+             closePct: Math.round(100 * close / diffs.length) };
+  }, [projHistory]);
+
   // Sakatlık geçmişi (en güncel rapor sezonu)
   const { data: injuries } = useAsync(async () => {
     const rows = await loadInjuries();
@@ -166,6 +197,27 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
           </p>
         </div>
       </div>
+
+      {myProj && projections && (
+        <div className="proj-now">
+          <div className="proj-now-head">
+            <strong>📈 Bu Haftanın Projeksiyonu</strong>
+            <span className="proj-now-sub">
+              {projections.target.season} · Hafta {projections.target.week} · motor:{" "}
+              {projections.engine === "ml" ? "ML (gradient boosting)" : "sezgisel"}
+            </span>
+          </div>
+          <div className="proj-now-body">
+            <span className="proj-now-opp">
+              <TeamLogo abbr={String(myProj.opponent ?? "")} size={24} />
+              {" vs "}{teamName(myProj.opponent as string | null)}
+            </span>
+            <span className="proj-now-line">{projLine(myProj, "proj")}</span>
+            <StatusBadge status={myProj.injury_status as string}
+                         note={myProj.injury_note as string} />
+          </div>
+        </div>
+      )}
 
       <h2>Kariyer (sezon toplamları, REG)</h2>
       {careerErr && <ErrorMsg msg={careerErr} />}
@@ -245,6 +297,58 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
             ),
           }}
         />
+      )}
+
+      {projHistory.length > 0 && (
+        <>
+          <h2>Projeksiyon Karnesi (tahmin vs gerçekleşen)</h2>
+          <p className="sub">
+            Geçmiş haftalar için walk-forward ML tahminleri ile gerçekleşen
+            statların karşılaştırması.
+            {histAccuracy && (
+              <>
+                {" "}<strong>{label(histAccuracy.prim)}</strong> statında ortalama
+                sapma (MAE) <strong>{histAccuracy.mae}</strong>;
+                {" "}{histAccuracy.n} haftanın{" "}
+                <strong>%{histAccuracy.closePct}</strong>'i isabetli
+                (±15 veya ±%25 tolerans).
+              </>
+            )}
+          </p>
+          <div className="table-wrap">
+            <table className="stat-table">
+              <thead>
+                <tr>
+                  <th>Hafta</th><th>Rakip</th><th>Tahmin</th>
+                  <th>Gerçekleşen</th><th>Δ ({label(histAccuracy?.prim ?? "")})</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projHistory.map((p) => {
+                  const prim = PRIMARY_STAT[String(p.position)] ?? "receiving_yards";
+                  const pv = p[`proj_${prim}`], av = p[`act_${prim}`];
+                  const played = pv !== null && pv !== undefined
+                    && av !== null && av !== undefined;
+                  const diff = played ? Number(av) - Number(pv) : null;
+                  const close = diff !== null
+                    && Math.abs(diff) <= Math.max(15, Number(av) * 0.25);
+                  return (
+                    <tr key={String(p.week)}>
+                      <td>W{String(p.week)}</td>
+                      <td>{String(p.opponent ?? "—")}</td>
+                      <td>{projLine(p, "proj")}</td>
+                      <td>{played ? projLine(p, "act") : "oynamadı / veri yok"}</td>
+                      <td className={diff === null ? "" : close ? "delta-good" : "delta-bad"}>
+                        {diff === null ? "—"
+                          : `${diff > 0 ? "+" : ""}${diff.toFixed(0)}`}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {rz && (

@@ -186,7 +186,7 @@ def gameday_update() -> int:
         log.info("4.75 saat içinde maç yok — güncelleme atlandı")
         return 0
     update_injuries()
-    insights.build_and_write(schedules)
+    insights.build_and_write(schedules, run_eval=False)
     return 0
 
 

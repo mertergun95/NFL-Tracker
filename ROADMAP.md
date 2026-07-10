@@ -184,6 +184,16 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Karne iki motoru walk-forward yan yana ölçer (ML/Sezgisel seçici);
       ML çoğu statta önde (pas TD r 0.24→0.36, koşu yd r 0.60→0.63)
 
+### ✅ Faz 5.12 — Oyuncu sayfasında projeksiyon karnesi (9. tur)
+- [x] Oyuncu sayfası başlığının altında "Bu Haftanın Projeksiyonu" kartı
+      (rakip, pozisyona göre gerçek stat satırı, sakatlık rozeti, motor bilgisi)
+- [x] "Projeksiyon Karnesi" bölümü: geçmiş her hafta için tahmin vs
+      gerçekleşen tablo + birincil statta MAE ve isabet yüzdesi özeti
+- [x] proj_eval.json artık son haftanın değil 13 değerlendirme haftasının
+      tamamının oyuncu detayını taşır (~2.8k satır)
+- [x] Karne sayfasına hafta seçici eklendi (W6–W18 arası her hafta
+      tahmin-vs-gerçek incelenebilir)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
