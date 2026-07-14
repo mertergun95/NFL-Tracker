@@ -35,13 +35,13 @@ WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/ne
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv
 INFO OK 14731 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_receiving.csv.gz
 INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 135.6 KB)
-INFO OK 318409 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
+INFO OK 334268 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
 INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
 INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-INFO Yazıldı: web/public/data/depth_charts.json (3172 satır, 407.4 KB)
-INFO Depth chart yazıldı: 2026 sezonu, 3172 satır
-INFO Yazıldı: web/public/data/current_teams.json (3610 satır, 90.2 KB)
-INFO Güncel takım haritası: 3610 oyuncu (2026)
+INFO Yazıldı: web/public/data/depth_charts.json (3171 satır, 407.9 KB)
+INFO Depth chart yazıldı: 2026 sezonu, 3171 satır
+INFO Yazıldı: web/public/data/current_teams.json (3612 satır, 90.2 KB)
+INFO Güncel takım haritası: 3612 oyuncu (2026)
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv.gz
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv
 INFO OK 6068 satır <- https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2025.csv.gz
