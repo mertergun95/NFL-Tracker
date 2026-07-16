@@ -59,6 +59,50 @@ export async function loadNcaaProjections(): Promise<NcaaProjectionsPayload | nu
   }
 }
 
+export type NcaaEvalStatMetrics = Record<string, {
+  n: number; mae: number; bias: number; corr: number | null;
+}>;
+
+export interface NcaaProjEvalPayload {
+  generated_at: string;
+  data_season: number;
+  method: string;
+  weeks: { week: number; stats: NcaaEvalStatMetrics }[];
+  players: StatRow[];
+}
+
+export async function loadNcaaProjEval(): Promise<NcaaProjEvalPayload | null> {
+  try {
+    const res = await fetch(`${BASE}/proj_eval.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as NcaaProjEvalPayload;
+  } catch {
+    return null;
+  }
+}
+
+/** Pozisyona göre kompakt tahmin/gerçek satırı (prefix: "proj" | "act"). */
+export function ncaaProjLine(p: StatRow, prefix: string): string {
+  const v = (c: string) => {
+    const val = p[`${prefix}_${c}`];
+    return val !== null && val !== undefined ? String(val) : "—";
+  };
+  const pos = String(p.position);
+  if (pos === "QB")
+    return `${v("completions")}/${v("attempts")} · ${v("passing_yards")} yd · ` +
+           `${v("passing_tds")} TD · ${v("passing_interceptions")} int`;
+  if (pos === "RB")
+    return `${v("carries")} koşu · ${v("rushing_yards")} yd · ` +
+           `${v("receptions")} rec · ${v("receiving_yards")} rec yd`;
+  return `${v("receptions")} rec · ${v("receiving_yards")} yd · ` +
+         `${v("receiving_tds")} TD`;
+}
+
+export const NCAA_PRIMARY: Record<string, string> = {
+  QB: "passing_yards", RB: "rushing_yards",
+  WR: "receiving_yards", TE: "receiving_yards",
+};
+
 /** ESPN box score'un sunduğu statlarla sınırlı NCAA presetleri. */
 export const NCAA_PRESETS: Record<string, string[]> = {
   QB: ["completions", "attempts", "passing_yards", "passing_tds",

@@ -55,6 +55,8 @@ export const STAT_LABELS: Record<string, string> = {
   ties: "B",
   points_for: "Atılan Sayı",
   points_against: "Yenilen Sayı",
+  gametime: "Saat (ET)",
+  saat_de: "Saat (DE) 🕐",
   // NCAA (ESPN box score) kolonları
   jersey: "#",
   class: "Sınıf",

@@ -7,6 +7,7 @@ import { label } from "../../lib/columns";
 import { loadNcaaNextSchedule, loadNcaaPlayerSeason, loadNcaaPlayerWeeks,
          loadNcaaSchedule, loadNcaaTeams, teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { kickoffBerlin } from "../../lib/time";
 import type { StatRow } from "../../lib/types";
 
 const BOARDS = ["passing_yards", "rushing_yards", "receiving_yards",
@@ -161,7 +162,8 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
                     {" "}{tmap.get(String(g.home_team))?.school ?? String(g.home_team)}
                   </span>
                   <span className="feed-detail">
-                    {String(g.gameday)}
+                    {kickoffBerlin(g.kickoff as string, true) ?? String(g.gameday)}
+                    {kickoffBerlin(g.kickoff as string) && " (DE)"}
                     {Boolean(g.neutral_site) && " · nötr saha"}
                   </span>
                 </div>

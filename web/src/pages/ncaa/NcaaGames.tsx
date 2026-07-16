@@ -5,6 +5,7 @@ import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
 import { loadNcaaNextSchedule, loadNcaaSchedule, loadNcaaTeams,
          teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { kickoffBerlin } from "../../lib/time";
 
 export default function NcaaGames({ seasons }: { seasons: number[] }) {
   const navigate = useNavigate();
@@ -69,6 +70,8 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
                  }}>
               <div className="game-date">
                 {String(g.gameday)}
+                {kickoffBerlin(g.kickoff as string) &&
+                  ` · 🕐 ${kickoffBerlin(g.kickoff as string)} (DE)`}
                 {Boolean(g.conference_game) && " · konferans maçı"}
               </div>
               <div className="game-line">

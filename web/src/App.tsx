@@ -25,6 +25,7 @@ import NcaaGameDetail from "./pages/ncaa/NcaaGameDetail";
 import NcaaStandings from "./pages/ncaa/NcaaStandings";
 import NcaaRosters from "./pages/ncaa/NcaaRosters";
 import NcaaProjections from "./pages/ncaa/NcaaProjections";
+import NcaaAccuracy from "./pages/ncaa/NcaaAccuracy";
 import { loadManifest, seasonsFromManifest } from "./lib/data";
 import { loadNcaaManifest } from "./lib/ncaa";
 import { useAsync } from "./lib/hooks";
@@ -54,6 +55,7 @@ const NCAA_NAV = [
   { to: "/ncaa/rosters", label: "Kadrolar" },
   { to: "/ncaa/games", label: "Maçlar" },
   { to: "/ncaa/projections", label: "Projeksiyonlar" },
+  { to: "/ncaa/accuracy", label: "Karne" },
 ];
 
 export default function App() {
@@ -121,6 +123,7 @@ export default function App() {
               <Route path="/ncaa/standings" element={<NcaaStandings seasons={ncaaSeasons} />} />
               <Route path="/ncaa/rosters" element={<NcaaRosters />} />
               <Route path="/ncaa/projections" element={<NcaaProjections />} />
+              <Route path="/ncaa/accuracy" element={<NcaaAccuracy />} />
             </>
           )}
         </Routes>

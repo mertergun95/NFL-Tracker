@@ -217,6 +217,16 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Dashboard v2: son haftanın öne çıkan performansları + skorlar +
       yeni sezon fikstürü akışı; liderler alta "Stats Leaders" olarak taşındı
 
+### ✅ Faz 5.15 — NCAA karnesi, maç görünümü ve Berlin saatleri (12. tur)
+- [x] NCAA Karne: W6–W15 geriye dönük test (canlı motorla aynı formül),
+      haftalık MAE/bias/korelasyon + hafta seçici + stat/maç görünümleri;
+      oyuncu sayfasında tahmin-vs-gerçek geçmiş tablosu
+- [x] NCAA Projeksiyonlar'a maça göre görünüm (maç pill'leri + iki takımın
+      oyuncuları kompakt tahmin satırlarıyla)
+- [x] Maç saatleri Almanya (Europe/Berlin) saatiyle: NFL (ET→DE, DST'ye
+      duyarlı) ve NCAA (UTC kickoff→DE) — Maçlar kartları, maç detayları,
+      fikstürler ve dashboard akışında
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

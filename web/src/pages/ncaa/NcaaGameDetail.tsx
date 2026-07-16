@@ -8,6 +8,7 @@ import { label } from "../../lib/columns";
 import { loadNcaaPlayerWeeks, loadNcaaSchedule, loadNcaaTeams,
          loadNcaaTeamWeeks, teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { kickoffBerlin } from "../../lib/time";
 import type { StatRow } from "../../lib/types";
 
 const TEAM_ROWS = ["first_downs", "total_yards", "passing_yards",
@@ -91,6 +92,8 @@ export default function NcaaGameDetail() {
       </div>
       <p className="sub">
         {String(game.gameday)} · {String(game.season_type)} W{String(game.week)}
+        {kickoffBerlin(game.kickoff as string) &&
+          ` · 🕐 ${kickoffBerlin(game.kickoff as string)} (DE)`}
         {Boolean(game.neutral_site) && " · nötr saha"}
         {Boolean(game.conference_game) && " · konferans maçı"}
       </p>

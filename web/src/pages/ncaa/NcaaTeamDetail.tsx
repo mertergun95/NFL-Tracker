@@ -8,6 +8,7 @@ import { loadNcaaNextSchedule, loadNcaaPlayerSeason, loadNcaaSchedule,
          loadNcaaTeams, loadNcaaTeamSeason, loadNcaaTeamWeeks,
          teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { kickoffBerlin } from "../../lib/time";
 
 export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
   const { abbr } = useParams<{ abbr: string }>();
@@ -111,6 +112,8 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
                 <div className="game-card" key={String(g.game_id)}>
                   <div className="game-date">
                     W{String(g.week)} · {String(g.season_type)} · {String(g.gameday)}
+                    {kickoffBerlin(g.kickoff as string) &&
+                      ` · 🕐 ${kickoffBerlin(g.kickoff as string)} (DE)`}
                   </div>
                   <div className="game-line">
                     <Link to={`/ncaa/team/${opp}`} className="team-cell">

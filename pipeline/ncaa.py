@@ -114,6 +114,7 @@ def parse_schedule(events: list[dict], season: int):
             "week": e["_week"],
             "season_type": e["_season_type"],
             "gameday": str(e.get("date", ""))[:10],
+            "kickoff": e.get("date"),  # ISO UTC (saat gösterimi için)
             "name": e.get("shortName"),
             "home_team": home["abbr"], "away_team": away["abbr"],
             # Oynanmamış maçta ESPN 0 döndürür — skoru boş bırak
@@ -272,7 +273,10 @@ def build_season(season: int, incremental: bool = True) -> bool:
 
     pw["position"] = pw.apply(_position, axis=1)
 
-    # Takım maç satırlarına skorları bağla
+    # Takım maç satırlarına skorları bağla (artımlıda eski kolonları at,
+    # yoksa merge points_x/points_y üretir)
+    tw = tw.drop(columns=[c for c in ("points", "points_allowed")
+                          if c in tw.columns])
     pts = pd.concat([
         sched.rename(columns={"home_team": "team", "home_score": "points",
                               "away_score": "points_allowed"})
@@ -526,6 +530,107 @@ def build_projections(rosters: pd.DataFrame | None,
              len(df), ts_, tw_)
 
 
+EVAL_WEEKS = range(6, 16)  # REG W6-W15 geriye dönük test edilir
+
+
+def _proj_base(hist: pd.DataFrame, stats_all: list[str]):
+    """Canlı projeksiyonla aynı form ortalaması: 0.6×son5 + 0.4×sezon."""
+    g = hist.sort_values("_ord").groupby("player_id")
+    season_mean = g[stats_all].mean()
+    last5 = g.tail(5).groupby("player_id")[stats_all].mean()
+    return 0.6 * last5 + 0.4 * season_mean, g.size()
+
+
+def _opp_factors(tw_hist: pd.DataFrame | None):
+    pass_f, rush_f = {}, {}
+    if tw_hist is not None and not tw_hist.empty:
+        allowed = tw_hist.groupby("opponent")[["passing_yards", "rushing_yards"]].mean()
+        lg = allowed.mean()
+        for team, r in allowed.iterrows():
+            pass_f[team] = min(1.15, max(0.85, r["passing_yards"] / lg["passing_yards"]))
+            rush_f[team] = min(1.15, max(0.85, r["rushing_yards"] / lg["rushing_yards"]))
+    return pass_f, rush_f
+
+
+def evaluate_projections() -> None:
+    """Karne: son sezonun W6-W15 haftaları için yalnızca önceki haftaların
+    verisiyle projeksiyon üret, gerçekleşenle karşılaştır."""
+    import numpy as np
+
+    pw = tw = None
+    for sdir in sorted((NCAA_DIR / "seasons").glob("*"), reverse=True):
+        pw = _read_existing(sdir / "player_weeks.json")
+        tw = _read_existing(sdir / "team_weeks.json")
+        if pw is not None and not pw.empty:
+            data_season = int(sdir.name)
+            break
+    if pw is None or pw.empty:
+        return
+    stats_all = sorted({s for v in POS_PROJ.values() for s in v})
+    pw = pw.assign(_ord=pw["week"] + (pw["season_type"] == "POST") * 100)
+    if tw is not None:
+        tw = tw.assign(_ord=tw["week"] + (tw["season_type"] == "POST") * 100)
+
+    weeks_out, players_out = [], []
+    for w in EVAL_WEEKS:
+        hist = pw[pw["_ord"] < w]
+        act = pw[pw["_ord"] == w]
+        if act.empty or hist.empty:
+            continue
+        base, cnt = _proj_base(hist, stats_all)
+        pass_f, rush_f = _opp_factors(tw[tw["_ord"] < w] if tw is not None else None)
+
+        detail = []
+        for r in act.itertuples():
+            pid = r.player_id
+            if pid not in base.index or cnt.get(pid, 0) < 3:
+                continue
+            pos = "RB" if r.position == "FB" else str(r.position)
+            row = {"player_id": pid, "player_name": r.player_name,
+                   "position": pos, "team": r.team, "opponent": r.opponent,
+                   "week": int(w)}
+            for s in POS_PROJ.get(pos, POS_PROJ["WR"]):
+                v = base.at[pid, s] if s in base.columns else None
+                if v is None or pd.isna(v):
+                    continue
+                f = (pass_f if s in PASS_STATS else rush_f).get(r.opponent, 1.0)
+                row[f"proj_{s}"] = round(float(v) * f, 1)
+                av = getattr(r, s, None)
+                row[f"act_{s}"] = None if av is None or pd.isna(av) else float(av)
+            detail.append(row)
+        if not detail:
+            continue
+        ddf = pd.DataFrame(detail)
+        metrics = {}
+        for s in stats_all:
+            pc, ac = f"proj_{s}", f"act_{s}"
+            if pc not in ddf.columns or ac not in ddf.columns:
+                continue
+            pair = ddf[[pc, ac]].dropna()
+            if len(pair) < 5:
+                continue
+            diff = pair[pc] - pair[ac]
+            corr = None
+            if pair[pc].std() > 0 and pair[ac].std() > 0:
+                corr = round(float(np.corrcoef(pair[pc], pair[ac])[0, 1]), 3)
+            metrics[s] = {"n": int(len(pair)),
+                          "mae": round(float(diff.abs().mean()), 2),
+                          "bias": round(float(diff.mean()), 2),
+                          "corr": corr}
+        weeks_out.append({"week": int(w), "stats": metrics})
+        players_out.extend(detail)
+
+    if not weeks_out:
+        return
+    payload = {"generated_at": pd.Timestamp.utcnow().isoformat(),
+               "data_season": data_season, "method": "heuristic",
+               "weeks": weeks_out, "players": players_out}
+    with open(NCAA_DIR / "proj_eval.json", "w") as f:
+        json.dump(payload, f, ensure_ascii=False, allow_nan=False)
+    log.info("NCAA karne yazıldı: %s hafta, %s oyuncu-hafta satırı",
+             len(weeks_out), len(players_out))
+
+
 def rebuild_index_and_manifest() -> None:
     frames = []
     seasons = []
@@ -573,6 +678,7 @@ def refresh_extras(season: int) -> None:
     if nxt is None:  # gelecek sezon yayınlanmadıysa mevcut sezonun kalanı
         nxt = build_next_schedule(season)
     build_projections(ros, nxt)
+    evaluate_projections()
 
 
 def backfill(seasons: list[int] | None = None) -> None:

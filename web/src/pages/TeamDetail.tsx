@@ -11,6 +11,7 @@ import {
 } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { TEAMS, teamName } from "../lib/teams";
+import { etBerlin } from "../lib/time";
 import { POSITION_PRESETS } from "../lib/columns";
 import type { StatRow } from "../lib/types";
 
@@ -200,6 +201,7 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
       .sort((a, b) => Number(a.week) - Number(b.week))
       .map((g) => ({
         week: g.week, gameday: g.gameday, gametime: g.gametime,
+        saat_de: etBerlin(g.gameday as string, g.gametime as string) ?? "—",
         opponent: g.home_team === abbr ? g.away_team : g.home_team,
         where: g.home_team === abbr ? "Ev" : "Dep",
         season: g.season,
@@ -246,7 +248,7 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
             <>
               <h2>{String(nextFixture[0].season)} Fikstürü</h2>
               <StatTable rows={nextFixture}
-                columns={["week", "gameday", "gametime", "opponent", "where"]}
+                columns={["week", "gameday", "gametime", "saat_de", "opponent", "where"]}
                 defaultSort="week"
                 render={{
                   opponent: (row) => (

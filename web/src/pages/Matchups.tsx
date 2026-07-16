@@ -9,6 +9,7 @@ import {
 import { fmt, label } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
+import { etBerlin } from "../lib/time";
 import type { StatRow } from "../lib/types";
 
 // karşılaştırılacak takım metrikleri: [kolon, yüksek mi iyi]
@@ -100,7 +101,10 @@ export default function Matchups() {
           <Link to={`/team/${home}`}>{teamName(home)}</Link>
         </div>
         <span className="sub" style={{ marginLeft: "auto" }}>
-          {String(game.gameday)}{game.stadium ? ` · ${game.stadium}` : ""}
+          {String(game.gameday)}
+          {etBerlin(game.gameday as string, game.gametime as string) &&
+            ` · 🕐 ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
+          {game.stadium ? ` · ${game.stadium}` : ""}
         </span>
       </div>
 

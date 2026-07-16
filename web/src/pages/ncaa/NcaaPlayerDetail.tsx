@@ -5,7 +5,8 @@ import StatTable from "../../components/StatTable";
 import { trendOf, WeeklyBarChart } from "../../components/charts";
 import { fmt as fmtStat, label } from "../../lib/columns";
 import { loadNcaaPlayerIndex, loadNcaaPlayerSeason, loadNcaaPlayerWeeks,
-         loadNcaaProjections, ncaaPreset } from "../../lib/ncaa";
+         loadNcaaProjections, loadNcaaProjEval, NCAA_PRIMARY, ncaaPreset,
+         ncaaProjLine } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import type { StatRow } from "../../lib/types";
 
@@ -45,6 +46,30 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
   const myProj = useMemo(
     () => projections?.rows.find((p) => p.player_id === id) ?? null,
     [projections, id]);
+
+  // Geçmiş tahmin-vs-gerçek karnesi
+  const { data: projEval } = useAsync(() => loadNcaaProjEval(), []);
+  const projHistory = useMemo(() => {
+    if (!projEval) return [];
+    return projEval.players
+      .filter((p) => p.player_id === id)
+      .sort((a, b) => Number(b.week) - Number(a.week));
+  }, [projEval, id]);
+  const histAccuracy = useMemo(() => {
+    if (projHistory.length === 0) return null;
+    const prim = NCAA_PRIMARY[String(projHistory[0].position)] ?? "receiving_yards";
+    const diffs = projHistory
+      .filter((p) => p[`proj_${prim}`] != null && p[`act_${prim}`] != null)
+      .map((p) => ({
+        abs: Math.abs(Number(p[`proj_${prim}`]) - Number(p[`act_${prim}`])),
+        act: Number(p[`act_${prim}`]),
+      }));
+    if (diffs.length === 0) return null;
+    const mae = diffs.reduce((s, d) => s + d.abs, 0) / diffs.length;
+    const close = diffs.filter((d) => d.abs <= Math.max(15, d.act * 0.25)).length;
+    return { prim, mae: mae.toFixed(1), n: diffs.length,
+             closePct: Math.round(100 * close / diffs.length) };
+  }, [projHistory]);
 
   const pos = String(player?.position ?? weeks?.[0]?.position ?? "WR");
   const stats = ncaaPreset(pos);
@@ -182,6 +207,63 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
       )}
       {weeks && weeks.length === 0 && !loading && (
         <p className="empty">Bu sezon için maç verisi yok.</p>
+      )}
+
+      {projHistory.length > 0 && (
+        <>
+          <h2>Projeksiyon Karnesi (tahmin vs gerçekleşen)</h2>
+          <p className="sub">
+            {projEval?.data_season} sezonunun geriye dönük haftalık tahminleri
+            ile gerçekleşen statların karşılaştırması.
+            {histAccuracy && (
+              <>
+                {" "}<strong>{label(histAccuracy.prim)}</strong> statında
+                ortalama sapma (MAE) <strong>{histAccuracy.mae}</strong>;
+                {" "}{histAccuracy.n} haftanın{" "}
+                <strong>%{histAccuracy.closePct}</strong>'i isabetli
+                (±15 veya ±%25 tolerans).
+              </>
+            )}
+          </p>
+          <div className="table-wrap">
+            <table className="stat-table">
+              <thead>
+                <tr>
+                  <th>Hafta</th><th>Rakip</th><th>Tahmin</th>
+                  <th>Gerçekleşen</th>
+                  <th>Δ ({label(histAccuracy?.prim ?? "")})</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projHistory.map((p) => {
+                  const prim = NCAA_PRIMARY[String(p.position)] ?? "receiving_yards";
+                  const pv = p[`proj_${prim}`], av = p[`act_${prim}`];
+                  const played = pv != null && av != null;
+                  const diff = played ? Number(av) - Number(pv) : null;
+                  const close = diff !== null
+                    && Math.abs(diff) <= Math.max(15, Number(av) * 0.25);
+                  return (
+                    <tr key={String(p.week)}>
+                      <td>W{String(p.week)}</td>
+                      <td>
+                        <Link to={`/ncaa/team/${p.opponent}`}>
+                          {String(p.opponent ?? "—")}
+                        </Link>
+                      </td>
+                      <td>{ncaaProjLine(p, "proj")}</td>
+                      <td>{played ? ncaaProjLine(p, "act") : "veri yok"}</td>
+                      <td className={diff === null ? ""
+                        : close ? "delta-good" : "delta-bad"}>
+                        {diff === null ? "—"
+                          : `${diff > 0 ? "+" : ""}${diff.toFixed(0)}`}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
   );

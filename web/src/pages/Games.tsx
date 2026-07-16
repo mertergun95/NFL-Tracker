@@ -5,6 +5,7 @@ import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import { loadSchedule } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
+import { etBerlin } from "../lib/time";
 
 export default function Games({ seasons }: { seasons: number[] }) {
   const navigate = useNavigate();
@@ -42,7 +43,11 @@ export default function Games({ seasons }: { seasons: number[] }) {
           return (
             <div className="game-card" key={String(g.game_id)}
                  onClick={() => navigate(`/game/${season}/${g.game_id}`)}>
-              <div className="game-date">{String(g.gameday)} · {String(g.game_type)}</div>
+              <div className="game-date">
+                {String(g.gameday)} · {String(g.game_type)}
+                {etBerlin(g.gameday as string, g.gametime as string) &&
+                  ` · 🕐 ${etBerlin(g.gameday as string, g.gametime as string)} (DE)`}
+              </div>
               <div className="game-line">
                 <Link to={`/team/${g.away_team}`} className="team-cell">
                   <TeamLogo abbr={String(g.away_team)} size={20} />{" "}

@@ -8,6 +8,7 @@ import { loadPlayerWeeks, loadSchedule, loadTeamWeeks } from "../lib/data";
 import { label } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
+import { etBerlin } from "../lib/time";
 import type { StatRow } from "../lib/types";
 
 const PLAYER_COLS = [
@@ -87,6 +88,8 @@ export default function GameDetail() {
     <section>
       <p className="sub">
         {String(game.gameday)} · {String(game.game_type)} · Hafta {String(game.week)}
+        {etBerlin(game.gameday as string, game.gametime as string) &&
+          ` · 🕐 ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
         {game.stadium ? ` · ${game.stadium}` : ""}
       </p>
       <div className="game-hero">
