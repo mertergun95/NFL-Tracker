@@ -2,15 +2,26 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import NcaaLogo from "../../components/NcaaLogo";
 import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
-import { loadNcaaSchedule, loadNcaaTeams, teamMapOf } from "../../lib/ncaa";
+import { loadNcaaNextSchedule, loadNcaaSchedule, loadNcaaTeams,
+         teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 
 export default function NcaaGames({ seasons }: { seasons: number[] }) {
   const navigate = useNavigate();
   const [season, setSeason] = useState(seasons[0]);
   const [wkey, setWkey] = useState("REG-1");
+  // Yeni sezon fikstürü (henüz oynanmadıysa sezon listesinin başına eklenir)
+  const { data: nextSched } = useAsync(() => loadNcaaNextSchedule(), []);
+  const nextSeason = useMemo(() => {
+    const s = nextSched?.length ? Number(nextSched[0].season) : null;
+    return s !== null && !seasons.includes(s) ? s : null;
+  }, [nextSched, seasons]);
+  const allSeasons = nextSeason ? [nextSeason, ...seasons] : seasons;
   const { data, error, loading } = useAsync(
-    () => loadNcaaSchedule(season), [season]);
+    async () => (nextSeason !== null && season === nextSeason)
+      ? (nextSched ?? [])
+      : loadNcaaSchedule(season),
+    [season, nextSeason]);
   const { data: teams } = useAsync(() => loadNcaaTeams(), []);
   const tmap = useMemo(() => teamMapOf(teams), [teams]);
 
@@ -34,7 +45,10 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
   return (
     <section>
       <h1>NCAA Maçları</h1>
-      <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
+      <SeasonPicker seasons={allSeasons} value={season} onChange={setSeason} />
+      {nextSeason !== null && season === nextSeason && (
+        <p className="sub">📅 {nextSeason} fikstürü — maçlar henüz oynanmadı.</p>
+      )}
       <div className="pill-row">
         {weekKeys.map((k) => (
           <button key={k} className={`pill small ${k === wkey ? "active" : ""}`}
@@ -50,7 +64,9 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
           const played = g.home_score !== null;
           return (
             <div className="game-card" key={String(g.game_id)}
-                 onClick={() => navigate(`/ncaa/game/${season}/${g.game_id}`)}>
+                 onClick={() => {
+                   if (played) navigate(`/ncaa/game/${season}/${g.game_id}`);
+                 }}>
               <div className="game-date">
                 {String(g.gameday)}
                 {Boolean(g.conference_game) && " · konferans maçı"}

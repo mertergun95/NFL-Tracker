@@ -5,7 +5,7 @@ import StatTable from "../../components/StatTable";
 import { trendOf, WeeklyBarChart } from "../../components/charts";
 import { fmt as fmtStat, label } from "../../lib/columns";
 import { loadNcaaPlayerIndex, loadNcaaPlayerSeason, loadNcaaPlayerWeeks,
-         ncaaPreset } from "../../lib/ncaa";
+         loadNcaaProjections, ncaaPreset } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import type { StatRow } from "../../lib/types";
 
@@ -39,6 +39,12 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
     return rows.filter((r) => r.player_id === id)
       .sort((a, b) => Number(a.week) - Number(b.week));
   }, [id, season]);
+
+  // Yaklaşan haftanın projeksiyonu (güncel kadroya göre)
+  const { data: projections } = useAsync(() => loadNcaaProjections(), []);
+  const myProj = useMemo(
+    () => projections?.rows.find((p) => p.player_id === id) ?? null,
+    [projections, id]);
 
   const pos = String(player?.position ?? weeks?.[0]?.position ?? "WR");
   const stats = ncaaPreset(pos);
@@ -77,10 +83,40 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
               {String(player?.team ?? weeks?.[0]?.team ?? "?")}
             </Link>
             {player && ` · ${player.first_season}–${player.last_season}`}
+            {player?.current_team && player.current_team !== player.team &&
+              <> · şu an: <Link to={`/ncaa/team/${player.current_team}`}>
+                {String(player.current_team)}</Link></>}
             {" · NCAA FBS"}
           </p>
         </div>
       </div>
+
+      {myProj && projections && (
+        <div className="proj-now">
+          <div className="proj-now-head">
+            <strong>📈 Yaklaşan Hafta Projeksiyonu</strong>
+            <span className="proj-now-sub">
+              {projections.target.season} · Hafta {projections.target.week} ·
+              motor: sezgisel · takım: {String(myProj.team)}
+            </span>
+          </div>
+          <div className="proj-now-body">
+            <span className="proj-now-opp">
+              {myProj.is_home ? "vs" : "@"}{" "}
+              <Link to={`/ncaa/team/${myProj.opponent}`}>
+                {String(myProj.opponent)}
+              </Link>
+            </span>
+            <span className="proj-now-line">
+              {String(myProj.position) === "QB"
+                ? `${myProj.proj_completions}/${myProj.proj_attempts} · ${myProj.proj_passing_yards} pas yd · ${myProj.proj_passing_tds} TD · ${myProj.proj_rushing_yards} koşu yd`
+                : String(myProj.position) === "RB"
+                ? `${myProj.proj_carries} koşu · ${myProj.proj_rushing_yards} yd · ${myProj.proj_receptions} rec · ${myProj.proj_receiving_yards} rec yd`
+                : `${myProj.proj_receptions} rec · ${myProj.proj_receiving_yards} yd · ${myProj.proj_receiving_tds} TD`}
+            </span>
+          </div>
+        </div>
+      )}
 
       <h2>Kariyer (sezon toplamları, REG)</h2>
       {careerErr && <ErrorMsg msg={careerErr} />}

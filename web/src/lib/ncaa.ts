@@ -26,6 +26,39 @@ export const loadNcaaTeamWeeks = (s: number | string) =>
 export const loadNcaaSchedule = (s: number | string) =>
   loadColumnar(`ncaa/seasons/${s}/schedule.json`);
 
+export const loadNcaaRosters = () => loadOptional("ncaa/rosters.json");
+export const loadNcaaNextSchedule = () => loadOptional("ncaa/next_schedule.json");
+
+export interface NcaaProjectionsPayload {
+  generated_at: string;
+  data_season: number;
+  engine: string;
+  target: { season: number; week: number };
+  rows: StatRow[];
+}
+
+export async function loadNcaaProjections(): Promise<NcaaProjectionsPayload | null> {
+  try {
+    const res = await fetch(`${BASE}/projections.json`);
+    if (!res.ok) return null;
+    const raw = await res.json() as {
+      generated_at: string; data_season: number; engine: string;
+      target: { season: number; week: number };
+      columns: string[]; rows: (string | number | null)[][];
+    };
+    return {
+      ...raw,
+      rows: raw.rows.map((r) => {
+        const o: StatRow = {};
+        raw.columns.forEach((c, i) => (o[c] = r[i]));
+        return o;
+      }),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** ESPN box score'un sunduğu statlarla sınırlı NCAA presetleri. */
 export const NCAA_PRESETS: Record<string, string[]> = {
   QB: ["completions", "attempts", "passing_yards", "passing_tds",

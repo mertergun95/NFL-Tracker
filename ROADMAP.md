@@ -206,6 +206,17 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       Puan Durumu (konferansa göre)
 - [x] Pozisyonlar box score hacminden türetilir (ESPN pozisyon vermez)
 
+### ✅ Faz 5.14 — NCAA v2: projeksiyonlar, 2026 kadro/fikstür, dashboard (11. tur)
+- [x] ESPN roster API: 13.5k oyuncu gerçek pozisyon + sınıf; Kadrolar sayfası;
+      oyuncu indeksindeki hacim-türetimli pozisyonlar gerçekleriyle düzeltildi
+- [x] 2026 fikstürü (946 maç): Maçlar sayfasında sezon olarak, takım
+      detayında ve dashboard'da açılış maçları olarak
+- [x] NCAA haftalık projeksiyonlar (sezgisel: son sezon form ortalaması ×
+      rakip savunma çarpanı; güncel kadro/transfer portal esaslı, 1.689
+      oyuncu, hedef 2026 W1); Projeksiyonlar sayfası + oyuncu sayfası kartı
+- [x] Dashboard v2: son haftanın öne çıkan performansları + skorlar +
+      yeni sezon fikstürü akışı; liderler alta "Stats Leaders" olarak taşındı
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

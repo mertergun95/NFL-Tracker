@@ -107,6 +107,7 @@ def parse_schedule(events: list[dict], season: int):
                 away = rec
         if not home or not away:
             continue
+        done = c["status"]["type"]["name"] == "STATUS_FINAL"
         rows.append({
             "game_id": str(e["id"]),
             "season": season,
@@ -115,7 +116,9 @@ def parse_schedule(events: list[dict], season: int):
             "gameday": str(e.get("date", ""))[:10],
             "name": e.get("shortName"),
             "home_team": home["abbr"], "away_team": away["abbr"],
-            "home_score": home["score"], "away_score": away["score"],
+            # Oynanmamış maçta ESPN 0 döndürür — skoru boş bırak
+            "home_score": home["score"] if done else None,
+            "away_score": away["score"] if done else None,
             "neutral_site": bool(c.get("neutralSite")),
             "conference_game": bool(c.get("conferenceCompetition")),
             "completed": c["status"]["type"]["name"] == "STATUS_FINAL",
@@ -358,6 +361,171 @@ def _write_teams(teams: dict, conf_of: dict, confs: dict) -> None:
                          df.sort_values("team").reset_index(drop=True))
 
 
+# ---------------------------------------------------------------- kadrolar / fikstür / projeksiyon
+
+SKILL_POS = {"QB", "RB", "FB", "WR", "TE"}
+
+
+def fetch_rosters() -> pd.DataFrame | None:
+    """Güncel kadrolar (gerçek pozisyonlarla) — FBS takımları için."""
+    teams = _read_existing(NCAA_DIR / "teams.json")
+    if teams is None or teams.empty:
+        return None
+    # FBS filtresi: son sezonun team_season'ında yer alan takımlar
+    fbs = None
+    for sdir in sorted((NCAA_DIR / "seasons").glob("*"), reverse=True):
+        ts = _read_existing(sdir / "team_season.json")
+        if ts is not None and not ts.empty:
+            fbs = set(ts["team"])
+            break
+    rows = []
+    todo = teams if fbs is None else teams[teams["team"].isin(fbs)]
+    log.info("NCAA kadrolar: %s takım çekilecek", len(todo))
+    for t in todo.itertuples():
+        d = _get(f"{SITE}/teams/{t.team_id}/roster")
+        if d is None:
+            continue
+        for grp in d.get("athletes", []):
+            for a in grp.get("items", []):
+                exp = a.get("experience") or {}
+                rows.append({
+                    "player_id": str(a.get("id")),
+                    "player_name": a.get("displayName"),
+                    "position": (a.get("position") or {}).get("abbreviation"),
+                    "team": t.team,
+                    "jersey": a.get("jersey"),
+                    "class": exp.get("displayValue"),
+                    "unit": grp.get("position"),
+                    "headshot": (a.get("headshot") or {}).get("href"),
+                })
+    if not rows:
+        return None
+    df = pd.DataFrame(rows).drop_duplicates("player_id")
+    transform.write_json(NCAA_DIR / "rosters.json", df.reset_index(drop=True))
+    log.info("NCAA kadrolar yazıldı: %s oyuncu", len(df))
+    return df
+
+
+def build_next_schedule(season: int) -> pd.DataFrame | None:
+    """Gelecek sezonun fikstürü (box score'suz) + yeni konferans eşlemeleri."""
+    events = fetch_season_events(season)
+    if not events:
+        log.info("NCAA %s fikstürü henüz yayınlanmamış", season)
+        return None
+    sched, teams, conf_of = parse_schedule(events, season)
+    confs = conference_names(season, set(conf_of.values()))
+    _write_teams(teams, conf_of, confs)
+    out = sched.drop(columns=["completed"])
+    transform.write_json(NCAA_DIR / "next_schedule.json", out)
+    log.info("NCAA %s fikstürü yazıldı: %s maç", season, len(out))
+    return sched
+
+
+# Pozisyona göre tahmin edilen statlar (NFL projeksiyonlarıyla aynı yaklaşım)
+POS_PROJ = {
+    "QB": ["completions", "attempts", "passing_yards", "passing_tds",
+           "passing_interceptions", "carries", "rushing_yards"],
+    "RB": ["carries", "rushing_yards", "rushing_tds",
+           "receptions", "receiving_yards"],
+    "WR": ["receptions", "receiving_yards", "receiving_tds"],
+    "TE": ["receptions", "receiving_yards", "receiving_tds"],
+}
+PASS_STATS = {"completions", "attempts", "passing_yards", "passing_tds",
+              "receptions", "receiving_yards", "receiving_tds"}
+
+
+def build_projections(rosters: pd.DataFrame | None,
+                      next_sched: pd.DataFrame | None) -> None:
+    """Sezgisel haftalık projeksiyon: son sezon form ortalamaları ×
+    rakibin geçen sezonki savunma çarpanı; güncel roster (transfer dahil)."""
+    if rosters is None or next_sched is None:
+        log.info("NCAA projeksiyon atlandı (kadro veya fikstür yok)")
+        return
+    hist = last_pw = None
+    for sdir in sorted((NCAA_DIR / "seasons").glob("*"), reverse=True):
+        last_pw = _read_existing(sdir / "player_weeks.json")
+        if last_pw is not None and not last_pw.empty:
+            hist = last_pw
+            data_season = int(sdir.name)
+            break
+    if hist is None:
+        return
+
+    # Hedef hafta: fikstürdeki oynanmamış en erken hafta
+    open_games = next_sched[~next_sched["completed"].fillna(False)]
+    if open_games.empty:
+        return
+    reg_open = open_games[open_games["season_type"] == "REG"]
+    pick = reg_open if not reg_open.empty else open_games
+    tw_ = int(pick["week"].min())
+    ts_ = int(pick["season"].iloc[0])
+    games = pick[pick["week"] == tw_]
+    opp_of, home_of = {}, {}
+    for g in games.itertuples():
+        opp_of[g.home_team], home_of[g.home_team] = g.away_team, True
+        opp_of[g.away_team], home_of[g.away_team] = g.home_team, False
+
+    # Geçen sezon takım başına izin verilen pas/koşu yardı çarpanları
+    tw_hist = _read_existing(NCAA_DIR / "seasons" / str(data_season) / "team_weeks.json")
+    pass_f, rush_f = {}, {}
+    if tw_hist is not None and not tw_hist.empty:
+        allowed = tw_hist.groupby("opponent")[["passing_yards", "rushing_yards"]].mean()
+        lg = allowed.mean()
+        for team, r in allowed.iterrows():
+            pass_f[team] = min(1.15, max(0.85, r["passing_yards"] / lg["passing_yards"]))
+            rush_f[team] = min(1.15, max(0.85, r["rushing_yards"] / lg["rushing_yards"]))
+
+    stats_all = sorted({s for v in POS_PROJ.values() for s in v})
+    # Kronolojik sıra: REG haftaları, ardından POST (bowl/playoff)
+    hist = hist.assign(
+        _ord=hist["week"] + (hist["season_type"] == "POST") * 100
+    ).sort_values("_ord")
+    g = hist.groupby("player_id")
+    season_mean = g[stats_all].mean()
+    last5_mean = g.tail(5).groupby("player_id")[stats_all].mean()
+    games_ct = g.size()
+
+    rows = []
+    ros = rosters[rosters["position"].isin(SKILL_POS)]
+    for p in ros.itertuples():
+        opp = opp_of.get(p.team)
+        if opp is None or p.player_id not in season_mean.index:
+            continue
+        if games_ct.get(p.player_id, 0) < 3:
+            continue
+        pos = "RB" if p.position == "FB" else p.position
+        base = (0.6 * last5_mean.loc[p.player_id]
+                + 0.4 * season_mean.loc[p.player_id])
+        row = {"player_id": p.player_id, "player_name": p.player_name,
+               "position": pos, "team": p.team, "opponent": opp,
+               "is_home": bool(home_of.get(p.team))}
+        for s in POS_PROJ.get(pos, POS_PROJ["WR"]):
+            v = base.get(s)
+            if v is None or pd.isna(v):
+                continue
+            f = pass_f.get(opp, 1.0) if s in PASS_STATS else rush_f.get(opp, 1.0)
+            row[f"proj_{s}"] = round(float(v) * f, 1)
+        rows.append(row)
+    if not rows:
+        return
+    df = pd.DataFrame(rows)
+    prim = (df.get("proj_passing_yards", pd.Series(0, index=df.index)).fillna(0)
+            + df.get("proj_rushing_yards", pd.Series(0, index=df.index)).fillna(0)
+            + df.get("proj_receiving_yards", pd.Series(0, index=df.index)).fillna(0))
+    df = df.loc[prim.sort_values(ascending=False).index].reset_index(drop=True)
+
+    df = df.astype(object).where(pd.notna(df), None)
+    payload = {"generated_at": pd.Timestamp.utcnow().isoformat(),
+               "data_season": data_season, "engine": "heuristic",
+               "target": {"season": ts_, "week": tw_},
+               "columns": list(df.columns),
+               "rows": df.values.tolist()}
+    with open(NCAA_DIR / "projections.json", "w") as f:
+        json.dump(payload, f, ensure_ascii=False, allow_nan=False)
+    log.info("NCAA projeksiyon yazıldı: %s oyuncu, hedef %s W%s",
+             len(df), ts_, tw_)
+
+
 def rebuild_index_and_manifest() -> None:
     frames = []
     seasons = []
@@ -378,6 +546,17 @@ def rebuild_index_and_manifest() -> None:
         "first_season": g["season"].min(),
         "last_season": g["season"].max(),
     }).reset_index()
+    # Roster'dan gerçek pozisyon + güncel takım (hacim çıkarımını düzeltir)
+    ros = _read_existing(NCAA_DIR / "rosters.json")
+    if ros is not None and not ros.empty:
+        cur = (ros.drop_duplicates("player_id")
+               [["player_id", "position", "team"]]
+               .rename(columns={"position": "roster_position",
+                                "team": "current_team"}))
+        idx = idx.merge(cur, on="player_id", how="left")
+        idx["position"] = idx["roster_position"].where(
+            idx["roster_position"].notna(), idx["position"])
+        idx = idx.drop(columns=["roster_position"])
     transform.write_json(NCAA_DIR / "players" / "index.json", idx)
     manifest = {"generated_at": pd.Timestamp.utcnow().isoformat(),
                 "seasons": {str(s): {} for s in seasons}}
@@ -387,13 +566,25 @@ def rebuild_index_and_manifest() -> None:
     log.info("NCAA index: %s oyuncu, sezonlar: %s", len(idx), seasons)
 
 
+def refresh_extras(season: int) -> None:
+    """Kadrolar + yaklaşan fikstür + projeksiyonlar (her Salı tazelenir)."""
+    ros = fetch_rosters()
+    nxt = build_next_schedule(season + 1)
+    if nxt is None:  # gelecek sezon yayınlanmadıysa mevcut sezonun kalanı
+        nxt = build_next_schedule(season)
+    build_projections(ros, nxt)
+
+
 def backfill(seasons: list[int] | None = None) -> None:
-    for s in seasons or NCAA_SEASONS:
+    todo = seasons or NCAA_SEASONS
+    for s in todo:
         build_season(s, incremental=True)
+    refresh_extras(max(todo))
     rebuild_index_and_manifest()
 
 
 def update_current(season: int) -> None:
     """Salı güncellemesi: aktif sezonu artımlı tazele (yoksa no-op)."""
-    if build_season(season, incremental=True):
-        rebuild_index_and_manifest()
+    build_season(season, incremental=True)
+    refresh_extras(season)
+    rebuild_index_and_manifest()
