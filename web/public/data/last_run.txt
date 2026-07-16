@@ -35,13 +35,13 @@ WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/ne
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv
 INFO OK 14731 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_receiving.csv.gz
 INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 135.6 KB)
-INFO OK 334268 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
+INFO OK 340538 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
 INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
 INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-INFO Yazıldı: web/public/data/depth_charts.json (3171 satır, 407.9 KB)
-INFO Depth chart yazıldı: 2026 sezonu, 3171 satır
-INFO Yazıldı: web/public/data/current_teams.json (3612 satır, 90.2 KB)
-INFO Güncel takım haritası: 3612 oyuncu (2026)
+INFO Yazıldı: web/public/data/depth_charts.json (3168 satır, 407.7 KB)
+INFO Depth chart yazıldı: 2026 sezonu, 3168 satır
+INFO Yazıldı: web/public/data/current_teams.json (3611 satır, 90.2 KB)
+INFO Güncel takım haritası: 3611 oyuncu (2026)
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv.gz
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv
 INFO OK 6068 satır <- https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2025.csv.gz
@@ -69,4 +69,55 @@ INFO ML modelleri eğitildi: 12 hedef, 42941 satır
 INFO ML modelleri eğitildi: 12 hedef, 43301 satır
 INFO ML modelleri eğitildi: 12 hedef, 43653 satır
 INFO Projeksiyon karnesi yazıldı: 13 hafta, son hafta 2838 oyuncu
+INFO NCAA 2025: 934 maç bulundu
+INFO NCAA 2025: 1 yeni maçın box score'u çekilecek
+INFO Yazıldı: web/public/data/ncaa/seasons/2025/schedule.json (934 satır, 75.7 KB)
+INFO Yazıldı: web/public/data/ncaa/seasons/2025/player_weeks.json (20852 satır, 4293.4 KB)
+INFO Yazıldı: web/public/data/ncaa/seasons/2025/team_weeks.json (1868 satır, 177.7 KB)
+INFO Yazıldı: web/public/data/ncaa/seasons/2025/player_season.json (4260 satır, 710.2 KB)
+ERROR Opsiyonel veri seti üretilemedi: ncaa güncellemesi
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'points'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 34, in _optional
+    fn()
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 273, in <lambda>
+    lambda: ncaa.update_current(current_season()))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/ncaa.py", line 588, in update_current
+    build_season(season, incremental=True)
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/ncaa.py", line 296, in build_season
+    team_agg(tw, sched, conf_of, confs))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/ncaa.py", line 331, in team_agg
+    out["wins"] = g.apply(
+                  ^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/pandas/core/groupby/groupby.py", line 1650, in apply
+    return self._python_apply_general(f, self._obj_with_exclusions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/pandas/core/groupby/groupby.py", line 1687, in _python_apply_general
+    values, mutated = self._grouper.apply_groupwise(f, data)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/pandas/core/groupby/ops.py", line 1035, in apply_groupwise
+    res = f(group)
+          ^^^^^^^^
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/ncaa.py", line 332, in <lambda>
+    lambda df: int((df["points"] > df["points_allowed"]).sum()),
+                    ~~^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/pandas/core/frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'points'
 INFO Pipeline başarıyla tamamlandı: [2025]
