@@ -14,6 +14,7 @@ import pandas as pd
 import advanced
 import config
 import insights
+import ncaa
 import scheme
 import sources
 import transform
@@ -213,13 +214,22 @@ def rebuild_index_and_manifest(master, current_roster=None) -> None:
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["backfill", "update", "gameday"])
+    ap.add_argument("mode", choices=["backfill", "update", "gameday",
+                                     "ncaa-backfill"])
     ap.add_argument("--seasons", default=None,
                     help="backfill için aralık, ör. 2021-2025")
     args = ap.parse_args()
 
     if args.mode == "gameday":
         return gameday_update()
+
+    if args.mode == "ncaa-backfill":
+        if args.seasons:
+            start, end = (int(x) for x in args.seasons.split("-"))
+            ncaa.backfill(list(range(start, end + 1)))
+        else:
+            ncaa.backfill()
+        return 0
 
     if args.mode == "backfill":
         if args.seasons:
@@ -258,6 +268,9 @@ def main() -> int:
     _optional("güncel kadro/depth chart", do_roster)
     rebuild_index_and_manifest(master, current_roster)
     _optional("insights", lambda: insights.build_and_write(schedules))
+    if args.mode == "update":
+        _optional("ncaa güncellemesi",
+                  lambda: ncaa.update_current(current_season()))
     if failed:
         log.warning("Tamamlandı ama şu sezonlar başarısız: %s", failed)
         return 1

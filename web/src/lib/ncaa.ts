@@ -1,0 +1,62 @@
+import { loadColumnar, loadOptional } from "./data";
+import type { Manifest, StatRow } from "./types";
+
+const BASE = `${import.meta.env.BASE_URL}data/ncaa`;
+
+export async function loadNcaaManifest(): Promise<Manifest | null> {
+  try {
+    const res = await fetch(`${BASE}/manifest.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as Manifest;
+  } catch {
+    return null;
+  }
+}
+
+export const loadNcaaTeams = () => loadOptional("ncaa/teams.json");
+export const loadNcaaPlayerIndex = () => loadOptional("ncaa/players/index.json");
+export const loadNcaaPlayerSeason = (s: number | string) =>
+  loadColumnar(`ncaa/seasons/${s}/player_season.json`);
+export const loadNcaaPlayerWeeks = (s: number | string) =>
+  loadColumnar(`ncaa/seasons/${s}/player_weeks.json`);
+export const loadNcaaTeamSeason = (s: number | string) =>
+  loadColumnar(`ncaa/seasons/${s}/team_season.json`);
+export const loadNcaaTeamWeeks = (s: number | string) =>
+  loadColumnar(`ncaa/seasons/${s}/team_weeks.json`);
+export const loadNcaaSchedule = (s: number | string) =>
+  loadColumnar(`ncaa/seasons/${s}/schedule.json`);
+
+/** ESPN box score'un sunduğu statlarla sınırlı NCAA presetleri. */
+export const NCAA_PRESETS: Record<string, string[]> = {
+  QB: ["completions", "attempts", "passing_yards", "passing_tds",
+       "passing_interceptions", "carries", "rushing_yards", "rushing_tds"],
+  RB: ["carries", "rushing_yards", "rushing_tds",
+       "receptions", "receiving_yards", "receiving_tds"],
+  WR: ["receptions", "receiving_yards", "receiving_tds",
+       "carries", "rushing_yards", "rushing_tds"],
+};
+
+export function ncaaPreset(pos: string | null | undefined): string[] {
+  return NCAA_PRESETS[String(pos)] ?? NCAA_PRESETS.WR;
+}
+
+export interface NcaaTeamInfo {
+  school: string;
+  name: string;
+  logo: string;
+  conference: string | null;
+}
+
+/** abbr -> takım kimliği haritası. */
+export function teamMapOf(rows: StatRow[] | null): Map<string, NcaaTeamInfo> {
+  const m = new Map<string, NcaaTeamInfo>();
+  for (const r of rows ?? []) {
+    m.set(String(r.team), {
+      school: String(r.school ?? r.team),
+      name: String(r.name ?? r.team),
+      logo: String(r.logo ?? ""),
+      conference: r.conference === null ? null : String(r.conference),
+    });
+  }
+  return m;
+}

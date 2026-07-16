@@ -194,6 +194,18 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Karne sayfasına hafta seçici eklendi (W6–W18 arası her hafta
       tahmin-vs-gerçek incelenebilir)
 
+### ✅ Faz 5.13 — NCAA Tracker (10. tur)
+- [x] pipeline/ncaa.py: ESPN CFB API'den FBS fikstürü + maç box score'ları
+      (oyuncu pas/koşu/hava topu, takım istatistikleri) — kolon adları NFL
+      ile ortak, etiketler/grafikler yeniden kullanılır
+- [x] Son 4 sezon (2022–2025) backfill; Salı güncellemesi NCAA'yi de
+      artımlı tazeler (yalnızca yeni biten maçların box score'u çekilir)
+- [x] Arayüzde NFL | NCAA lig seçici; NCAA sayfaları: Dashboard (liderler),
+      Oyuncular, Oyuncu detayı (kariyer + eşikli haftalık grafik), Takımlar,
+      Takım detayı (fikstür + kadro), Maçlar, Maç detayı (box score),
+      Puan Durumu (konferansa göre)
+- [x] Pozisyonlar box score hacminden türetilir (ESPN pozisyon vermez)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
