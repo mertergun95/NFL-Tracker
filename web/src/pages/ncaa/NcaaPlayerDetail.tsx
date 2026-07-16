@@ -11,11 +11,14 @@ import type { StatRow } from "../../lib/types";
 
 export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
   const { id } = useParams<{ id: string }>();
-  const [season, setSeason] = useState(seasons[0]);
+  const [seasonChoice, setSeasonChoice] = useState<number | null>(null);
 
   const { data: index } = useAsync(() => loadNcaaPlayerIndex(), []);
   const player = useMemo(
     () => index?.find((p) => p.player_id === id) ?? null, [index, id]);
+  // Varsayılan: oyuncunun oynadığı son sezon (mezunlarda boş log açılmasın)
+  const season = seasonChoice ?? Number(player?.last_season ?? seasons[0]);
+  const setSeason = setSeasonChoice;
 
   const { data: career, error: careerErr } = useAsync(async () => {
     const per = await Promise.all(

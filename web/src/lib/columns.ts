@@ -56,6 +56,7 @@ export const STAT_LABELS: Record<string, string> = {
   points_for: "Atılan Sayı",
   points_against: "Yenilen Sayı",
   // NCAA (ESPN box score) kolonları
+  turnovers: "Top Kaybı",
   qbr: "QBR",
   rush_long: "En Uzun Koşu",
   rec_long: "En Uzun Rec",
