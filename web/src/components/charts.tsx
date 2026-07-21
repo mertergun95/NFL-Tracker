@@ -437,3 +437,45 @@ export function TeamScatterChart({ rows, highlight }: TeamScatterProps) {
     </div>
   );
 }
+
+/** Prop Finder: çizgiye göre yeşil/kırmızı son maçlar grafiği. */
+export interface PropGame {
+  label: string;   // ör. "24W5"
+  value: number;
+  opp: string;
+}
+
+export function PropBarChart({ games, line, statLabel }:
+  { games: PropGame[]; line: number; statLabel: string }) {
+  return (
+    <div className="chart-box">
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={games} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
+          <CartesianGrid stroke={CHART.grid} vertical={false} />
+          <XAxis dataKey="label" stroke={CHART.muted} fontSize={11}
+                 interval={0} angle={-35} textAnchor="end" height={44} />
+          <YAxis stroke={CHART.muted} fontSize={12} width={44} />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
+                   formatter={(v) => [String(v), statLabel]}
+                   labelFormatter={(l, p) => {
+                     const g = (p as unknown as { payload?: PropGame }[])?.[0]?.payload;
+                     return g ? `${l} · vs ${g.opp}` : String(l);
+                   }} />
+          <ReferenceLine y={line} stroke="#d50a0a" strokeDasharray="6 3"
+                         strokeWidth={2}
+                         label={{ value: `çizgi ${line}`, fill: "#f85149",
+                                  fontSize: 11, position: "insideTopLeft" }} />
+          <Bar dataKey="value" isAnimationActive={false} radius={[3, 3, 0, 0]}>
+            {games.map((g, i) => (
+              <Cell key={i} fill={g.value > line ? "#2ea043" : "#da3633"} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <p className="chart-note">
+        Yeşil = çizginin üstü, kırmızı = altı. Kırmızı kesikli çizgi seçili
+        prop çizgisidir.
+      </p>
+    </div>
+  );
+}

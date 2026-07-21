@@ -227,6 +227,18 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       duyarlı) ve NCAA (UTC kickoff→DE) — Maçlar kartları, maç detayları,
       fikstürler ve dashboard akışında
 
+### ✅ Faz 5.16 — NFL Prop Finder (13. tur)
+- [x] /props sayfası (propfinder.app tarzı): oyuncu arama ya da takım seçimi,
+      stat + ayarlanabilir çizgi (±0.5/±adım butonları, varsayılan son 10
+      maç medyanı)
+- [x] Hit-rate kartları: Son 5/10/20, sezon bazlı (son 3 sezon), Ev/Deplasman,
+      seçilebilir rakip kırılımı; %60+/%40- yeşil/kırmızı renklendirme,
+      seri (streak) rozeti
+- [x] Çizgiye göre yeşil/kırmızı son 20 maç grafiği (PropBarChart) +
+      alternatif çizgiler tablosu
+- [x] Takım propları: atılan/yenilen/toplam sayı (schedule'dan), pas/koşu/
+      toplam yard, sack'ler
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

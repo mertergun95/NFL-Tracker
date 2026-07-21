@@ -276,6 +276,40 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
   border-radius: 8px; padding: 8px 10px 2px; margin: 8px 0;
 }
 
+/* Prop Finder */
+.prop-cards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px; margin: 14px 0;
+}
+.prop-card {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.prop-card-title { color: var(--text-dim); font-size: 0.78rem; font-weight: 600; }
+.prop-card-pct { font-size: 1.5rem; font-weight: 800; }
+.prop-card-n { color: var(--text-dim); font-size: 0.75rem; }
+.prop-card.hit-good { border-color: #2ea043; }
+.prop-card.hit-good .prop-card-pct { color: #3fb950; }
+.prop-card.hit-bad { border-color: #da3633; }
+.prop-card.hit-bad .prop-card-pct { color: #f85149; }
+.prop-card.hit-mid .prop-card-pct { color: #d29922; }
+
+.prop-search { position: relative; }
+.prop-suggest {
+  position: absolute; top: 100%; left: 0; z-index: 30; min-width: 280px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 8px; margin-top: 4px; overflow: hidden;
+  box-shadow: 0 8px 24px #000a;
+}
+.prop-suggest button {
+  display: block; width: 100%; text-align: left; padding: 8px 12px;
+  background: none; border: none; color: var(--text); cursor: pointer;
+  font-size: 0.9rem;
+}
+.prop-suggest button:hover { background: #1c2430; }
+.prop-line-bar { align-items: center; }
+
 .league-switch {
   display: inline-flex; margin: 0 14px; border: 1px solid var(--border);
   border-radius: 999px; overflow: hidden; flex-shrink: 0;

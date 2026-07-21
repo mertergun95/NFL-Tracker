@@ -15,6 +15,7 @@ import Standings from "./pages/Standings";
 import Matchups from "./pages/Matchups";
 import Injuries from "./pages/Injuries";
 import Accuracy from "./pages/Accuracy";
+import PropFinder from "./pages/PropFinder";
 import NcaaDashboard from "./pages/ncaa/NcaaDashboard";
 import NcaaPlayers from "./pages/ncaa/NcaaPlayers";
 import NcaaPlayerDetail from "./pages/ncaa/NcaaPlayerDetail";
@@ -39,6 +40,7 @@ const NAV = [
   { to: "/depth", label: "Kadrolar" },
   { to: "/games", label: "Maçlar" },
   { to: "/matchups", label: "Matchuplar" },
+  { to: "/props", label: "Prop Finder" },
   { to: "/compare", label: "Karşılaştır" },
   { to: "/charts", label: "Deep Charts" },
   { to: "/projections", label: "Projeksiyonlar" },
@@ -105,6 +107,7 @@ export default function App() {
               <Route path="/depth" element={<DepthCharts />} />
               <Route path="/standings" element={<Standings seasons={seasons} />} />
               <Route path="/matchups" element={<Matchups />} />
+              <Route path="/props" element={<PropFinder seasons={seasons} />} />
               <Route path="/injuries" element={<Injuries />} />
               <Route path="/accuracy" element={<Accuracy />} />
               <Route path="/insights" element={<Insights />} />
