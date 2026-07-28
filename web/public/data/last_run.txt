@@ -1,5 +1,5 @@
 INFO OK 7548 satır <- http://www.habitatring.com/games.csv
-INFO OK 25033 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
+INFO OK 25035 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
 INFO === 2025 sezonu işleniyor ===
 INFO OK 19421 satır <- https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.csv.gz
 INFO Eksik kolonlar (atlandı): ['def_fumble_recovery_opp']
@@ -35,13 +35,13 @@ WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/ne
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv
 INFO OK 14731 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_receiving.csv.gz
 INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 135.6 KB)
-INFO OK 356385 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
+INFO OK 378466 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
 INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
 INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-INFO Yazıldı: web/public/data/depth_charts.json (3171 satır, 408.3 KB)
-INFO Depth chart yazıldı: 2026 sezonu, 3171 satır
-INFO Yazıldı: web/public/data/current_teams.json (3614 satır, 90.3 KB)
-INFO Güncel takım haritası: 3614 oyuncu (2026)
+INFO Yazıldı: web/public/data/depth_charts.json (3172 satır, 450.4 KB)
+INFO Depth chart yazıldı: 2026 sezonu, 3172 satır
+INFO Yazıldı: web/public/data/current_teams.json (3020 satır, 76.0 KB)
+INFO Güncel takım haritası: 3020 oyuncu (2026)
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv.gz
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv
 INFO OK 6068 satır <- https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2025.csv.gz
@@ -54,7 +54,7 @@ INFO Yazıldı: web/public/data/pos_allowed.json (128 satır, 12.5 KB)
 INFO Yazıldı: web/public/data/next_schedule.json (272 satır, 38.7 KB)
 INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
 INFO ML modelleri eğitildi: 12 hedef, 43994 satır
-INFO Projeksiyonlar yazıldı: 390 oyuncu (2026 W1)
+INFO Projeksiyonlar yazıldı: 392 oyuncu (2026 W1)
 INFO ML modelleri eğitildi: 12 hedef, 39764 satır
 INFO ML modelleri eğitildi: 12 hedef, 40079 satır
 INFO ML modelleri eğitildi: 12 hedef, 40410 satır
@@ -78,14 +78,14 @@ INFO Yazıldı: web/public/data/ncaa/seasons/2025/player_season.json (4260 satı
 INFO Yazıldı: web/public/data/ncaa/seasons/2025/team_season.json (136 satır, 10.1 KB)
 INFO Yazıldı: web/public/data/ncaa/teams.json (249 satır, 27.7 KB)
 INFO NCAA kadrolar: 136 takım çekilecek
-INFO Yazıldı: web/public/data/ncaa/rosters.json (13532 satır, 1823.8 KB)
-INFO NCAA kadrolar yazıldı: 13532 oyuncu
+INFO Yazıldı: web/public/data/ncaa/rosters.json (13405 satır, 1707.3 KB)
+INFO NCAA kadrolar yazıldı: 13405 oyuncu
 INFO NCAA 2026: 946 maç bulundu
 INFO Yazıldı: web/public/data/ncaa/teams.json (249 satır, 27.7 KB)
 INFO Yazıldı: web/public/data/ncaa/next_schedule.json (946 satır, 98.9 KB)
 INFO NCAA 2026 fikstürü yazıldı: 946 maç
-INFO NCAA projeksiyon yazıldı: 1656 oyuncu, hedef 2026 W1
+INFO NCAA projeksiyon yazıldı: 1435 oyuncu, hedef 2026 W1
 INFO NCAA karne yazıldı: 10 hafta, 9340 oyuncu-hafta satırı
-INFO Yazıldı: web/public/data/ncaa/players/index.json (8918 satır, 1080.7 KB)
+INFO Yazıldı: web/public/data/ncaa/players/index.json (8918 satır, 1080.3 KB)
 INFO NCAA index: 8918 oyuncu, sezonlar: [2022, 2023, 2024, 2025]
 INFO Pipeline başarıyla tamamlandı: [2025]
