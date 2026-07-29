@@ -1,5 +1,6 @@
 # Siteyi kendi domainine bağlama
 
+Hedef domain: **statgrade.com** (alındı).
 Site şu an GitHub Pages'te yayında:
 `https://mertergun95.github.io/NFL-Tracker/`
 
@@ -15,16 +16,13 @@ Yapılacak her şey domain sağlayıcısı ve GitHub ayarları tarafında.
 
 ---
 
-## 1. Domaini al
+## 1. Domaini al ✅
 
-Öneri: **Cloudflare Registrar** — domaini maliyetine satar (.com ~$10/yıl,
-gizlilik ücretsiz), DNS paneli hızlı ve GitHub Pages ile sorunsuz çalışır.
-Alternatif: Namecheap, Porkbun. `.com.tr` gibi uzantılar için Türk
-sağlayıcı (Natro, İsimtescil) gerekir.
+`statgrade.com` alındı.
 
 ## 2. DNS kayıtlarını gir
 
-Kök domain (`ornek.com`) ana adres olacak şekilde:
+Kök domain (`statgrade.com`) ana adres olacak şekilde:
 
 | Tip | Ad | Değer | TTL |
 |-----|-----|-------|-----|
@@ -48,7 +46,7 @@ AAAA kayıtları IPv6 içindir; zorunlu değil ama eklemek iyidir.
 
 ## 3. GitHub'da domaini tanımla
 
-`Settings → Pages → Custom domain` alanına `ornek.com` yazıp **Save**.
+`Settings → Pages → Custom domain` alanına `statgrade.com` yazıp **Save**.
 GitHub DNS kontrolünü kendisi yapar; "DNS check in progress" görürsen
 kayıtlar yayılana kadar (genelde 10 dk – 1 saat) beklemek yeterli.
 
@@ -63,7 +61,7 @@ kutusunu işaretle. Sertifika (Let's Encrypt) otomatik üretilir; ilk
 ## Doğrulama
 
 ```bash
-scripts/check-domain.sh ornek.com
+scripts/check-domain.sh statgrade.com
 ```
 
 Betik A/AAAA/CNAME kayıtlarını, HTTP→HTTPS yönlendirmesini, sertifikayı
@@ -72,8 +70,8 @@ ve veri dosyalarının erişilebilirliğini kontrol eder.
 ## Sık karşılaşılanlar
 
 - **"Domain does not resolve to the GitHub Pages server"** → DNS henüz
-  yayılmamış ya da A kayıtları eksik. `dig ornek.com +short` çıktısı dört
-  `185.199.*` adresini vermeli.
+  yayılmamış ya da A kayıtları eksik. `dig statgrade.com +short` çıktısı
+  dört `185.199.*` adresini vermeli.
 - **HTTPS kutusu gri/tıklanamıyor** → sertifika henüz üretilmedi; DNS
   doğru ise beklemek yeterli. Cloudflare proxy'si açıksa kapat.
 - **Site açılıyor ama veriler gelmiyor** → tarayıcı önbelleği; hard
