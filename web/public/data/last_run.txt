@@ -78,13 +78,13 @@ INFO Yazıldı: web/public/data/ncaa/seasons/2025/player_season.json (4260 satı
 INFO Yazıldı: web/public/data/ncaa/seasons/2025/team_season.json (136 satır, 10.1 KB)
 INFO Yazıldı: web/public/data/ncaa/teams.json (249 satır, 27.7 KB)
 INFO NCAA kadrolar: 136 takım çekilecek
-INFO Yazıldı: web/public/data/ncaa/rosters.json (13405 satır, 1707.3 KB)
-INFO NCAA kadrolar yazıldı: 13405 oyuncu
+INFO Yazıldı: web/public/data/ncaa/rosters.json (13404 satır, 1705.5 KB)
+INFO NCAA kadrolar yazıldı: 13404 oyuncu
 INFO NCAA 2026: 946 maç bulundu
 INFO Yazıldı: web/public/data/ncaa/teams.json (249 satır, 27.7 KB)
 INFO Yazıldı: web/public/data/ncaa/next_schedule.json (946 satır, 98.9 KB)
 INFO NCAA 2026 fikstürü yazıldı: 946 maç
-INFO NCAA projeksiyon yazıldı: 1435 oyuncu, hedef 2026 W1
+INFO NCAA projeksiyon yazıldı: 1433 oyuncu, hedef 2026 W1
 INFO NCAA karne yazıldı: 10 hafta, 9340 oyuncu-hafta satırı
 INFO Yazıldı: web/public/data/ncaa/players/index.json (8918 satır, 1080.3 KB)
 INFO NCAA index: 8918 oyuncu, sezonlar: [2022, 2023, 2024, 2025]
