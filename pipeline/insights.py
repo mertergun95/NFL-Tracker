@@ -689,18 +689,43 @@ def _starter_ids(df: pd.DataFrame, depth: pd.DataFrame | None,
     return keep
 
 
+# Bir maçta gerçekçi olarak iş gören oyuncu sayısı (pozisyon başına).
+# Havuz önce buna indirilir; bütçe ancak ondan sonra paylaştırılır, yoksa
+# sahaya çıkmayacak yedekler yıldızların payını sulandırır.
+ACTIVE_SLOTS = {"QB": 1, "RB": 3, "FB": 1, "WR": 5, "TE": 2}
+# Sıralama ölçütü: pozisyonun birincil hacim kolonu
+SLOT_SORT = {"QB": "proj_passing_yards", "RB": "proj_carries",
+             "FB": "proj_carries", "WR": "proj_targets", "TE": "proj_targets"}
+
+
+def _trim_to_slots(df: pd.DataFrame) -> pd.DataFrame:
+    """Takım+pozisyon başına yalnızca ilk N oyuncuyu tut."""
+    keep = []
+    for (team, pos), grp in df.groupby(["team", "position"]):
+        n = ACTIVE_SLOTS.get(str(pos))
+        if n is None:
+            keep.extend(grp.index)
+            continue
+        col = SLOT_SORT.get(str(pos), "proj_ppr")
+        col = col if col in grp.columns else "proj_ppr"
+        keep.extend(grp.sort_values(col, ascending=False).head(n).index)
+    return df.loc[sorted(keep)].reset_index(drop=True)
+
+
 def apply_role_and_volume(df: pd.DataFrame, tw: pd.DataFrame | None,
                           depth: pd.DataFrame | None,
                           pw: pd.DataFrame | None) -> pd.DataFrame:
-    """Projeksiyonları gerçekçi kıl: (1) takım başına tek QB, (2) takımın
-    toplam hacmi (pas denemesi / koşu / target) maç başı ortalamasını aşarsa
-    oyuncular oransal olarak kısılır."""
+    """Projeksiyonları gerçekçi kıl: (1) takım başına tek QB, (2) pozisyon
+    başına yalnızca sahaya çıkacak kadar oyuncu, (3) takımın toplam hacmi
+    (pas denemesi / koşu / target) maç başı ortalamasını aşarsa oransal
+    kırpma."""
     if df.empty:
         return df
     qb_keep = _starter_ids(df, depth, pw)
     if qb_keep:
         df = df[(df["position"] != "QB") | df["player_id"].isin(qb_keep)]
         df = df.reset_index(drop=True)
+    df = _trim_to_slots(df)
 
     budgets = _team_budgets(tw)
     if budgets:

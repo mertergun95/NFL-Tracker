@@ -260,6 +260,19 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       geriye dönük uyumlu)
 - [x] "Deep Charts" → "Charts" / "Grafikler" / "Charts" (nav + sayfa başlığı)
 
+### ✅ Faz 5.19 — Projeksiyon gerçekçiliği: rol ve takım hacmi (16. tur)
+- [x] Hata: ML motoru her oyuncuyu bağımsız projekte ettiği için bir takımın
+      2–4 QB'sine birden başlangıç seviyesi tahmin veriliyor, takım toplam
+      hacmi gerçekçi ortalamayı 1.5–2× aşıyordu (NE 62 pas denemesi, NO 54 koşu)
+- [x] `apply_role_and_volume()`: (1) takım başına tek QB — depth chart sırası,
+      yoksa hacim; (2) pozisyon başına gerçekçi rotasyon (QB1, 3 RB, 5 WR,
+      2 TE); (3) takımın maç başı attempts/carries/targets bütçesini aşan
+      toplamlar oransal kırpılır (bağlı yard/TD'ler de aynı oranda, böylece
+      verimlilik korunur; bütçenin altı büyütülmez)
+- [x] Aynı düzeltme geriye dönük teste de uygulanır — orada bugünün depth
+      chart'ı yerine yalnızca o haftadan önceki hacim verisi kullanılır
+- [x] NCAA projeksiyonlarında da takım başına tek QB (132/132 takım)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
