@@ -285,6 +285,21 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Not: Actions ile yayınlandığı için depoya `CNAME` dosyası gerekmiyor
       (GitHub bu yöntemde onu yok sayar)
 
+### ✅ Faz 5.21 — statgrade.com yayında (18. tur)
+- [x] Domain alındı, Cloudflare'de dört A + dört AAAA + `www` CNAME kaydı
+      tanımlandı (hepsi DNS only), GitHub Pages custom domain + Enforce
+      HTTPS açıldı
+- [x] `web/index.html`: sayfa başlığı **StatGrade**, açıklama, canonical
+      ve Open Graph etiketleri (link paylaşımında önizleme)
+- [x] `web/public/robots.txt` + `web/public/sitemap.xml`
+- [x] `scripts/check-domain.sh` sağlamlaştırıldı: DNS çözümü artık
+      DNS-over-HTTPS üzerinden (yerel çözümleyici dört A kaydının
+      tamamını döndürmüyordu), HTTP isteklerine üç denemeli tekrar,
+      `000000` biçimlendirme hatası giderildi
+- [x] Doğrulandı: `https://statgrade.com` 200, `www` ve eski
+      `mertergun95.github.io/NFL-Tracker` adresleri 301 ile yeni domaine
+      yönleniyor, NFL ve NCAA veri dosyaları erişilebilir
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
