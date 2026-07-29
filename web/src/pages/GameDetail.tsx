@@ -10,6 +10,7 @@ import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 import { etBerlin } from "../lib/time";
 import type { StatRow } from "../lib/types";
+import { translate, useT } from "../lib/i18n";
 
 const PLAYER_COLS = [
   "player_name", "position", "completions", "attempts", "passing_yards",
@@ -29,7 +30,7 @@ function TeamPlayerTable({ rows, team }: { rows: StatRow[]; team: string }) {
     .filter((r) => r.team === team && Number(r.fantasy_points_ppr ?? 0) !== 0);
   return (
     <>
-      <h2><Link to={`/team/${team}`}>{teamName(team)}</Link> — Oyuncular</h2>
+      <h2><Link to={`/team/${team}`}>{teamName(team)}</Link> — {translate("common.players")}</h2>
       <StatTable rows={teamRows} columns={PLAYER_COLS}
         defaultSort="fantasy_points_ppr" maxRows={30}
         render={{
@@ -44,6 +45,7 @@ function TeamPlayerTable({ rows, team }: { rows: StatRow[]; team: string }) {
 }
 
 export default function GameDetail() {
+  const t = useT();
   const { season = "", gameId = "" } = useParams<{ season: string; gameId: string }>();
 
   const { data: game, error } = useAsync(async () => {
@@ -106,15 +108,15 @@ export default function GameDetail() {
         </div>
       </div>
 
-      {!played && <p className="empty">Bu maç henüz oynanmadı.</p>}
+      {!played && <p className="empty">{t("game.notPlayed")}</p>}
 
       {played && compare.length > 0 && (
         <>
-          <h2>Takım Karşılaştırması</h2>
+          <h2>{t("game.teamCompare")}</h2>
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
-                <tr><th>{away}</th><th>İstatistik</th><th>{home}</th></tr>
+                <tr><th>{away}</th><th>{t("common.stat")}</th><th>{home}</th></tr>
               </thead>
               <tbody>
                 {compare.map((r) => (

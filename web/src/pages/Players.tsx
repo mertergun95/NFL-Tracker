@@ -7,6 +7,7 @@ import { loadPlayerSeason } from "../lib/data";
 import { POSITION_PRESETS } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
+import { useT } from "../lib/i18n";
 
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
@@ -24,6 +25,7 @@ const DEFAULT_SORT: Record<string, string> = {
 };
 
 export default function Players({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const [pos, setPos] = useState("QB");
   const [search, setSearch] = useState("");
@@ -43,11 +45,11 @@ export default function Players({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Oyuncu İstatistikleri</h1>
+      <h1>{t("players.title")}</h1>
       <div className="toolbar">
         <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
         <PositionPicker value={pos} onChange={setPos} />
-        <input className="search" placeholder="Oyuncu ara…" value={search}
+        <input className="search" placeholder={t("common.searchPlayer")} value={search}
                onChange={(e) => setSearch(e.target.value)} />
       </div>
       {loading && <Loading />}

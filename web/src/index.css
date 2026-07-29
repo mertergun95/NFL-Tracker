@@ -310,6 +310,19 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 .prop-suggest button:hover { background: #1c2430; }
 .prop-line-bar { align-items: center; }
 
+/* üst satırın sağ ucunda kalsın; nav tam genişlikte alt satıra iner */
+.topbar nav { order: 2; width: 100%; }
+.lang-switch {
+  order: 1; margin-left: auto; display: inline-flex; flex-shrink: 0;
+  border: 1px solid var(--border); border-radius: 999px; overflow: hidden;
+}
+.lang-switch button {
+  padding: 4px 11px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+}
+.lang-switch button:hover { color: var(--text); }
+.lang-switch button.active { background: var(--accent); color: #fff; }
+
 .league-switch {
   display: inline-flex; margin: 0 14px; border: 1px solid var(--border);
   border-radius: 999px; overflow: hidden; flex-shrink: 0;

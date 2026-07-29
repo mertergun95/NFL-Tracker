@@ -6,8 +6,10 @@ import { loadNcaaNextSchedule, loadNcaaSchedule, loadNcaaTeams,
          teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import { kickoffBerlin } from "../../lib/time";
+import { useT } from "../../lib/i18n";
 
 export default function NcaaGames({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const navigate = useNavigate();
   const [season, setSeason] = useState(seasons[0]);
   const [wkey, setWkey] = useState("REG-1");
@@ -45,16 +47,16 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>NCAA Maçları</h1>
+      <h1>{t("ncaa.gamesTitle")}</h1>
       <SeasonPicker seasons={allSeasons} value={season} onChange={setSeason} />
       {nextSeason !== null && season === nextSeason && (
-        <p className="sub">📅 {nextSeason} fikstürü — maçlar henüz oynanmadı.</p>
+        <p className="sub">{t("ncaa.fixtureNote", { season: nextSeason })}</p>
       )}
       <div className="pill-row">
         {weekKeys.map((k) => (
           <button key={k} className={`pill small ${k === wkey ? "active" : ""}`}
                   onClick={() => setWkey(k)}>
-            {k.startsWith("POST") ? "🏆 Bowl/Playoff" : k.split("-")[1]}
+            {k.startsWith("POST") ? t("ncaa.bowlPill") : k.split("-")[1]}
           </button>
         ))}
       </div>
@@ -72,7 +74,7 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
                 {String(g.gameday)}
                 {kickoffBerlin(g.kickoff as string) &&
                   ` · 🕐 ${kickoffBerlin(g.kickoff as string)} (DE)`}
-                {Boolean(g.conference_game) && " · konferans maçı"}
+                {Boolean(g.conference_game) && t("game.conference")}
               </div>
               <div className="game-line">
                 <Link to={`/ncaa/team/${g.away_team}`} className="team-cell"

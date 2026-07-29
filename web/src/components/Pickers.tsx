@@ -1,3 +1,5 @@
+import { useT } from "../lib/i18n";
+
 interface SeasonPickerProps {
   seasons: number[];
   value: number;
@@ -38,17 +40,16 @@ export function PositionPicker({ value, onChange }: PositionPickerProps) {
 }
 
 export function Loading() {
-  return <p className="empty">Yükleniyor…</p>;
+  const t = useT();
+  return <p className="empty">{t("common.loading")}</p>;
 }
 
 export function ErrorMsg({ msg }: { msg: string }) {
+  const t = useT();
   return (
     <div className="error-box">
-      <p>Veri yüklenemedi: {msg}</p>
-      <p>
-        Veri seti henüz oluşturulmamış olabilir — GitHub Actions'taki
-        <code> Update NFL Stats </code> workflow'unun (backfill) tamamlanmasını bekleyin.
-      </p>
+      <p>{t("err.load", { msg })}</p>
+      <p>{t("err.hint")}</p>
     </div>
   );
 }

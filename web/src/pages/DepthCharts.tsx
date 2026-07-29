@@ -6,11 +6,12 @@ import { loadOptional } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { TEAMS, teamName } from "../lib/teams";
 import type { StatRow } from "../lib/types";
+import { useT } from "../lib/i18n";
 
 const FORMATIONS: [string, string][] = [
-  ["offense", "Hücum"],
-  ["defense", "Savunma"],
-  ["st", "Özel Takımlar"],
+  ["offense", "unit.offense"],
+  ["defense", "unit.defense"],
+  ["st", "unit.st"],
 ];
 
 // formation etiketi ("3WR 1TE", "Base 3-4 D", "Special Teams"…) -> birim
@@ -27,6 +28,7 @@ const POS_ORDER = ["QB", "RB", "FB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
   "K", "P", "LS", "KR", "PR", "H"];
 
 export default function DepthCharts() {
+  const t = useT();
   const [team, setTeam] = useState("KC");
   const [formation, setFormation] = useState("offense");
   const { data, loading } = useAsync(() => loadOptional("depth_charts.json"), []);
@@ -58,16 +60,15 @@ export default function DepthCharts() {
   if (!data)
     return (
       <p className="empty">
-        Kadro verisi henüz üretilmedi — pipeline'ın bir sonraki koşusunu bekleyin.
+        {t("depth.notReady")}
       </p>
     );
 
   return (
     <section>
-      <h1>Kadrolar — Depth Chart{season ? ` (${season})` : ""}</h1>
+      <h1>{t("depth.title", { season: season ? ` (${season})` : "" })}</h1>
       <p className="sub">
-        Güncel derinlik şeması: her pozisyonda 1 numara en üstte.
-        Kaynak: NFL resmi depth chart verisi (nflverse), her Salı güncellenir.
+        {t("depth.sub")}
       </p>
       <div className="logo-grid">
         {Object.keys(TEAMS).map((t) => (
@@ -83,7 +84,7 @@ export default function DepthCharts() {
       <div className="pill-row">
         {FORMATIONS.map(([key, lbl]) => (
           <button key={key} className={`pill ${formation === key ? "active" : ""}`}
-                  onClick={() => setFormation(key)}>{lbl}</button>
+                  onClick={() => setFormation(key)}>{t(lbl)}</button>
         ))}
       </div>
       <div className="depth-grid">
@@ -108,7 +109,7 @@ export default function DepthCharts() {
         ))}
       </div>
       {groups.length === 0 && (
-        <p className="empty">Bu takım/birim için kayıt yok.</p>
+        <p className="empty">{t("depth.emptyUnit")}</p>
       )}
     </section>
   );

@@ -9,8 +9,10 @@ import { loadNcaaNextSchedule, loadNcaaPlayerSeason, loadNcaaSchedule,
          teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import { kickoffBerlin } from "../../lib/time";
+import { useT } from "../../lib/i18n";
 
 export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const { abbr } = useParams<{ abbr: string }>();
   const [season, setSeason] = useState(seasons[0]);
 
@@ -60,8 +62,8 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
             {ts && <> · {String(ts.wins)}–{String(ts.losses)}
               {ts.conf_wins !== null && ts.conf_wins !== undefined &&
                 ` (konferans ${ts.conf_wins}–${ts.conf_losses})`}
-              {" · "}{String(ts.points_pg)} sayı/maç,
-              {" "}{String(ts.points_allowed_pg)} yenilen/maç</>}
+              {" · "}{t("ncaa.perGame", { pf: String(ts.points_pg),
+                                        pa: String(ts.points_allowed_pg) })}</>}
           </p>
         </div>
       </div>
@@ -69,7 +71,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
 
-      <h2>Fikstür ({season})</h2>
+      <h2>{t("team.fixture", { season })}</h2>
       <div className="game-grid">
         {(sched ?? []).map((g) => {
           const home = g.home_team === abbr;
@@ -94,7 +96,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
               </div>
               <Link className="drawer-link" style={{ marginTop: 4 }}
                     to={`/ncaa/game/${season}/${g.game_id}`}>
-                Maç detayı →
+                {t("game.detail")}
               </Link>
             </div>
           );
@@ -103,7 +105,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
 
       {nextFix && nextFix.length > 0 && (
         <>
-          <h2>📅 {String(nextFix[0].season)} Fikstürü</h2>
+          <h2>📅 {t("team.fixture", { season: String(nextFix[0].season) })}</h2>
           <div className="game-grid">
             {nextFix.map((g) => {
               const home = g.home_team === abbr;
@@ -129,7 +131,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
 
       {tw && tw.length > 0 && (
         <>
-          <h2>Maç Bazlı Takım İstatistikleri</h2>
+          <h2>{t("ncaa.teamGameStats")}</h2>
           <StatTable rows={tw}
             columns={["week", "season_type", "opponent", "points",
                       "points_allowed", "total_yards", "passing_yards",
@@ -147,7 +149,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
 
       {roster && roster.length > 0 && (
         <>
-          <h2>Oyuncu Sezon İstatistikleri ({season}, REG)</h2>
+          <h2>{t("ncaa.playerSeasonStats", { season })}</h2>
           <StatTable rows={roster}
             columns={["player_name", "position", "games", "passing_yards",
                       "passing_tds", "carries", "rushing_yards", "rushing_tds",

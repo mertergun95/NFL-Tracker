@@ -6,6 +6,7 @@ import { loadPlayerIndex, loadPlayerSeason, loadPlayerWeeks } from "../lib/data"
 import { fmt, label, presetForPosition } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
+import { useT } from "../lib/i18n";
 
 const MAX_PLAYERS = 3;
 // düşükken iyi olan istatistikler (vurgu ters çevrilir)
@@ -15,6 +16,7 @@ const LOWER_BETTER = new Set(["passing_interceptions", "sacks_suffered",
 interface Sel { id: string; season: number }
 
 export default function Compare({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [sel, setSel] = useState<Sel[]>([]);
   const [query, setQuery] = useState("");
   const [statChoice, setStatChoice] = useState<string | null>(null);
@@ -89,13 +91,12 @@ export default function Compare({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Oyuncu Karşılaştırma</h1>
+      <h1>{t("compare.title")}</h1>
       <p className="sub">
-        {MAX_PLAYERS}'e kadar oyuncu ekle; her oyuncu için sezonu ayrı seçebilirsin
-        (ör. 2024 Chase vs 2025 JSN). Yeşil değer satırın en iyisidir.
+        {t("compare.sub", { max: MAX_PLAYERS })}
       </p>
       <div className="toolbar">
-        <input className="search" placeholder="Oyuncu ekle (en az 2 harf)…"
+        <input className="search" placeholder={t("compare.add")}
                value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
       {suggestions.length > 0 && (
@@ -133,18 +134,18 @@ export default function Compare({ seasons }: { seasons: number[] }) {
       </div>
 
       {sel.length === 0 && (
-        <p className="empty">Karşılaştırmak için oyuncu ekleyin.</p>
+        <p className="empty">{t("compare.empty")}</p>
       )}
       {loading && <Loading />}
 
       {players.length > 0 && (
         <>
-          <h2>Sezon Toplamları (REG)</h2>
+          <h2>{t("compare.seasonTotals")}</h2>
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>İstatistik</th>
+                  <th>{t("common.stat")}</th>
                   {players.map((p) => (
                     <th key={p.id + p.season}>
                       <PName name={colName(p)}
@@ -173,7 +174,7 @@ export default function Compare({ seasons }: { seasons: number[] }) {
             </table>
           </div>
 
-          <h2>Hafta Hafta</h2>
+          <h2>{t("compare.weekByWeek")}</h2>
           <div className="toolbar">
             <div className="pill-row">
               {stats.map((s) => (
@@ -185,7 +186,7 @@ export default function Compare({ seasons }: { seasons: number[] }) {
             </div>
             <button className={`pill small ${cumulative ? "active" : ""}`}
                     onClick={() => setCumulative(!cumulative)}>
-              Σ Kümülatif
+              {t("compare.cumulative")}
             </button>
           </div>
           {series.length > 0 && <CompareLineChart series={series} stat={chartStat} />}

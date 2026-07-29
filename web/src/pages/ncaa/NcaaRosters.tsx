@@ -5,15 +5,17 @@ import { Loading } from "../../components/Pickers";
 import StatTable from "../../components/StatTable";
 import { loadNcaaRosters, loadNcaaTeams, teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { useT } from "../../lib/i18n";
 
-const UNIT_TR: Record<string, string> = {
-  offense: "Hücum", defense: "Savunma", specialTeam: "Özel Takımlar",
+const UNIT_KEYS: Record<string, string> = {
+  offense: "unit.offense", defense: "unit.defense", specialTeam: "unit.st",
 };
 const POS_ORDER = ["QB", "RB", "FB", "WR", "TE", "OT", "G", "C", "OL",
                    "DE", "DT", "DL", "EDGE", "LB", "CB", "S", "DB",
                    "PK", "P", "LS", "ATH"];
 
 export default function NcaaRosters() {
+  const t = useT();
   const { data: rosters, loading } = useAsync(() => loadNcaaRosters(), []);
   const { data: teams } = useAsync(() => loadNcaaTeams(), []);
   const tmap = useMemo(() => teamMapOf(teams), [teams]);
@@ -39,19 +41,18 @@ export default function NcaaRosters() {
         POS_ORDER.indexOf(String(a.position)) - POS_ORDER.indexOf(String(b.position))
         || String(a.player_name).localeCompare(String(b.player_name)));
     return [...units.entries()].sort(
-      (a, b) => Object.keys(UNIT_TR).indexOf(a[0]) - Object.keys(UNIT_TR).indexOf(b[0]));
+      (a, b) => Object.keys(UNIT_KEYS).indexOf(a[0]) - Object.keys(UNIT_KEYS).indexOf(b[0]));
   }, [rosters, active]);
 
   if (loading) return <Loading />;
   if (!rosters)
-    return <p className="empty">Kadro verisi henüz üretilmedi.</p>;
+    return <p className="empty">{t("ncaa.rostersNotReady")}</p>;
 
   return (
     <section>
-      <h1>NCAA Kadroları</h1>
+      <h1>{t("ncaa.rostersTitle")}</h1>
       <p className="sub">
-        Güncel kadrolar (ESPN roster; gerçek pozisyonlar ve sınıflar) —
-        her Salı tazelenir.
+        {t("ncaa.rostersSub")}
       </p>
       <div className="toolbar">
         <NcaaLogo src={tmap.get(String(active))?.logo} size={34} />
@@ -66,7 +67,7 @@ export default function NcaaRosters() {
       </div>
       {byUnit.map(([unit, rows]) => (
         <div key={unit}>
-          <h2>{UNIT_TR[unit] ?? unit} ({rows.length})</h2>
+          <h2>{t(UNIT_KEYS[unit] ?? unit)} ({rows.length})</h2>
           <StatTable rows={rows}
             columns={["jersey", "player_name", "position", "class"]}
             defaultSort="jersey"

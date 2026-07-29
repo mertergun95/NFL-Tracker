@@ -11,6 +11,7 @@ import { label } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 import type { StatRow } from "../lib/types";
+import { useT } from "../lib/i18n";
 
 // izin verilen statlardan pivot edilecekler
 const ALLOWED_PIVOT = ["passing_yards", "passing_tds", "rushing_yards",
@@ -20,41 +21,42 @@ const CHART_META = new Set(["games", "season"]);
 
 // öne çıkan eksen kombinasyonları (hızlı seçim)
 const PRESET_AXES: [string, string, string][] = [
-  ["Hücum vs Savunma (EPA)", "off_epa_play", "def_epa_play"],
-  ["Sayı: Atılan vs Yenilen", "points_for", "points_against"],
-  ["Pas vs Koşu Yardası", "passing_yards", "rushing_yards"],
-  ["Verilen: Pas vs Koşu", "allowed_qb_passing_yards", "allowed_rb_rushing_yards"],
-  ["Blitz % vs Sack %", "blitz_rate_ftn", "def_sack_rate"],
-  ["Man % vs EPA vs Man", "man_rate", "epa_vs_man"],
+  ["teams.axOffDef", "off_epa_play", "def_epa_play"],
+  ["teams.axPoints", "points_for", "points_against"],
+  ["teams.axPassRush", "passing_yards", "rushing_yards"],
+  ["teams.axAllowed", "allowed_qb_passing_yards", "allowed_rb_rushing_yards"],
+  ["teams.axBlitz", "blitz_rate_ftn", "def_sack_rate"],
+  ["teams.axMan", "man_rate", "epa_vs_man"],
 ];
 
 // Kategori -> kolonlar (birleşik takım verisinden)
 const CATEGORIES: [string, string, string[]][] = [
-  ["ozet", "Özet", [
+  ["ozet", "cat.summary", [
     "team", "wins", "losses", "ties", "points_for", "points_against",
     "off_epa_play", "def_epa_play", "passing_yards", "rushing_yards",
     "passing_interceptions", "def_sacks",
   ]],
-  ["hucum", "Hücum", [
+  ["hucum", "cat.offense", [
     "team", "completions", "attempts", "passing_yards", "passing_tds",
     "passing_interceptions", "sacks_suffered", "carries", "rushing_yards",
     "rushing_tds", "off_pass_rate", "off_epa_play", "off_pass_epa",
     "off_rush_epa", "off_success_rate", "off_explosive_rate",
     "off_third_down_conv", "off_rz_td_pct", "off_turnovers",
   ]],
-  ["savunma", "Savunma", [
+  ["savunma", "cat.defense", [
     "team", "points_against", "def_sacks", "def_interceptions",
     "def_epa_play", "def_pass_epa", "def_rush_epa", "def_success_rate",
     "def_explosive_rate", "def_third_down_conv", "def_rz_td_pct",
     "def_sack_rate", "def_turnovers",
   ]],
-  ["sema", "Savunma Şeması", [
+  ["sema", "cat.scheme", [
     "team", "man_rate", "zone_rate", "epa_vs_man", "epa_vs_zone",
     "blitz_rate", "blitz_rate_ftn", "avg_pass_rushers", "avg_box",
   ]],
 ];
 
 export default function Teams({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const [cat, setCat] = useState("ozet");
   const [x, setX] = useState("off_epa_play");
@@ -98,20 +100,20 @@ export default function Teams({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Takım İstatistikleri</h1>
+      <h1>{t("teams.title")}</h1>
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
       {data && (
         <>
-          <h2>Takım Haritası — eksenleri sen seç</h2>
+          <h2>{t("teams.map")}</h2>
           <div className="pill-row">
             {PRESET_AXES.map(([lbl, px, py]) => (
               <button key={lbl}
                       className={`pill small ${x === px && y === py ? "active" : ""}`}
                       onClick={() => { setX(px); setY(py); }}
                       disabled={!chartOptions.includes(px) || !chartOptions.includes(py)}>
-                {lbl}
+                {t(lbl)}
               </button>
             ))}
           </div>
@@ -136,12 +138,11 @@ export default function Teams({ seasons }: { seasons: number[] }) {
           <div className="tab-row">
             {CATEGORIES.map(([key, lbl]) => (
               <button key={key} className={`tab ${cat === key ? "active" : ""}`}
-                      onClick={() => setCat(key)}>{lbl}</button>
+                      onClick={() => setCat(key)}>{t(lbl)}</button>
             ))}
           </div>
           <p className="sub">
-            Kolon başlıklarına tıklayarak sıralayın — tüm takımları her metrikte
-            karşılaştırabilirsiniz.
+            {t("teams.sortHint")}
           </p>
           <StatTable rows={data} columns={presentCols}
             defaultSort={presentCols[1] ?? "wins"}

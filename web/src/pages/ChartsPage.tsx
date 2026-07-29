@@ -9,6 +9,7 @@ import {
 import { label, PERCENT_COLS } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
+import { translate, useT } from "../lib/i18n";
 
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
@@ -47,23 +48,20 @@ const META_COLS = new Set([
 // Eksen seçimine göre grafiğin nasıl okunacağını anlatan dinamik rehber
 function describeMetric(col: string): string {
   const l = label(col).toLowerCase();
-  if (col.includes("epa")) return `${label(col)} (play başına eklenen sayı beklentisi — verimlilik; 0 üstü iyi)`;
+  if (col.includes("epa")) return translate("charts.metricEpa", { stat: label(col) });
   if (col.endsWith("_share") || col.includes("rate") || col.includes("pct"))
-    return `${label(col)} (oran — hacimden bağımsız pay/yüzde)`;
+    return translate("charts.metricRate", { stat: label(col) });
   return l;
 }
 
 function interpretChart(x: string, y: string, mode: string, view: string): string {
-  const entity = mode === "team" ? "takımı" : "oyuncuyu";
+
   if (view === "bars")
-    return `Bu sıralama, ${describeMetric(y)} metriğinde en iyileri gösterir; ` +
-      `çubuk ne kadar uzunsa değer o kadar yüksek. Turuncu çubuk arama eşleşmenizdir.`;
-  return `Her nokta bir ${entity} temsil eder. Yatay eksen ${describeMetric(x)}, ` +
-    `dikey eksen ${describeMetric(y)}. ` +
-    `Sağ üst köşe her iki metrikte de yüksek olanlar (genelde en değerliler); ` +
-    `sol üst, ${label(x)} düşükken ${label(y)} yükseklere ulaşanlar (verimli ama az hacimli); ` +
-    `sağ alt ise yüksek ${label(x)}'e rağmen ${label(y)} üretemeyenlerdir. ` +
-    `Eğilimden sapan noktalar (çizgiden uzak olanlar) incelemeye değer hikâyelerdir.`;
+    return translate("charts.barsNote", { metric: describeMetric(y) });
+  return translate("charts.scatterIntro", {
+      entity: translate(mode === "team" ? "charts.entityTeam" : "charts.entityPlayer"),
+      x: describeMetric(x), y: describeMetric(y) })
+    + translate("charts.scatterNote", { x: label(x), y: label(y) });
 }
 
 /** Haftalık satırları [w1,w2] aralığında oyuncu/takım bazında toplar (REG). */
@@ -104,6 +102,7 @@ function numericCols(rows: StatRow[]): string[] {
 }
 
 export default function ChartsPage({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const [mode, setMode] = useState<"player" | "team">("player");
   const [view, setView] = useState<"scatter" | "bars">("scatter");
@@ -196,16 +195,14 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
     <section>
       <h1>Deep Charts</h1>
       <p className="sub">
-        Oyuncu (sezon / red zone / Next Gen) ya da takım (temel + advanced + şema)
-        verilerinden istediğin iki ekseni seçip dağılımı keşfet. Noktaya
-        tıklayınca künye açılır.
+        {t("charts.sub")}
       </p>
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${mode === "player" ? "active" : ""}`}
                   onClick={() => setMode("player")}>Oyuncular</button>
           <button className={`pill ${mode === "team" ? "active" : ""}`}
-                  onClick={() => setMode("team")}>Takımlar</button>
+                  onClick={() => setMode("team")}>{t("common.teams")}</button>
         </div>
         <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       </div>
@@ -223,9 +220,9 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill small ${view === "scatter" ? "active" : ""}`}
-                  onClick={() => setView("scatter")}>◈ Dağılım</button>
+                  onClick={() => setView("scatter")}>{t("charts.scatter")}</button>
           <button className={`pill small ${view === "bars" ? "active" : ""}`}
-                  onClick={() => setView("bars")}>▤ Sıralama</button>
+                  onClick={() => setView("bars")}>{t("charts.bars")}</button>
         </div>
         {view === "scatter" && (
           <label className="axis-label">
@@ -244,14 +241,14 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
           </select>
         </label>
         <input className="search"
-               placeholder={mode === "team" ? "Takım ara…" : "Oyuncu ara…"}
+               placeholder={t(mode === "team" ? "common.searchTeam" : "common.searchPlayer")}
                value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
       {(mode === "team" || dataset === "season") && (
         <div className="toolbar">
-          <span className="axis-label">Hafta aralığı:</span>
+          <span className="axis-label">{t("charts.weekRange")}</span>
           <button className={`pill small ${weekRange === null ? "active" : ""}`}
-                  onClick={() => setWeekRange(null)}>Tüm sezon</button>
+                  onClick={() => setWeekRange(null)}>{t("charts.fullSeason")}</button>
           <label className="axis-label">
             <select className="axis-select small"
                     value={weekRange?.[0] ?? 1}
@@ -275,8 +272,7 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
           </label>
           {weekRange && (
             <span className="sub" style={{ margin: 0 }}>
-              W{weekRange[0]}–W{weekRange[1]} toplamları gösteriliyor
-              (advanced/şema metrikleri yalnızca tüm sezonda).
+              {t("charts.rangeNote", { from: weekRange[0], to: weekRange[1] })}
             </span>
           )}
         </div>
@@ -303,7 +299,7 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
           onPointClick={mode === "player" ? (id) => setDrawerId(id) : undefined} />
       )}
       {rows.length === 0 && !loading && (
-        <p className="empty">Bu veri seti bu sezon için mevcut değil.</p>
+        <p className="empty">{t("charts.datasetMissing")}</p>
       )}
       <PlayerDrawer playerId={drawerId} season={season}
                     onClose={() => setDrawerId(null)} />

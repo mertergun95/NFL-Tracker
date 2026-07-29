@@ -5,8 +5,11 @@ import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
 import { loadNcaaTeams, loadNcaaTeamSeason, teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import type { StatRow } from "../../lib/types";
+import { label } from "../../lib/columns";
+import { translate, useT } from "../../lib/i18n";
 
 export default function NcaaStandings({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const { data, error, loading } = useAsync(
     () => loadNcaaTeamSeason(season), [season]);
@@ -15,10 +18,10 @@ export default function NcaaStandings({ seasons }: { seasons: number[] }) {
 
   const conferences = useMemo(() => {
     const m = new Map<string, StatRow[]>();
-    for (const t of data ?? []) {
-      const conf = String(t.conference ?? "Diğer");
+    for (const row of data ?? []) {
+      const conf = String(row.conference ?? translate("ncaa.other"));
       if (!m.has(conf)) m.set(conf, []);
-      m.get(conf)!.push(t);
+      m.get(conf)!.push(row);
     }
     for (const rows of m.values())
       rows.sort((a, b) =>
@@ -30,8 +33,8 @@ export default function NcaaStandings({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>NCAA Puan Durumu</h1>
-      <p className="sub">Konferanslara göre W-L (bowl/playoff dahil).</p>
+      <h1>{t("ncaa.standingsTitle")}</h1>
+      <p className="sub">{t("ncaa.standingsSub")}</p>
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
@@ -42,8 +45,9 @@ export default function NcaaStandings({ seasons }: { seasons: number[] }) {
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Takım</th><th>W</th><th>L</th>
-                  <th>Konf</th><th>PF/m</th><th>PA/m</th>
+                  <th>{t("common.team")}</th><th>{label("wins")}</th>
+                  <th>{label("losses")}</th><th>{t("ncaa.confShort")}</th>
+                  <th>{label("points_pg")}</th><th>{label("points_allowed_pg")}</th>
                 </tr>
               </thead>
               <tbody>

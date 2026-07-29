@@ -11,6 +11,7 @@ import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 import { etBerlin } from "../lib/time";
 import type { StatRow } from "../lib/types";
+import { translate, useT } from "../lib/i18n";
 
 // karşılaştırılacak takım metrikleri: [kolon, yüksek mi iyi]
 const POWER_ROWS: [string, boolean][] = [
@@ -22,9 +23,9 @@ const POWER_ROWS: [string, boolean][] = [
 
 const SCHEME_ROWS = ["man_rate", "zone_rate", "blitz_rate_ftn", "avg_pass_rushers"];
 const ALLOWED_ROWS: [string, string][] = [
-  ["receptions", "Rec verilen"], ["receiving_yards", "Rec Yds verilen"],
-  ["receiving_tds", "Rec TD verilen"], ["rushing_yards", "Koşu Yds verilen"],
-  ["rushing_tds", "Koşu TD verilen"], ["passing_yards", "Pas Yds verilen"],
+  ["receptions", "match.allowedRecCt"], ["receiving_yards", "match.allowedRecYds"],
+  ["receiving_tds", "match.allowedRec"], ["rushing_yards", "match.allowedRush"],
+  ["rushing_tds", "match.allowedRushTd"], ["passing_yards", "match.allowedPass"],
 ];
 
 function rankOf(rows: StatRow[], team: string, col: string, highGood: boolean): number {
@@ -43,6 +44,7 @@ function RankChip({ rank }: { rank: number }) {
 }
 
 export default function Matchups() {
+  const t = useT();
   const { data: sched, loading } = useAsync(
     () => loadOptional("next_schedule.json"), []);
   const { data: projections } = useAsync(() => loadProjections(), []);
@@ -62,7 +64,7 @@ export default function Matchups() {
 
   if (loading) return <Loading />;
   if (!game)
-    return <p className="empty">Fikstür verisi yok — pipeline'ı bekleyin.</p>;
+    return <p className="empty">{t("match.noFixture")}</p>;
 
   const away = String(game.away_team), home = String(game.home_team);
 
@@ -75,10 +77,9 @@ export default function Matchups() {
 
   return (
     <section>
-      <h1>Haftalık Matchup Analizi — {projections?.target.season} W{week}</h1>
+      <h1>{t("match.title", { season: projections?.target.season ?? "", week })}</h1>
       <p className="sub">
-        Değerlendirmeler {dataSeason} sezonu verisine dayanır. #1–8 yeşil (iyi),
-        #25–32 turuncu (zayıf) lig sırasıdır.
+        {t("match.sub", { season: dataSeason ?? "" })}
       </p>
       <div className="pill-row">
         {games.map((g, i) => (
@@ -108,11 +109,11 @@ export default function Matchups() {
         </span>
       </div>
 
-      <h2>Güç Karşılaştırması (lig sıralarıyla)</h2>
+      <h2>{t("match.power")}</h2>
       <div className="table-wrap">
         <table className="stat-table">
           <thead>
-            <tr><th>{away}</th><th></th><th>Metrik</th><th></th><th>{home}</th></tr>
+            <tr><th>{away}</th><th></th><th>{t("match.metric")}</th><th></th><th>{home}</th></tr>
           </thead>
           <tbody>
             {POWER_ROWS.map(([col, highGood]) => {
@@ -133,11 +134,13 @@ export default function Matchups() {
 
       {scheme && (
         <>
-          <h2>Savunma Şemaları</h2>
+          <h2>{t("match.schemes")}</h2>
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
-                <tr><th>{away} Sav.</th><th>Metrik</th><th>{home} Sav.</th></tr>
+                <tr><th>{t("match.defShort", { team: away })}</th>
+                    <th>{t("match.metric")}</th>
+                    <th>{t("match.defShort", { team: home })}</th></tr>
               </thead>
               <tbody>
                 {SCHEME_ROWS.map((col) => (
@@ -155,11 +158,11 @@ export default function Matchups() {
 
       {allowed && (
         <>
-          <h2>Savunmaların Pozisyonlara Verdiği (maç başı, gerçek istatistik)</h2>
+          <h2>{t("match.allowed")}</h2>
           <div className="matchup-cols">
             {[away, home].map((deff) => (
               <div className="matchup-card" key={deff}>
-                <h3><TeamLogo abbr={deff} size={20} /> {deff} savunması</h3>
+                <h3><TeamLogo abbr={deff} size={20} /> {t("match.defenseOf", { team: deff })}</h3>
                 {["QB", "RB", "WR", "TE"].map((pos) => {
                   const r = allowedRow(deff, pos);
                   if (!r) return null;
@@ -174,7 +177,7 @@ export default function Matchups() {
                                       || (pos === "RB" && (c.startsWith("rush") || c === "receptions"))
                                       || ((pos === "WR" || pos === "TE") && c.startsWith("receiv"))))
                           .map(([c, lbl]) =>
-                            `${fmt(c, r[c])} ${lbl.toLowerCase()} (#${r[`rank_${c}`]})`)
+                            `${fmt(c, r[c])} ${translate(lbl).toLowerCase()} (#${r[`rank_${c}`]})`)
                           .join(" · ")}
                       </span>
                     </div>
@@ -188,7 +191,7 @@ export default function Matchups() {
 
       {projections && (
         <>
-          <h2>Öne Çıkan Oyuncular (projeksiyon)</h2>
+          <h2>{t("match.topPlayers")}</h2>
           <div className="matchup-cols">
             {[away, home].map((t) => (
               <div className="matchup-card" key={t}>
@@ -196,10 +199,10 @@ export default function Matchups() {
                 {projFor(t).map((p) => {
                   const pos = String(p.position);
                   const line = pos === "QB"
-                    ? `${p.proj_passing_yards ?? "—"} pas yd · ${p.proj_passing_tds ?? "—"} TD`
+                    ? `${p.proj_passing_yards ?? "—"} ${translate("u.passYd")} · ${p.proj_passing_tds ?? "—"} TD`
                     : pos === "RB"
-                      ? `${p.proj_carries ?? "—"} koşu · ${p.proj_rushing_yards ?? "—"} yd`
-                      : `${p.proj_receptions ?? "—"} rec · ${p.proj_receiving_yards ?? "—"} yd`;
+                      ? `${p.proj_carries ?? "—"} ${translate("u.car")} · ${p.proj_rushing_yards ?? "—"} ${translate("u.yd")}`
+                      : `${p.proj_receptions ?? "—"} rec · ${p.proj_receiving_yards ?? "—"} ${translate("u.yd")}`;
                   return (
                     <div key={String(p.player_id)} className="allowed-row">
                       <PName name={String(p.player_name)} pos={pos}

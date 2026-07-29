@@ -5,8 +5,10 @@ import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
 import StatTable from "../../components/StatTable";
 import { loadNcaaPlayerSeason, NCAA_PRESETS } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { useT } from "../../lib/i18n";
 
 export default function NcaaPlayers({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const [pos, setPos] = useState("QB");
   const [q, setQ] = useState("");
@@ -25,7 +27,7 @@ export default function NcaaPlayers({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>NCAA Oyuncuları</h1>
+      <h1>{t("ncaa.playersTitle")}</h1>
       <div className="toolbar">
         <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
         <div className="pill-row">
@@ -34,12 +36,11 @@ export default function NcaaPlayers({ seasons }: { seasons: number[] }) {
                     onClick={() => { setPos(p); setQ(""); }}>{p}</button>
           ))}
         </div>
-        <input className="axis-select" placeholder="Oyuncu ara…" value={q}
+        <input className="axis-select" placeholder={t("common.searchPlayer")} value={q}
                onChange={(e) => setQ(e.target.value)} />
       </div>
       <p className="sub">
-        Pozisyonlar box score hacminden türetilir (ESPN pozisyon vermez):
-        pas deneyen QB, koşusu baskın olan RB, kalanlar WR sayılır.
+        {t("ncaa.playersSub")}
       </p>
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}

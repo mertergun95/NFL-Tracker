@@ -9,6 +9,7 @@ import { loadNcaaNextSchedule, loadNcaaPlayerSeason, loadNcaaPlayerWeeks,
 import { useAsync } from "../../lib/hooks";
 import { kickoffBerlin } from "../../lib/time";
 import type { StatRow } from "../../lib/types";
+import { translate, useT } from "../../lib/i18n";
 
 const BOARDS = ["passing_yards", "rushing_yards", "receiving_yards",
                 "passing_tds", "rushing_tds", "receiving_tds"];
@@ -19,15 +20,16 @@ const ord = (r: StatRow) =>
 function statLine(p: StatRow): string {
   const parts: string[] = [];
   if (Number(p.passing_yards ?? 0) > 0)
-    parts.push(`${p.completions}/${p.attempts}, ${p.passing_yards} pas yd, ${p.passing_tds ?? 0} TD`);
+    parts.push(`${p.completions}/${p.attempts}, ${p.passing_yards} ${translate("u.passYd")}, ${p.passing_tds ?? 0} TD`);
   if (Number(p.rushing_yards ?? 0) > 30 || Number(p.carries ?? 0) >= 8)
-    parts.push(`${p.carries} koşu ${p.rushing_yards} yd, ${p.rushing_tds ?? 0} TD`);
+    parts.push(`${p.carries} ${translate("u.car")} ${p.rushing_yards} ${translate("u.yd")}, ${p.rushing_tds ?? 0} TD`);
   if (Number(p.receiving_yards ?? 0) > 30)
-    parts.push(`${p.receptions} rec ${p.receiving_yards} yd, ${p.receiving_tds ?? 0} TD`);
+    parts.push(`${p.receptions} rec ${p.receiving_yards} ${translate("u.yd")}, ${p.receiving_tds ?? 0} TD`);
   return parts.join(" · ") || "—";
 }
 
 export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const season = seasons[0];
   const { data, error, loading } = useAsync(
     () => loadNcaaPlayerSeason(season), [season]);
@@ -44,7 +46,8 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
     return played.length ? Math.max(...played.map(ord)) : null;
   }, [sched]);
   const lastLabel = lastOrd === null ? ""
-    : lastOrd > 100 ? "Bowl / Playoff" : `Hafta ${lastOrd}`;
+    : lastOrd > 100 ? translate("ncaa.bowl")
+    : translate("ncaa.weekLabel", { n: lastOrd });
 
   const topPerfs = useMemo(() => {
     if (!pw || lastOrd === null) return [];
@@ -90,11 +93,11 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
   return (
     <section>
       <div className="dash-head">
-        <h1>NCAA · {season} Sezonu</h1>
+        <h1>{t("ncaa.dashTitle", { season })}</h1>
         <p className="sub">
-          FBS (Division I) · kaynak: ESPN box score'ları, her Salı güncellenir.
-          {lastOrd !== null && <> Son oynanan: <strong>{lastLabel}</strong>.</>}
-          {nextSeason && <> Yeni sezon fikstürü yayında:{" "}
+          {t("ncaa.dashSub")}
+          {lastOrd !== null && <>{t("ncaa.lastPlayed")}<strong>{lastLabel}</strong>.</>}
+          {nextSeason && <>{t("ncaa.newFixture")}
             <Link to="/ncaa/games">{nextSeason} W{upcoming[0]?.week ?? 1}</Link>.</>}
         </p>
       </div>
@@ -103,7 +106,7 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
 
       {topPerfs.length > 0 && (
         <>
-          <h2>⭐ {lastLabel} — Öne Çıkan Performanslar</h2>
+          <h2>{t("ncaa.topPerf", { label: lastLabel })}</h2>
           <div className="perf-strip">
             {topPerfs.map((p) => (
               <div className="perf-card" key={String(p.player_id)}>
@@ -131,7 +134,7 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
 
       <div className="dash-cols">
         <div className="dash-scores">
-          <h2>Skorlar — {lastLabel}</h2>
+          <h2>{t("ncaa.scores", { label: lastLabel })}</h2>
           {lastScores.map((g) => (
             <Link className="score-line" key={String(g.game_id)}
                   to={`/ncaa/game/${season}/${g.game_id}`}>
@@ -146,12 +149,12 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
               </span>
             </Link>
           ))}
-          <Link className="drawer-link" to="/ncaa/games">Tüm maçlar →</Link>
+          <Link className="drawer-link" to="/ncaa/games">{t("ncaa.allGames")}</Link>
         </div>
         <div className="dash-feed">
           {upcoming.length > 0 && (
             <>
-              <h2>📅 {nextSeason} Sezonu Açılış Maçları</h2>
+              <h2>{t("ncaa.openers", { season: nextSeason ?? "" })}</h2>
               {upcoming.map((g) => (
                 <div className="feed-item" key={String(g.game_id)}>
                   <span className="feed-title">
@@ -164,19 +167,19 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
                   <span className="feed-detail">
                     {kickoffBerlin(g.kickoff as string, true) ?? String(g.gameday)}
                     {kickoffBerlin(g.kickoff as string) && " (DE)"}
-                    {Boolean(g.neutral_site) && " · nötr saha"}
+                    {Boolean(g.neutral_site) && t("game.neutral")}
                   </span>
                 </div>
               ))}
               <Link className="drawer-link" to="/ncaa/projections">
-                Hafta 1 projeksiyonları →
+                {t("ncaa.week1Proj")}
               </Link>
             </>
           )}
         </div>
       </div>
 
-      <h2>Stats Leaders ({season})</h2>
+      <h2>{t("ncaa.leaders", { season })}</h2>
       <div className="standings-grid">
         {boards.map(({ stat, rows }) => (
           <div className="standings-card" key={stat}>
@@ -201,7 +204,7 @@ export default function NcaaDashboard({ seasons }: { seasons: number[] }) {
             </table>
             <button className="pill small"
                     onClick={() => setOpen(open === stat ? null : stat)}>
-              {open === stat ? "Daralt" : "İlk 30'u göster"}
+              {t(open === stat ? "common.collapse" : "common.showTop30Plain")}
             </button>
           </div>
         ))}

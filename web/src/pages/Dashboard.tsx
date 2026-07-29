@@ -9,13 +9,14 @@ import {
 import { useAsync } from "../lib/hooks";
 import { fmt } from "../lib/columns";
 import type { Manifest, StatRow } from "../lib/types";
+import { translate, useT } from "../lib/i18n";
 
 const LEADER_BOARDS: { title: string; col: string; pos?: string[] }[] = [
-  { title: "Pas Yardası", col: "passing_yards", pos: ["QB"] },
-  { title: "Koşu Yardası", col: "rushing_yards" },
-  { title: "Rec Yardası", col: "receiving_yards" },
+  { title: "dash.passYards", col: "passing_yards", pos: ["QB"] },
+  { title: "dash.rushYards", col: "rushing_yards" },
+  { title: "dash.recYards", col: "receiving_yards" },
   { title: "Pas TD", col: "passing_tds", pos: ["QB"] },
-  { title: "Toplam TD (koşu+rec)", col: "_total_td" },
+  { title: "dash.totalTd", col: "_total_td" },
   { title: "Sack (savunma)", col: "def_sacks" },
 ];
 
@@ -24,7 +25,7 @@ function statLine(r: StatRow): string {
   if (pos === "QB")
     return `${r.completions}/${r.attempts} · ${r.passing_yards} pas yd · ${r.passing_tds} TD`;
   if (pos === "RB")
-    return `${r.carries} koşu · ${r.rushing_yards} yd · ${Number(r.rushing_tds ?? 0) + Number(r.receiving_tds ?? 0)} TD`;
+    return `${r.carries} ${translate("u.car")} · ${r.rushing_yards} ${translate("u.yd")} · ${Number(r.rushing_tds ?? 0) + Number(r.receiving_tds ?? 0)} TD`;
   return `${r.receptions}/${r.targets} · ${r.receiving_yards} yd · ${r.receiving_tds} TD`;
 }
 
@@ -46,7 +47,7 @@ function LeaderCard({ title, col, pos, data }:
   const items = leaders(data, col, pos, expanded ? 30 : 5);
   return (
     <div className={`leader-card ${expanded ? "expanded" : ""}`}>
-      <h3>{title}</h3>
+      <h3>{translate(title)}</h3>
       <ol>
         {items.map((p) => (
           <li key={String(p.player_id)}>
@@ -58,7 +59,7 @@ function LeaderCard({ title, col, pos, data }:
         ))}
       </ol>
       <button className="leader-toggle" onClick={() => setExpanded(!expanded)}>
-        {expanded ? "▴ Daralt" : "▾ Top 30'u göster"}
+        {translate(expanded ? "common.expand" : "common.showTop30")}
       </button>
     </div>
   );
@@ -66,6 +67,7 @@ function LeaderCard({ title, col, pos, data }:
 
 export default function Dashboard({ manifest, seasons }:
   { manifest: Manifest; seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const info = manifest.seasons[String(season)];
   const lastWeek = info?.last_reg_week ?? 0;
@@ -113,10 +115,10 @@ export default function Dashboard({ manifest, seasons }:
     <section>
       <div className="dash-head">
         <div>
-          <h1>NFL Tracker</h1>
+          <h1>{t("app.nfl")}</h1>
           <p className="sub">
-            {seasons.length} sezon yüklü · {season} REG hafta 1–{lastWeek} ·
-            son güncelleme {manifest.generated_at.slice(0, 10)}
+            {t("dash.sub", { n: seasons.length, season, week: lastWeek,
+                             date: manifest.generated_at.slice(0, 10) })}
           </p>
         </div>
         <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
@@ -124,7 +126,7 @@ export default function Dashboard({ manifest, seasons }:
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
 
-      <h2>⭐ Hafta {lastWeek}'in Yıldızları</h2>
+      <h2>{t("dash.stars", { week: lastWeek })}</h2>
       <div className="perf-strip">
         {topPerformances.map((r) => (
           <Link to={`/player/${r.player_id}`} className="perf-card"
@@ -155,7 +157,7 @@ export default function Dashboard({ manifest, seasons }:
 
       <div className="dash-cols">
         <div>
-          <h2>🏟️ Hafta {lastWeek} Skorları</h2>
+          <h2>{t("dash.scores", { week: lastWeek })}</h2>
           <div className="dash-scores">
             {lastScores.map((g) => (
               <Link to={`/game/${season}/${g.game_id}`} className="score-line"
@@ -174,7 +176,7 @@ export default function Dashboard({ manifest, seasons }:
           </div>
         </div>
         <div>
-          <h2>📊 İstatistiksel Değişimler</h2>
+          <h2>{t("dash.changes")}</h2>
           <div className="dash-feed">
             {feed.map((it, i) => (
               <div className="feed-item" key={i}>
@@ -186,12 +188,12 @@ export default function Dashboard({ manifest, seasons }:
                 <div className="feed-detail">{it.detail}</div>
               </div>
             ))}
-            <Link className="drawer-link" to="/insights">Tüm insights →</Link>
+            <Link className="drawer-link" to="/insights">{t("dash.allInsights")}</Link>
           </div>
         </div>
       </div>
 
-      <h2>🏆 Stats Leaders</h2>
+      <h2>{t("dash.leaders")}</h2>
       {seasonRows && (
         <div className="leader-grid">
           {LEADER_BOARDS.map(({ title, col, pos }) => (

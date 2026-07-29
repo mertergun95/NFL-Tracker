@@ -31,37 +31,39 @@ import { loadManifest, seasonsFromManifest } from "./lib/data";
 import { loadNcaaManifest } from "./lib/ncaa";
 import { useAsync } from "./lib/hooks";
 import { ErrorMsg, Loading } from "./components/Pickers";
+import { LANG_NAMES, LANGS, useI18n } from "./lib/i18n";
 
 const NAV = [
-  { to: "/", label: "Dashboard" },
-  { to: "/players", label: "Oyuncular" },
-  { to: "/teams", label: "Takımlar" },
-  { to: "/standings", label: "Puan Durumu" },
-  { to: "/depth", label: "Kadrolar" },
-  { to: "/games", label: "Maçlar" },
-  { to: "/matchups", label: "Matchuplar" },
-  { to: "/props", label: "Prop Finder" },
-  { to: "/compare", label: "Karşılaştır" },
-  { to: "/charts", label: "Deep Charts" },
-  { to: "/projections", label: "Projeksiyonlar" },
-  { to: "/injuries", label: "Sakatlıklar" },
-  { to: "/accuracy", label: "Karne" },
-  { to: "/insights", label: "Insights" },
+  { to: "/", key: "nav.dashboard" },
+  { to: "/players", key: "nav.players" },
+  { to: "/teams", key: "nav.teams" },
+  { to: "/standings", key: "nav.standings" },
+  { to: "/depth", key: "nav.depth" },
+  { to: "/games", key: "nav.games" },
+  { to: "/matchups", key: "nav.matchups" },
+  { to: "/props", key: "nav.props" },
+  { to: "/compare", key: "nav.compare" },
+  { to: "/charts", key: "nav.charts" },
+  { to: "/projections", key: "nav.projections" },
+  { to: "/injuries", key: "nav.injuries" },
+  { to: "/accuracy", key: "nav.accuracy" },
+  { to: "/insights", key: "nav.insights" },
 ];
 
 const NCAA_NAV = [
-  { to: "/ncaa", label: "Dashboard" },
-  { to: "/ncaa/players", label: "Oyuncular" },
-  { to: "/ncaa/teams", label: "Takımlar" },
-  { to: "/ncaa/standings", label: "Puan Durumu" },
-  { to: "/ncaa/rosters", label: "Kadrolar" },
-  { to: "/ncaa/games", label: "Maçlar" },
-  { to: "/ncaa/projections", label: "Projeksiyonlar" },
-  { to: "/ncaa/accuracy", label: "Karne" },
+  { to: "/ncaa", key: "nav.dashboard" },
+  { to: "/ncaa/players", key: "nav.players" },
+  { to: "/ncaa/teams", key: "nav.teams" },
+  { to: "/ncaa/standings", key: "nav.standings" },
+  { to: "/ncaa/rosters", key: "nav.rosters" },
+  { to: "/ncaa/games", key: "nav.games" },
+  { to: "/ncaa/projections", key: "nav.projections" },
+  { to: "/ncaa/accuracy", key: "nav.accuracy" },
 ];
 
 export default function App() {
   const location = useLocation();
+  const { t, lang, setLang } = useI18n();
   const isNcaa = location.pathname.startsWith("/ncaa");
   const { data: manifest, error, loading } = useAsync(() => loadManifest(), []);
   const seasons = manifest ? seasonsFromManifest(manifest) : [];
@@ -71,25 +73,31 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="logo">🏈 {isNcaa ? "NCAA" : "NFL"} Tracker</span>
+        <span className="logo">🏈 {t(isNcaa ? "app.ncaa" : "app.nfl")}</span>
         <span className="league-switch">
           <Link to="/" className={!isNcaa ? "active" : ""}>NFL</Link>
           <Link to="/ncaa" className={isNcaa ? "active" : ""}>NCAA</Link>
         </span>
         <nav>
-          {(isNcaa ? NCAA_NAV : NAV).map(({ to, label }) => (
+          {(isNcaa ? NCAA_NAV : NAV).map(({ to, key }) => (
             <NavLink key={to} to={to} end={to === "/" || to === "/ncaa"}>
-              {label}
+              {t(key)}
             </NavLink>
           ))}
         </nav>
+        <span className="lang-switch" title={t("nav.language")}>
+          {LANGS.map((l) => (
+            <button key={l} className={l === lang ? "active" : ""}
+                    onClick={() => setLang(l)}>{LANG_NAMES[l]}</button>
+          ))}
+        </span>
       </header>
       <main>
         {loading && <Loading />}
         {error && !isNcaa && <ErrorMsg msg={error} />}
         {isNcaa && !ncaaManifest && !loading && (
           <p className="empty">
-            NCAA verisi henüz üretilmedi — pipeline'ın ilk koşusunu bekleyin.
+            {t("ncaa.notReadyGeneric")}
           </p>
         )}
         <Routes>
@@ -131,9 +139,7 @@ export default function App() {
           )}
         </Routes>
       </main>
-      <footer>
-        Veri: nflverse + ESPN (NCAA) · Her Salı otomatik güncellenir
-      </footer>
+      <footer>{t("app.footer")}</footer>
     </div>
   );
 }

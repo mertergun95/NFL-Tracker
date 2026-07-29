@@ -5,6 +5,7 @@ import { Loading } from "../components/Pickers";
 import { label } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
+import { translate, useT } from "../lib/i18n";
 
 const BASE = `${import.meta.env.BASE_URL}data`;
 
@@ -39,11 +40,12 @@ function pairLine(p: StatRow, kind: "proj" | "act"): string {
   if (pos === "QB")
     return `${v("completions")}/${v("attempts")} · ${v("passing_yards")} yd · ${v("passing_tds")} TD · ${v("passing_interceptions")} int`;
   if (pos === "RB")
-    return `${v("carries")} koşu · ${v("rushing_yards")} yd · ${v("receptions")} rec`;
+    return `${v("carries")} ${translate("u.car")} · ${v("rushing_yards")} ${translate("u.yd")} · ${v("receptions")} rec`;
   return `${v("targets")} tgt · ${v("receptions")} rec · ${v("receiving_yards")} yd`;
 }
 
 export default function Accuracy() {
+  const t = useT();
   const [stat, setStat] = useState("receiving_yards");
   const [view, setView] = useState<"stat" | "game">("stat");
   const [gameKey, setGameKey] = useState<string | null>(null);
@@ -111,32 +113,30 @@ export default function Accuracy() {
 
   if (loading) return <Loading />;
   if (!data)
-    return <p className="empty">Karne henüz üretilmedi — pipeline'ı bekleyin.</p>;
+    return <p className="empty">{t("acc.notReady")}</p>;
 
   return (
     <section>
-      <h1>Projeksiyon Karnesi</h1>
+      <h1>{t("acc.title")}</h1>
       <p className="sub">
-        {data.data_season} sezonunun son {data.weeks.length} haftası geriye dönük
-        test edildi: {data.method} MAE = ortalama mutlak hata; bias + ise model
-        fazla iyimser; korelasyon 1'e yaklaştıkça sıralama isabeti artar.
-        Sezon boyunca her Salı güncellenir.
+        {t("acc.sub", { season: data.data_season, n: data.weeks.length,
+                        method: data.method })}
       </p>
 
-      <h2>Haftalık Doğruluk Özeti</h2>
+      <h2>{t("acc.weeklySummary")}</h2>
       {data.weeks.some((w) => w.methods?.heuristic) && (
         <div className="pill-row">
           <button className={`pill small ${method === "ml" ? "active" : ""}`}
-                  onClick={() => setMethod("ml")}>🤖 ML (gradient boosting)</button>
+                  onClick={() => setMethod("ml")}>{t("acc.mlBtn")}</button>
           <button className={`pill small ${method === "heuristic" ? "active" : ""}`}
-                  onClick={() => setMethod("heuristic")}>🧮 Sezgisel model</button>
+                  onClick={() => setMethod("heuristic")}>{t("acc.heurBtn")}</button>
         </div>
       )}
       <div className="table-wrap">
         <table className="stat-table">
           <thead>
             <tr>
-              <th>Hafta</th>
+              <th>{t("common.week")}</th>
               {statCols.map((s) => <th key={s} colSpan={3}>{label(s)}</th>)}
             </tr>
             <tr>
@@ -181,13 +181,13 @@ export default function Accuracy() {
         </table>
       </div>
 
-      <h2>Tahmin vs Gerçekleşen — W{activeWeek}</h2>
+      <h2>{t("acc.predVsActual", { week: activeWeek ?? "" })}</h2>
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${view === "stat" ? "active" : ""}`}
-                  onClick={() => setView("stat")}>İstatistiğe göre</button>
+                  onClick={() => setView("stat")}>{t("common.byStat")}</button>
           <button className={`pill ${view === "game" ? "active" : ""}`}
-                  onClick={() => setView("game")}>Maça göre</button>
+                  onClick={() => setView("game")}>{t("common.byGame")}</button>
         </div>
         <div className="pill-row">
           {data.weeks.map((w) => (
@@ -211,8 +211,8 @@ export default function Accuracy() {
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Oyuncu</th><th>Takım</th>
-                  <th>Tahmin</th><th>Gerçekleşen</th>
+                  <th>{t("common.player")}</th><th>{t("common.team")}</th>
+                  <th>{t("common.projected")}</th><th>{t("common.actualStat")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,19 +248,20 @@ export default function Accuracy() {
         ))}
       </div>
       <p className="sub">
-        Köşegene (eğilim çizgisine) yakın noktalar isabetli tahminlerdir;
-        çizginin üstü modelin eksik, altı fazla tahmin ettikleridir.
+        {t("acc.scatterNote")}
       </p>
       <PlayerScatterChart rows={rows} x={`proj_${stat}`} y={`act_${stat}`}
                           labelTop={8} />
 
-      <h2>Oyuncu Detayı (gerçekleşene göre ilk 40)</h2>
+      <h2>{t("acc.playerDetail")}</h2>
       <div className="table-wrap">
         <table className="stat-table">
           <thead>
             <tr>
-              <th>Oyuncu</th><th>Poz</th><th>Takım</th><th>Rakip</th>
-              <th>Tahmin</th><th>Gerçek</th><th>Fark</th>
+              <th>{t("common.player")}</th><th>{t("common.position")}</th>
+              <th>{t("common.team")}</th><th>{t("common.opponent")}</th>
+              <th>{t("common.projected")}</th><th>{t("common.actualStat")}</th>
+              <th>{t("common.diff")}</th>
             </tr>
           </thead>
           <tbody>

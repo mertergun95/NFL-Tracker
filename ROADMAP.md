@@ -239,6 +239,18 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Takım propları: atılan/yenilen/toplam sayı (schedule'dan), pas/koşu/
       toplam yard, sack'ler
 
+### ✅ Faz 5.17 — Çok dilli arayüz: EN / TR / DE (14. tur)
+- [x] lib/i18n.tsx: dil bağlamı + `useT()` hook'u + hook'suz `translate()`;
+      seçim localStorage'da saklanır, ilk açılışta tarayıcı diline göre gelir
+- [x] lib/locales.ts: ~300 arayüz metni üç dilde ({var} yer tutucularıyla)
+- [x] columns.ts: ~120 istatistik etiketi üç dilli; yüzde biçimi dile göre
+      (TR "%60", EN "60%", DE "60 %"); "allowed_*" ve proj/act önekleri de çevrilir
+- [x] Tüm NFL ve NCAA sayfaları + ortak bileşenler (tablolar, grafik notları,
+      oyuncu künyesi, hata/boş durum mesajları) çeviri anahtarlarına taşındı
+- [x] Üst çubuğun sağ üst köşesinde EN | TR | DE seçici
+- [ ] Not: Insights/akış metinleri pipeline'da Türkçe üretiliyor; çok dilli
+      hale getirmek için insights.py'nin şablonlaştırılması gerekiyor
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

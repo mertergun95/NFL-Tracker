@@ -3,12 +3,13 @@ import PName from "../components/PName";
 import TeamLogo from "../components/TeamLogo";
 import { Loading } from "../components/Pickers";
 import { PropBarChart, type PropGame } from "../components/charts";
-import { label } from "../lib/columns";
+import { label, pct } from "../lib/columns";
 import { loadPlayerIndex, loadPlayerWeeks, loadSchedule,
          loadTeamWeeks } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { TEAMS, teamName } from "../lib/teams";
 import type { StatRow } from "../lib/types";
+import { translate, useT } from "../lib/i18n";
 
 const PLAYER_STATS = [
   "passing_yards", "completions", "attempts", "passing_tds",
@@ -19,11 +20,13 @@ const PLAYER_STATS = [
 const TEAM_STATS = ["points", "points_allowed", "total_points",
                     "passing_yards", "rushing_yards", "total_yards",
                     "def_sacks", "sacks_suffered"];
-const TEAM_STAT_TR: Record<string, string> = {
-  points: "Attığı Sayı", points_allowed: "Yediği Sayı",
-  total_points: "Maç Toplam Sayı", total_yards: "Toplam Yd",
-  def_sacks: "Yaptığı Sack", sacks_suffered: "Yediği Sack",
+const TEAM_STAT_KEYS: Record<string, string> = {
+  points: "props.pointsFor", points_allowed: "props.pointsAgainst",
+  total_points: "props.totalPoints", total_yards: "props.totalYards",
+  def_sacks: "props.sacksMade", sacks_suffered: "props.sacksTaken",
 };
+const teamStatLabel = (s: string) =>
+  TEAM_STAT_KEYS[s] ? translate(TEAM_STAT_KEYS[s]) : label(s);
 
 /** Yard/puan statlarında büyük adım, sayaç statlarında küçük adım. */
 const bigStep = (stat: string) =>
@@ -42,24 +45,27 @@ function hitRate(games: GameRow[], line: number) {
   const over = games.filter((g) => g.value > line).length;
   const push = games.filter((g) => g.value === line).length;
   const n = games.length - push;
-  return { over, n, pct: n ? Math.round(100 * over / n) : null };
+  return { over, n, hit: n ? Math.round(100 * over / n) : null };
 }
 
 function HitCard({ title, games, line }:
   { title: string; games: GameRow[]; line: number }) {
-  const { over, n, pct } = hitRate(games, line);
-  const cls = pct === null ? "" : pct >= 60 ? "hit-good"
-    : pct <= 40 ? "hit-bad" : "hit-mid";
+  const { over, n, hit } = hitRate(games, line);
+  const cls = hit === null ? "" : hit >= 60 ? "hit-good"
+    : hit <= 40 ? "hit-bad" : "hit-mid";
   return (
     <div className={`prop-card ${cls}`}>
       <span className="prop-card-title">{title}</span>
-      <span className="prop-card-pct">{pct === null ? "—" : `%${pct}`}</span>
-      <span className="prop-card-n">{over}/{n} üst</span>
+      <span className="prop-card-pct">
+        {hit === null ? "—" : pct(hit)}
+      </span>
+      <span className="prop-card-n">{translate("props.over", { over, n })}</span>
     </div>
   );
 }
 
 export default function PropFinder({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const loadSeasons = useMemo(() => seasons.slice(0, 3), [seasons]);
   const [mode, setMode] = useState<"player" | "team">("player");
   const [q, setQ] = useState("");
@@ -173,7 +179,7 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
   }, [desc, line]);
 
   const statChoices = mode === "player" ? PLAYER_STATS : TEAM_STATS;
-  const statLabel = TEAM_STAT_TR[stat] ?? label(stat);
+  const statLabel = teamStatLabel(stat);
   const step = bigStep(stat) ? 5 : 1;
   const altLines = [line - 2 * step, line - step, line, line + step,
                     line + 2 * step].filter((l) => l > 0);
@@ -193,27 +199,25 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Prop Finder</h1>
+      <h1>{t("props.title")}</h1>
       <p className="sub">
-        Bir oyuncu ya da takım seç, stat ve çizgiyi (line) ayarla — son
-        maçlarda çizginin ne sıklıkla üstünde kaldığını gör. Veri: son 3 sezon
-        (REG + playoff), her Salı güncellenir.
+        {t("props.sub")}
       </p>
 
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${mode === "player" ? "active" : ""}`}
                   onClick={() => { setMode("player"); setStat("receiving_yards"); }}>
-            Oyuncu
+            {t("common.player")}
           </button>
           <button className={`pill ${mode === "team" ? "active" : ""}`}
                   onClick={() => { setMode("team"); setStat("points"); }}>
-            Takım
+            {t("common.team")}
           </button>
         </div>
         {mode === "player" ? (
           <div className="prop-search">
-            <input className="axis-select" placeholder="Oyuncu ara…"
+            <input className="axis-select" placeholder={t("common.searchPlayer")}
                    value={q} onChange={(e) => setQ(e.target.value)} />
             {suggestions.length > 0 && (
               <div className="prop-suggest">
@@ -269,7 +273,7 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
           {statChoices.map((s) => (
             <button key={s} className={`pill small ${s === stat ? "active" : ""}`}
                     onClick={() => setStat(s)}>
-              {TEAM_STAT_TR[s] ?? label(s)}
+              {teamStatLabel(s)}
             </button>
           ))}
         </div>
@@ -277,13 +281,13 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
 
       {loading && <Loading />}
       {mode === "player" && !playerId && !loading && (
-        <p className="empty">Başlamak için yukarıdan bir oyuncu ara ve seç.</p>
+        <p className="empty">{t("props.pickPlayer")}</p>
       )}
 
       {games.length > 0 && (
         <>
           <div className="toolbar prop-line-bar">
-            <span className="axis-label">Çizgi ({statLabel}):</span>
+            <span className="axis-label">{t("props.line", { stat: statLabel })}</span>
             {[-step, -0.5].map((d) => (
               <button key={d} className="pill small"
                       onClick={() => setLineChoice(Number((line + d).toFixed(1)))}>
@@ -301,62 +305,65 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
             ))}
             {streak && (
               <span className={`trend-chip ${streak.side ? "hot" : "cold"}`}>
-                {streak.side ? "🔥" : "🧊"} {streak.n} maçtır çizginin{" "}
-                {streak.side ? "üstünde" : "altında"}
+                {t(streak.side ? "props.streakOver" : "props.streakUnder",
+                   { n: streak.n })}
               </span>
             )}
           </div>
 
           <div className="prop-cards">
-            <HitCard title="Son 5" games={desc.slice(0, 5)} line={line} />
-            <HitCard title="Son 10" games={desc.slice(0, 10)} line={line} />
-            <HitCard title="Son 20" games={desc.slice(0, 20)} line={line} />
+            <HitCard title={t("props.last", { n: 5 })} games={desc.slice(0, 5)} line={line} />
+            <HitCard title={t("props.last", { n: 10 })} games={desc.slice(0, 10)} line={line} />
+            <HitCard title={t("props.last", { n: 20 })} games={desc.slice(0, 20)} line={line} />
             {loadSeasons.map((s) => (
               <HitCard key={s} title={`${s}`}
                        games={desc.filter((g) => g.season === s)} line={line} />
             ))}
-            <HitCard title="Ev" games={desc.filter((g) => g.home)} line={line} />
-            <HitCard title="Deplasman"
+            <HitCard title={t("common.home")} games={desc.filter((g) => g.home)} line={line} />
+            <HitCard title={t("common.away")}
                      games={desc.filter((g) => !g.home)} line={line} />
             {opp && (
-              <HitCard title={`vs ${opp}`}
+              <HitCard title={t("props.vs", { team: opp })}
                        games={desc.filter((g) => g.opp === opp)} line={line} />
             )}
           </div>
 
           <div className="toolbar">
-            <span className="axis-label">Rakip kırılımı:</span>
+            <span className="axis-label">{t("props.oppSplit")}</span>
             <select className="axis-select" value={opp}
                     onChange={(e) => setOpp(e.target.value)}>
-              <option value="">— rakip seç —</option>
+              <option value="">{t("props.pickOpp")}</option>
               {Object.keys(TEAMS).sort().map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
 
-          <h2>Son 20 Maç — {statLabel}</h2>
+          <h2>{t("props.last20", { stat: statLabel })}</h2>
           <PropBarChart games={chartGames} line={line} statLabel={statLabel} />
 
-          <h2>Alternatif Çizgiler</h2>
+          <h2>{t("props.altLines")}</h2>
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Çizgi</th><th>Son 5</th><th>Son 10</th>
-                  <th>Son 20</th><th>{loadSeasons[0]} Sezonu</th>
+                  <th>{t("props.line", { stat: "" }).replace(":", "")}</th>
+                  <th>{t("props.last", { n: 5 })}</th>
+                  <th>{t("props.last", { n: 10 })}</th>
+                  <th>{t("props.last", { n: 20 })}</th>
+                  <th>{t("props.seasonCol", { season: loadSeasons[0] })}</th>
                 </tr>
               </thead>
               <tbody>
                 {altLines.map((l) => {
                   const cell = (gs: GameRow[]) => {
-                    const { over, n, pct } = hitRate(gs, l);
-                    return pct === null ? "—" : `%${pct} (${over}/${n})`;
+                    const { over, n, hit } = hitRate(gs, l);
+                    return hit === null ? "—" : `${pct(hit)} (${over}/${n})`;
                   };
                   return (
                     <tr key={l}
                         style={l === line ? { background: "#1c2430" } : undefined}>
-                      <td><strong>{l}</strong>{l === line && " ← seçili"}</td>
+                      <td><strong>{l}</strong>{l === line && t("props.selected")}</td>
                       <td className="num">{cell(desc.slice(0, 5))}</td>
                       <td className="num">{cell(desc.slice(0, 10))}</td>
                       <td className="num">{cell(desc.slice(0, 20))}</td>

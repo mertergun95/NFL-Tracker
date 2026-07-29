@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import type { StatRow } from "../lib/types";
 import { fmt, label } from "../lib/columns";
+import { translate } from "../lib/i18n";
 
 // dataviz paleti — koyu yüzeye (#161b22) karşı doğrulandı (validate_palette.js: ALL PASS)
 export const CHART = {
@@ -96,15 +97,17 @@ export function WeeklyBarChart({ rows, stat, threshold, onThresholdChange }:
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
                      formatter={(v, name) =>
                        [fmt(stat, Number(v)),
-                        name === "ma" ? "3 hafta ort." : label(stat)]}
-                     labelFormatter={(w) => `Hafta ${w}`} />
+                        name === "ma" ? translate("chart.ma3") : label(stat)]}
+                     labelFormatter={(w) => translate("chart.weekLabel", { w: String(w) })} />
             <ReferenceLine y={seasonAvg} stroke={CHART.muted} strokeDasharray="5 5"
-                           label={{ value: "sezon ort.", position: "insideTopRight",
+                           label={{ value: translate("chart.seasonAvg"),
+                                    position: "insideTopRight",
                                     fill: CHART.muted, fontSize: 10 }} />
             {hasThr && (
               <ReferenceLine y={Number(threshold)} stroke="#d50a0a"
                              strokeWidth={2}
-                             label={{ value: `eşik ${fmt(stat, Number(threshold))}`,
+                             label={{ value: translate("chart.thrLabel",
+                                        { v: fmt(stat, Number(threshold)) }),
                                       position: "insideLeft",
                                       fill: "#f85149", fontSize: 11 }} />
             )}
@@ -124,16 +127,14 @@ export function WeeklyBarChart({ rows, stat, threshold, onThresholdChange }:
         {hasThr && onThresholdChange && (
           <div className="thr-handle" style={{ top: thrTop - 9 }}
                onPointerDown={startDrag}
-               title="Eşiği sürükleyerek ayarla">
+               title={translate("chart.dragThr")}>
             <span className="thr-grip">⇕</span>
           </div>
         )}
       </div>
       <p className="chart-note">
-        Turuncu eğri 3 haftalık hareketli ortalama; gri kesikli çizgi sezon
-        ortalaması.{hasThr
-          ? " Kırmızı eşik çizgisini sürükleyerek (⇕) yukarı/aşağı oynatabilirsin; eşiği aşan maçlar yeşil boyanır."
-          : ""}
+        {translate("chart.weeklyNote")}
+        {hasThr ? translate("chart.weeklyThreshold") : ""}
       </p>
     </div>
   );
@@ -314,11 +315,15 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "playe
         </ScatterChart>
       </ResponsiveContainer>
       <p className="chart-note">
-        Kesikli gri çizgiler lig ortalaması{trend
-          ? `; yeşil kesikli çizgi eğilim doğrusu (korelasyon r=${corr.toFixed(2)} — ` +
-            `${Math.abs(corr) >= 0.7 ? "güçlü" : Math.abs(corr) >= 0.4 ? "orta" : "zayıf"} ilişki)`
+        {translate("chart.leagueAvg")}
+        {trend
+          ? translate("chart.trendNote", {
+              r: corr.toFixed(2),
+              strength: translate(Math.abs(corr) >= 0.7 ? "chart.strong"
+                : Math.abs(corr) >= 0.4 ? "chart.medium" : "chart.weak"),
+            })
           : ""}.
-        {onPointClick ? " Bir noktaya tıklayınca künye açılır." : ""}
+        {onPointClick ? translate("chart.clickHint") : ""}
       </p>
     </div>
   );
@@ -401,28 +406,25 @@ export function TeamScatterChart({ rows, highlight }: TeamScatterProps) {
 
   return (
     <div className="chart-box">
-      <p className="chart-note">
-        x: atılan sayı, y: yenilen sayı (ters çevrilmiş) — sağ üst köşe ideal:
-        çok sayı atıp az sayı yiyen takımlar. Kesikli çizgiler lig ortalaması.
-      </p>
+      <p className="chart-note">{translate("chart.teamScatterNote")}</p>
       <ResponsiveContainer width="100%" height={420}>
         <ScatterChart margin={{ top: 12, right: 24, bottom: 8, left: -8 }}>
           <CartesianGrid stroke={CHART.grid} />
           <XAxis dataKey="pf" type="number" domain={["auto", "auto"]}
-                 name="Atılan Sayı"
+                 name={label("points_for")}
                  tick={{ fill: CHART.muted, fontSize: 11 }}
                  axisLine={{ stroke: CHART.axis }} tickLine={false}
-                 label={{ value: "Atılan Sayı", position: "insideBottom",
+                 label={{ value: label("points_for"), position: "insideBottom",
                           offset: -4, fill: CHART.muted, fontSize: 12 }} />
           <YAxis dataKey="pa" type="number" domain={["auto", "auto"]} reversed
-                 name="Yenilen Sayı" width={48}
+                 name={label("points_against")} width={48}
                  tick={{ fill: CHART.muted, fontSize: 11 }}
                  axisLine={false} tickLine={false} />
           <ReferenceLine x={avgPf} stroke={CHART.axis} strokeDasharray="4 4" />
           <ReferenceLine y={avgPa} stroke={CHART.axis} strokeDasharray="4 4" />
           <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: CHART.muted }}
                    formatter={(v, name) =>
-                     [String(v), name === "pf" ? "Atılan Sayı" : "Yenilen Sayı"]}
+                     [String(v), label(name === "pf" ? "points_for" : "points_against")]}
                    labelFormatter={() => ""} />
           <Scatter data={data} fill={CHART.series1}>
             <LabelList dataKey="team" position="top"
@@ -463,7 +465,8 @@ export function PropBarChart({ games, line, statLabel }:
                    }} />
           <ReferenceLine y={line} stroke="#d50a0a" strokeDasharray="6 3"
                          strokeWidth={2}
-                         label={{ value: `çizgi ${line}`, fill: "#f85149",
+                         label={{ value: translate("chart.line", { v: line }),
+                                  fill: "#f85149",
                                   fontSize: 11, position: "insideTopLeft" }} />
           <Bar dataKey="value" isAnimationActive={false} radius={[3, 3, 0, 0]}>
             {games.map((g, i) => (
@@ -472,10 +475,7 @@ export function PropBarChart({ games, line, statLabel }:
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <p className="chart-note">
-        Yeşil = çizginin üstü, kırmızı = altı. Kırmızı kesikli çizgi seçili
-        prop çizgisidir.
-      </p>
+      <p className="chart-note">{translate("chart.propNote")}</p>
     </div>
   );
 }

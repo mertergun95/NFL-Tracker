@@ -11,6 +11,7 @@ import {
 import { fmt, label, presetForPosition } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
+import { translate, useT } from "../lib/i18n";
 
 const TREND_COLOR = { hot: "#3fb950", cold: "#f0883e", flat: CHART.series1 };
 
@@ -19,14 +20,15 @@ function projStatLine(p: Record<string, unknown>): string {
   const v = (c: string) =>
     p[c] !== null && p[c] !== undefined ? String(p[c]) : "—";
   const pos = String(p.position);
+  const u = (k: string) => translate(`u.${k}`);
   if (pos === "QB")
-    return `${v("proj_completions")}/${v("proj_attempts")} · ${v("proj_passing_yards")} pas yd · ` +
+    return `${v("proj_completions")}/${v("proj_attempts")} · ${v("proj_passing_yards")} ${u("passYd")} · ` +
            `${v("proj_passing_tds")} TD · ${v("proj_passing_interceptions")} int`;
   if (pos === "RB")
-    return `${v("proj_carries")} koşu · ${v("proj_rushing_yards")} koşu yd · ` +
-           `${v("proj_receptions")} rec · ${v("proj_receiving_yards")} rec yd`;
+    return `${v("proj_carries")} ${u("car")} · ${v("proj_rushing_yards")} ${u("rushYd")} · ` +
+           `${v("proj_receptions")} rec · ${v("proj_receiving_yards")} ${u("recYd")}`;
   return `${v("proj_targets")} tgt · ${v("proj_receptions")} rec · ` +
-         `${v("proj_receiving_yards")} yd · ${v("proj_receiving_tds")} TD`;
+         `${v("proj_receiving_yards")} ${u("yd")} · ${v("proj_receiving_tds")} TD`;
 }
 
 interface Props {
@@ -37,6 +39,7 @@ interface Props {
 
 /** Sağdan kayan oyuncu künyesi — grafiklerdeki noktalara tıklanınca açılır. */
 export default function PlayerDrawer({ playerId, season, onClose }: Props) {
+  const t = useT();
   const { data: index } = useAsync(() => loadPlayerIndex(), []);
   const { data: seasonRows } = useAsync(() => loadPlayerSeason(season), [season]);
 
@@ -103,10 +106,11 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
             </div>
             {meta && (
               <p className="sub">
-                {meta.height ? `${meta.height} inç · ` : ""}
+                {meta.height ? `${meta.height} ${t("drawer.inch")} · ` : ""}
                 {meta.weight ? `${meta.weight} lbs · ` : ""}
                 {meta.college_name ? `${meta.college_name} · ` : ""}
-                {meta.rookie_season ? `çaylak: ${meta.rookie_season}` : ""}
+                {meta.rookie_season
+                  ? t("drawer.rookie", { y: String(meta.rookie_season) }) : ""}
               </p>
             )}
             {injury?.report_status && (
@@ -118,11 +122,11 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
             {spark && (
               <div className="drawer-spark">
                 <div className="tile-label">
-                  Haftalık PPR formu{" "}
+                  {t("drawer.pprForm")}{" "}
                   <span className={`trend-chip ${spark.trend.kind}`}
                         style={{ padding: "1px 8px", fontSize: "0.72rem" }}>
-                    {spark.trend.kind === "hot" ? "🔥 yükselişte"
-                      : spark.trend.kind === "cold" ? "🧊 düşüşte" : "stabil"}
+                    {t(spark.trend.kind === "hot" ? "drawer.up"
+                      : spark.trend.kind === "cold" ? "drawer.down" : "drawer.flat")}
                   </span>
                 </div>
                 <ResponsiveContainer width="100%" height={54}>
@@ -137,14 +141,15 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
             )}
             {currentTeam && currentTeam !== String(row?.team ?? "") && (
               <p className="sub">
-                Güncel takım: <TeamLogo abbr={currentTeam} size={18} />{" "}
+                {t("drawer.currentTeam")}<TeamLogo abbr={currentTeam} size={18} />{" "}
                 {teamName(currentTeam)}
               </p>
             )}
             {proj && projections && (
               <div className="drawer-proj">
                 <div className="tile-label">
-                  Sıradaki maç — {projections.target.season} W{projections.target.week}
+                  {t("drawer.nextGame", { season: projections.target.season,
+                                          week: projections.target.week })}
                 </div>
                 <div className="drawer-proj-line">
                   <span>
@@ -155,17 +160,20 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 <div className="drawer-proj-stats">
                   {projStatLine(proj)}
                 </div>
-                <div className="drawer-proj-sub">
-                  çarpanlar: matchup {fmt("matchup_factor", proj.matchup_factor)}
-                  {" · "}şema {fmt("scheme_factor", proj.scheme_factor)}
-                  {" · "}snap {fmt("snap_factor", proj.snap_factor)}
-                </div>
+                {proj.matchup_factor !== undefined && (
+                  <div className="drawer-proj-sub">
+                    {t("drawer.factors", {
+                      m: fmt("matchup_factor", proj.matchup_factor),
+                      s: fmt("scheme_factor", proj.scheme_factor),
+                      sn: fmt("snap_factor", proj.snap_factor) })}
+                  </div>
+                )}
               </div>
             )}
             {row ? (
               <div className="drawer-stats">
                 <div className="drawer-row">
-                  <span>Maç</span><strong>{fmt("games", row.games)}</strong>
+                  <span>{label("games")}</span><strong>{fmt("games", row.games)}</strong>
                 </div>
                 {stats.map((s) => (
                   <div className="drawer-row" key={s}>
@@ -174,10 +182,10 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 ))}
               </div>
             ) : (
-              <p className="empty">{season} sezonunda istatistik yok.</p>
+              <p className="empty">{t("drawer.noStats", { season })}</p>
             )}
             <Link className="drawer-link" to={`/player/${playerId}`} onClick={onClose}>
-              Profili aç →
+              {t("drawer.openProfile")}
             </Link>
           </>
         )}

@@ -7,6 +7,7 @@ import StatTable from "../../components/StatTable";
 import { loadNcaaProjections, loadNcaaTeams, ncaaProjLine,
          teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { useT } from "../../lib/i18n";
 
 const POS_COLS: Record<string, string[]> = {
   QB: ["proj_completions", "proj_attempts", "proj_passing_yards",
@@ -23,6 +24,7 @@ const PRIMARY: Record<string, string> = {
 };
 
 export default function NcaaProjections() {
+  const t = useT();
   const [view, setView] = useState<"pos" | "game">("pos");
   const [pos, setPos] = useState("QB");
   const [q, setQ] = useState("");
@@ -65,24 +67,21 @@ export default function NcaaProjections() {
 
   if (loading) return <Loading />;
   if (!data)
-    return <p className="empty">NCAA projeksiyonları henüz üretilmedi.</p>;
+    return <p className="empty">{t("ncaa.projNotReady")}</p>;
 
   return (
     <section>
-      <h1>NCAA Haftalık Projeksiyonlar</h1>
+      <h1>{t("ncaa.projTitle")}</h1>
       <p className="sub">
-        Hedef: <strong>{data.target.season} · Hafta {data.target.week}</strong>
-        {" "}· motor: sezgisel (son sezon form ortalaması × rakibin geçen
-        sezonki savunma çarpanı) · güncel kadrolar esas alınır (transfer
-        portal dahil); geçmiş verisi olmayan oyuncular listelenmez.
-        {" "}Doğruluk için <Link to="/ncaa/accuracy">Karne</Link>'ye bakın.
+        {t("ncaa.projSub", { season: data.target.season, week: data.target.week })}
+        <Link to="/ncaa/accuracy">{t("nav.accuracy")}</Link>.
       </p>
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${view === "pos" ? "active" : ""}`}
-                  onClick={() => setView("pos")}>Pozisyona göre</button>
+                  onClick={() => setView("pos")}>{t("common.byPosition")}</button>
           <button className={`pill ${view === "game" ? "active" : ""}`}
-                  onClick={() => setView("game")}>Maça göre</button>
+                  onClick={() => setView("game")}>{t("common.byGame")}</button>
         </div>
       </div>
 
@@ -95,7 +94,7 @@ export default function NcaaProjections() {
                         onClick={() => setPos(p)}>{p}</button>
               ))}
             </div>
-            <input className="axis-select" placeholder="Oyuncu / takım ara…"
+            <input className="axis-select" placeholder={t("ncaa.searchPlayerTeam")}
                    value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <StatTable rows={rows}
@@ -140,7 +139,7 @@ export default function NcaaProjections() {
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
-                <tr><th>Oyuncu</th><th>Takım</th><th>Projeksiyon</th></tr>
+                <tr><th>{t("common.player")}</th><th>{t("common.team")}</th><th>{t("common.projection")}</th></tr>
               </thead>
               <tbody>
                 {gameRows.map((p) => (

@@ -12,14 +12,15 @@ import {
 import { useAsync } from "../lib/hooks";
 import { TEAMS, teamName } from "../lib/teams";
 import { etBerlin } from "../lib/time";
+import { translate, useT } from "../lib/i18n";
 import { POSITION_PRESETS } from "../lib/columns";
 import type { StatRow } from "../lib/types";
 
 const TABS = [
-  ["genel", "Genel"],
-  ["logs", "Oyuncu Game Logs"],
-  ["against", "Rakiplerin Logları"],
-  ["advanced", "Advanced & Şema"],
+  ["genel", "tab.general"],
+  ["logs", "tab.logs"],
+  ["against", "tab.against"],
+  ["advanced", "tab.advanced"],
 ] as const;
 
 const OFF_TILE_COLS = [
@@ -80,15 +81,14 @@ function GameLogs({ abbr, season, against }:
   return (
     <>
       <p className="sub">
-        {against
-          ? `${teamName(abbr)} savunmasına karşı rakip oyuncuların maç maç istatistikleri — pozisyona karşı zafiyet analizi için.`
-          : `${teamName(abbr)} oyuncularının maç maç istatistikleri.`}
+        {translate(against ? "team.logsAgainst" : "team.logsOwn",
+                   { team: teamName(abbr ?? null) })}
       </p>
       <div className="toolbar">
         <PositionPicker value={pos} onChange={setPos} />
         <div className="pill-row">
           <button className={`pill small ${week === null ? "active" : ""}`}
-                  onClick={() => setWeek(null)}>Tüm haftalar</button>
+                  onClick={() => setWeek(null)}>{translate("team.allWeeks")}</button>
           {weeks.map((w) => (
             <button key={w} className={`pill small ${w === week ? "active" : ""}`}
                     onClick={() => setWeek(w)}>{w}</button>
@@ -129,24 +129,22 @@ function AdvancedTab({ abbr, season }: { abbr: string; season: number }) {
     () => (scheme ? leagueAverages(scheme, SCHEME_TILE_COLS) : undefined), [scheme]);
 
   if (!advRow && !schemeRow)
-    return <p className="empty">Bu sezon için advanced/şema verisi yok.</p>;
+    return <p className="empty">{translate("team.noAdvanced")}</p>;
   return (
     <>
       {advRow && (
         <>
-          <h2>Hücum (REG, pbp bazlı)</h2>
+          <h2>{translate("team.offense")}</h2>
           <StatTiles row={advRow} cols={OFF_TILE_COLS} avg={advAvg} />
-          <h2>Savunma</h2>
+          <h2>{translate("team.defense")}</h2>
           <StatTiles row={advRow} cols={DEF_TILE_COLS} avg={advAvg} />
         </>
       )}
       {schemeRow && (
         <>
-          <h2>Savunma Şeması</h2>
+          <h2>{translate("team.scheme")}</h2>
           <p className="sub">
-            Man/zone ve box verisi katılım (participation) kaynaklıdır;
-            blitz (FTN) 2022 sonrası mevcuttur. EPA vs Man/Zone: o coverage'a
-            karşı rakibin ürettiği EPA/play (düşük = iyi savunma).
+            {translate("team.schemeSub")}
           </p>
           <StatTiles row={schemeRow} cols={SCHEME_TILE_COLS} avg={schemeAvg} />
         </>
@@ -156,6 +154,7 @@ function AdvancedTab({ abbr, season }: { abbr: string; season: number }) {
 }
 
 export default function TeamDetail({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const { abbr } = useParams<{ abbr: string }>();
   const [season, setSeason] = useState(seasons[0]);
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("genel");
@@ -220,13 +219,13 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
       <div className="tab-row">
         {TABS.map(([key, lbl]) => (
           <button key={key} className={`tab ${tab === key ? "active" : ""}`}
-                  onClick={() => setTab(key)}>{lbl}</button>
+                  onClick={() => setTab(key)}>{t(lbl)}</button>
         ))}
       </div>
 
       {tab === "genel" && (
         <>
-          <h2>Maçlar</h2>
+          <h2>{t("team.games")}</h2>
           {loading && <Loading />}
           {schedErr && <ErrorMsg msg={schedErr} />}
           {sched && (
@@ -246,7 +245,7 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
           )}
           {nextFixture && nextFixture.length > 0 && (
             <>
-              <h2>{String(nextFixture[0].season)} Fikstürü</h2>
+              <h2>{t("team.fixture", { season: String(nextFixture[0].season) })}</h2>
               <StatTable rows={nextFixture}
                 columns={["week", "gameday", "gametime", "saat_de", "opponent", "where"]}
                 defaultSort="week"
@@ -261,7 +260,7 @@ export default function TeamDetail({ seasons }: { seasons: number[] }) {
               />
             </>
           )}
-          <h2>Kadro — Sezon İstatistikleri</h2>
+          <h2>{t("team.rosterStats")}</h2>
           {roster && (
             <StatTable rows={topReceivers}
               columns={["player_name", "position", "games", ...POSITION_PRESETS.WR]}

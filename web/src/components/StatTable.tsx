@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { StatRow } from "../lib/types";
 import { fmt, label } from "../lib/columns";
+import { translate } from "../lib/i18n";
 
 interface Props {
   rows: StatRow[];
@@ -61,7 +62,7 @@ export default function StatTable({ rows, columns, defaultSort, render, maxRows 
           ))}
         </tbody>
       </table>
-      {sorted.length === 0 && <p className="empty">Kayıt bulunamadı.</p>}
+      {sorted.length === 0 && <p className="empty">{translate("table.empty")}</p>}
     </div>
   );
 }

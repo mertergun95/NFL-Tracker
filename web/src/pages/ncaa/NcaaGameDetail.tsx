@@ -10,6 +10,7 @@ import { loadNcaaPlayerWeeks, loadNcaaSchedule, loadNcaaTeams,
 import { useAsync } from "../../lib/hooks";
 import { kickoffBerlin } from "../../lib/time";
 import type { StatRow } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 const TEAM_ROWS = ["first_downs", "total_yards", "passing_yards",
                    "rushing_yards", "rushing_attempts", "yards_per_pass",
@@ -46,6 +47,7 @@ function BoxTable({ rows, title, cols, filter }:
 }
 
 export default function NcaaGameDetail() {
+  const t = useT();
   const { season, gameId } = useParams<{ season: string; gameId: string }>();
 
   const { data: game, error, loading } = useAsync(async () => {
@@ -68,7 +70,7 @@ export default function NcaaGameDetail() {
 
   if (loading) return <Loading />;
   if (error) return <ErrorMsg msg={error} />;
-  if (!game) return <p className="empty">Maç bulunamadı.</p>;
+  if (!game) return <p className="empty">{t("game.notFound")}</p>;
 
   const sides = [String(game.away_team), String(game.home_team)];
   const twOf = (t: string) => tw?.find((r) => r.team === t) ?? null;
@@ -94,13 +96,13 @@ export default function NcaaGameDetail() {
         {String(game.gameday)} · {String(game.season_type)} W{String(game.week)}
         {kickoffBerlin(game.kickoff as string) &&
           ` · 🕐 ${kickoffBerlin(game.kickoff as string)} (DE)`}
-        {Boolean(game.neutral_site) && " · nötr saha"}
-        {Boolean(game.conference_game) && " · konferans maçı"}
+        {Boolean(game.neutral_site) && t("game.neutral")}
+        {Boolean(game.conference_game) && t("game.conference")}
       </p>
 
       {tw && tw.length === 2 && (
         <>
-          <h2>Takım İstatistikleri</h2>
+          <h2>{t("game.teamStats")}</h2>
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
@@ -112,7 +114,8 @@ export default function NcaaGameDetail() {
               <tbody>
                 {TEAM_ROWS.map((c) => (
                   <tr key={c}>
-                    <td>{c === "possession_sec" ? "Topa sahip olma" : label(c)}</td>
+                    <td>{c === "possession_sec"
+                      ? t("ncaa.possession") : label(c)}</td>
                     {sides.map((t) => (
                       <td key={t} className="num">{fmtVal(c, twOf(t)?.[c])}</td>
                     ))}
@@ -124,23 +127,23 @@ export default function NcaaGameDetail() {
         </>
       )}
 
-      {pw && sides.map((t) => {
-        const rows = pw.filter((r) => r.team === t);
+      {pw && sides.map((tm) => {
+        const rows = pw.filter((r) => r.team === tm);
         if (rows.length === 0) return null;
         return (
-          <div key={t}>
+          <div key={tm}>
             <h2>
-              <NcaaLogo src={tmap.get(t)?.logo} size={22} />
-              {" "}{tmap.get(t)?.school ?? t} Box Score
+              <NcaaLogo src={tmap.get(tm)?.logo} size={22} />
+              {" "}{t("ncaa.boxScore", { team: tmap.get(tm)?.school ?? tm })}
             </h2>
-            <BoxTable rows={rows} title="Pas"
+            <BoxTable rows={rows} title={t("ncaa.passing")}
               cols={["completions", "attempts", "passing_yards", "passing_tds",
                      "passing_interceptions", "qbr"]}
               filter={(r) => Number(r.attempts ?? 0) > 0} />
-            <BoxTable rows={rows} title="Koşu"
+            <BoxTable rows={rows} title={t("ncaa.rushing")}
               cols={["carries", "rushing_yards", "rushing_tds", "rush_long"]}
               filter={(r) => Number(r.carries ?? 0) > 0} />
-            <BoxTable rows={rows} title="Hava Topu"
+            <BoxTable rows={rows} title={t("ncaa.receiving")}
               cols={["receptions", "receiving_yards", "receiving_tds", "rec_long"]}
               filter={(r) => Number(r.receptions ?? 0) > 0} />
           </div>

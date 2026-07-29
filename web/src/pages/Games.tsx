@@ -6,8 +6,10 @@ import { loadSchedule } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 import { etBerlin } from "../lib/time";
+import { useT } from "../lib/i18n";
 
 export default function Games({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const navigate = useNavigate();
   const [season, setSeason] = useState(seasons[0]);
   const [week, setWeek] = useState(1);
@@ -25,7 +27,7 @@ export default function Games({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Maçlar</h1>
+      <h1>{t("games.title")}</h1>
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       <div className="pill-row">
         {weeks.map((w) => (

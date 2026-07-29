@@ -3,14 +3,16 @@ import { Link, useParams } from "react-router-dom";
 import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
 import StatTable from "../../components/StatTable";
 import { trendOf, WeeklyBarChart } from "../../components/charts";
-import { fmt as fmtStat, label } from "../../lib/columns";
+import { fmt as fmtStat, label, pct } from "../../lib/columns";
 import { loadNcaaPlayerIndex, loadNcaaPlayerSeason, loadNcaaPlayerWeeks,
          loadNcaaProjections, loadNcaaProjEval, NCAA_PRIMARY, ncaaPreset,
          ncaaProjLine } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import type { StatRow } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const [seasonChoice, setSeasonChoice] = useState<number | null>(null);
 
@@ -109,7 +111,7 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
             </Link>
             {player && ` · ${player.first_season}–${player.last_season}`}
             {player?.current_team && player.current_team !== player.team &&
-              <> · şu an: <Link to={`/ncaa/team/${player.current_team}`}>
+              <> · {t("player.currentlyOn")}<Link to={`/ncaa/team/${player.current_team}`}>
                 {String(player.current_team)}</Link></>}
             {" · NCAA FBS"}
           </p>
@@ -119,10 +121,11 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
       {myProj && projections && (
         <div className="proj-now">
           <div className="proj-now-head">
-            <strong>📈 Yaklaşan Hafta Projeksiyonu</strong>
+            <strong>{t("ncaa.projUpcoming")}</strong>
             <span className="proj-now-sub">
-              {projections.target.season} · Hafta {projections.target.week} ·
-              motor: sezgisel · takım: {String(myProj.team)}
+              {projections.target.season} · {t("common.week")} {projections.target.week}
+              {" · "}{t("player.projEngine", { engine: t("player.engineHeuristic") })}
+              {" · "}{t("common.team")}: {String(myProj.team)}
             </span>
           </div>
           <div className="proj-now-body">
@@ -134,23 +137,23 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
             </span>
             <span className="proj-now-line">
               {String(myProj.position) === "QB"
-                ? `${myProj.proj_completions}/${myProj.proj_attempts} · ${myProj.proj_passing_yards} pas yd · ${myProj.proj_passing_tds} TD · ${myProj.proj_rushing_yards} koşu yd`
+                ? `${myProj.proj_completions}/${myProj.proj_attempts} · ${myProj.proj_passing_yards} ${t("u.passYd")} · ${myProj.proj_passing_tds} TD · ${myProj.proj_rushing_yards} ${t("u.rushYd")}`
                 : String(myProj.position) === "RB"
-                ? `${myProj.proj_carries} koşu · ${myProj.proj_rushing_yards} yd · ${myProj.proj_receptions} rec · ${myProj.proj_receiving_yards} rec yd`
-                : `${myProj.proj_receptions} rec · ${myProj.proj_receiving_yards} yd · ${myProj.proj_receiving_tds} TD`}
+                ? `${myProj.proj_carries} ${t("u.car")} · ${myProj.proj_rushing_yards} ${t("u.yd")} · ${myProj.proj_receptions} rec · ${myProj.proj_receiving_yards} ${t("u.recYd")}`
+                : `${myProj.proj_receptions} rec · ${myProj.proj_receiving_yards} ${t("u.yd")} · ${myProj.proj_receiving_tds} TD`}
             </span>
           </div>
         </div>
       )}
 
-      <h2>Kariyer (sezon toplamları, REG)</h2>
+      <h2>{t("player.career")}</h2>
       {careerErr && <ErrorMsg msg={careerErr} />}
       {career && (
         <StatTable rows={career} columns={["season", "team", "games", ...stats]}
                    defaultSort="season" />
       )}
 
-      <h2>Haftalık Game Log</h2>
+      <h2>{t("player.gamelog")}</h2>
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       {loading && <Loading />}
       {weeksErr && <ErrorMsg msg={weeksErr} />}
@@ -167,12 +170,13 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
               ))}
             </div>
             {(() => {
-              const t = trendOf(weeks, chartStat);
-              const txt = t.kind === "hot" ? "🔥 Yükselişte"
-                : t.kind === "cold" ? "🧊 Düşüşte" : "— Stabil";
+              const tr = trendOf(weeks, chartStat);
+              const txt = t(tr.kind === "hot" ? "common.trendHot"
+                : tr.kind === "cold" ? "common.trendCold" : "common.trendFlat");
               return (
-                <span className={`trend-chip ${t.kind}`}>
-                  {txt} · son 3: {t.recent.toFixed(1)} vs sezon: {t.season.toFixed(1)}
+                <span className={`trend-chip ${tr.kind}`}>
+                  {txt} · {t("common.trendDetail", { recent: tr.recent.toFixed(1),
+                                                    season: tr.season.toFixed(1) })}
                 </span>
               );
             })()}
@@ -180,10 +184,9 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
           {threshold !== null && overCount && (
             <div className="toolbar" style={{ marginBottom: 4 }}>
               <span className="thr-chip">
-                🎯 Eşik <strong>{fmtStat(chartStat, threshold)}</strong>
-                {" — "}
-                <strong>{overCount.over}/{overCount.total}</strong> maçta eşiğin
-                üzerinde (%{overCount.pct})
+                {t("player.threshold", {
+                  value: fmtStat(chartStat, threshold), over: overCount.over,
+                  total: overCount.total, pct: pct(overCount.pct) })}
               </span>
               <input className="axis-select small" type="number" step="0.5"
                      style={{ width: 90 }} value={threshold}
@@ -206,22 +209,19 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
         </>
       )}
       {weeks && weeks.length === 0 && !loading && (
-        <p className="empty">Bu sezon için maç verisi yok.</p>
+        <p className="empty">{t("common.noGameData")}</p>
       )}
 
       {projHistory.length > 0 && (
         <>
-          <h2>Projeksiyon Karnesi (tahmin vs gerçekleşen)</h2>
+          <h2>{t("player.reportCard")}</h2>
           <p className="sub">
-            {projEval?.data_season} sezonunun geriye dönük haftalık tahminleri
-            ile gerçekleşen statların karşılaştırması.
+            {t("player.reportCardSubHeur", { season: projEval?.data_season ?? "" })}
             {histAccuracy && (
               <>
-                {" "}<strong>{label(histAccuracy.prim)}</strong> statında
-                ortalama sapma (MAE) <strong>{histAccuracy.mae}</strong>;
-                {" "}{histAccuracy.n} haftanın{" "}
-                <strong>%{histAccuracy.closePct}</strong>'i isabetli
-                (±15 veya ±%25 tolerans).
+                {" "}{t("player.maeSummary", {
+                  stat: label(histAccuracy.prim), mae: histAccuracy.mae,
+                  n: histAccuracy.n, pct: pct(histAccuracy.closePct) })}
               </>
             )}
           </p>
@@ -229,8 +229,8 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Hafta</th><th>Rakip</th><th>Tahmin</th>
-                  <th>Gerçekleşen</th>
+                  <th>{t("common.week")}</th><th>{t("common.opponent")}</th>
+                  <th>{t("common.projected")}</th><th>{t("common.actualStat")}</th>
                   <th>Δ ({label(histAccuracy?.prim ?? "")})</th>
                 </tr>
               </thead>
@@ -251,7 +251,7 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
                         </Link>
                       </td>
                       <td>{ncaaProjLine(p, "proj")}</td>
-                      <td>{played ? ncaaProjLine(p, "act") : "veri yok"}</td>
+                      <td>{played ? ncaaProjLine(p, "act") : t("player.noData")}</td>
                       <td className={diff === null ? ""
                         : close ? "delta-good" : "delta-bad"}>
                         {diff === null ? "—"

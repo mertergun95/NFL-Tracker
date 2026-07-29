@@ -6,6 +6,8 @@ import { loadTeamSeason } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { TEAMS } from "../lib/teams";
 import type { StatRow } from "../lib/types";
+import { label } from "../lib/columns";
+import { useT } from "../lib/i18n";
 
 const DIVISIONS = ["AFC East", "AFC North", "AFC South", "AFC West",
                    "NFC East", "NFC North", "NFC South", "NFC West"];
@@ -15,6 +17,7 @@ interface Row extends StatRow {
 }
 
 export default function Standings({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const { data, error, loading } = useAsync(() => loadTeamSeason(season), [season]);
 
@@ -40,7 +43,7 @@ export default function Standings({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Puan Durumu</h1>
+      <h1>{t("standings.title")}</h1>
       <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
@@ -51,7 +54,7 @@ export default function Standings({ seasons }: { seasons: number[] }) {
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Takım</th><th>G</th><th>M</th><th>B</th>
+                  <th>{label("team")}</th><th>{label("wins")}</th><th>{label("losses")}</th><th>{label("ties")}</th>
                   <th>Pct</th><th>AS</th><th>YS</th><th>Fark</th>
                 </tr>
               </thead>

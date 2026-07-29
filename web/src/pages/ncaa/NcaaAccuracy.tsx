@@ -6,6 +6,7 @@ import { label } from "../../lib/columns";
 import { loadNcaaProjEval, ncaaProjLine } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
 import type { StatRow } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 const STAT_CHOICES = ["receiving_yards", "receptions", "rushing_yards",
                       "carries", "passing_yards", "passing_tds",
@@ -18,6 +19,7 @@ const POS_OF_STAT: Record<string, string[]> = {
 };
 
 export default function NcaaAccuracy() {
+  const t = useT();
   const [stat, setStat] = useState("rushing_yards");
   const [view, setView] = useState<"stat" | "game">("stat");
   const [gameKey, setGameKey] = useState<string | null>(null);
@@ -76,27 +78,23 @@ export default function NcaaAccuracy() {
   if (!data)
     return (
       <p className="empty">
-        NCAA karnesi henüz üretilmedi — pipeline'ı bekleyin.
+        {t("acc.ncaaNotReady")}
       </p>
     );
 
   return (
     <section>
-      <h1>NCAA Projeksiyon Karnesi</h1>
+      <h1>{t("acc.title")}</h1>
       <p className="sub">
-        {data.data_season} sezonunun W6–W15 haftaları geriye dönük test edildi:
-        her hafta yalnızca öncesindeki haftaların verisiyle (canlı motorla aynı
-        sezgisel formül) projekte edilip gerçek sonuçlarla karşılaştırıldı.
-        MAE = ortalama mutlak hata; bias + ise model fazla iyimser; korelasyon
-        1'e yaklaştıkça sıralama isabeti artar.
+        {t("acc.ncaaSub", { season: data.data_season })}
       </p>
 
-      <h2>Haftalık Doğruluk Özeti</h2>
+      <h2>{t("acc.weeklySummary")}</h2>
       <div className="table-wrap">
         <table className="stat-table">
           <thead>
             <tr>
-              <th>Hafta</th>
+              <th>{t("common.week")}</th>
               {statCols.map((s) => <th key={s} colSpan={3}>{label(s)}</th>)}
             </tr>
             <tr>
@@ -141,13 +139,13 @@ export default function NcaaAccuracy() {
         </table>
       </div>
 
-      <h2>Tahmin vs Gerçekleşen — W{activeWeek}</h2>
+      <h2>{t("acc.predVsActual", { week: activeWeek ?? "" })}</h2>
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${view === "stat" ? "active" : ""}`}
-                  onClick={() => setView("stat")}>İstatistiğe göre</button>
+                  onClick={() => setView("stat")}>{t("common.byStat")}</button>
           <button className={`pill ${view === "game" ? "active" : ""}`}
-                  onClick={() => setView("game")}>Maça göre</button>
+                  onClick={() => setView("game")}>{t("common.byGame")}</button>
         </div>
         <div className="pill-row">
           {data.weeks.map((w) => (
@@ -168,13 +166,15 @@ export default function NcaaAccuracy() {
           </div>
           <PlayerScatterChart rows={rows} x={`proj_${stat}`} y={`act_${stat}`}
                               labelTop={8} />
-          <h2>Oyuncu Detayı (gerçekleşene göre ilk 40)</h2>
+          <h2>{t("acc.playerDetail")}</h2>
           <div className="table-wrap">
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Oyuncu</th><th>Poz</th><th>Takım</th><th>Rakip</th>
-                  <th>Tahmin</th><th>Gerçek</th><th>Fark</th>
+                  <th>{t("common.player")}</th><th>{t("common.position")}</th>
+                  <th>{t("common.team")}</th><th>{t("common.opponent")}</th>
+                  <th>{t("common.projected")}</th><th>{t("common.actualStat")}</th>
+                  <th>{t("common.diff")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,8 +216,8 @@ export default function NcaaAccuracy() {
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Oyuncu</th><th>Takım</th>
-                  <th>Tahmin</th><th>Gerçekleşen</th>
+                  <th>{t("common.player")}</th><th>{t("common.team")}</th>
+                  <th>{t("common.projected")}</th><th>{t("common.actualStat")}</th>
                 </tr>
               </thead>
               <tbody>

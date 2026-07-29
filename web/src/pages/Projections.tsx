@@ -7,6 +7,7 @@ import { Loading } from "../components/Pickers";
 import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
+import { useT } from "../lib/i18n";
 
 // pozisyona göre gösterilecek GERÇEK stat projeksiyonları
 const POS_COLS: Record<string, string[]> = {
@@ -36,6 +37,7 @@ const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
 };
 
 export default function Projections() {
+  const t = useT();
   const [pos, setPos] = useState("WR");
   const [view, setView] = useState<"pos" | "game">("pos");
   const [gameKey, setGameKey] = useState<string | null>(null);
@@ -65,30 +67,25 @@ export default function Projections() {
 
   if (loading) return <Loading />;
   if (!data)
-    return <p className="empty">Projeksiyonlar henüz üretilmedi — Salı pipeline'ını bekleyin.</p>;
+    return <p className="empty">{t("proj.notReady")}</p>;
 
   return (
     <section>
-      <h1>Haftalık Projeksiyonlar — {data.target.season} W{data.target.week}</h1>
+      <h1>{t("proj.title", { season: data.target.season,
+                             week: data.target.week })}</h1>
       <p className="sub">
-        <strong>Gerçek istatistik tahminleri</strong> (P· = projeksiyon).
-        {data.engine === "ml" ? (
-          <> Motor: <strong>ML (gradient boosting)</strong> — tüm geçmiş
-          sezonlarla her Salı yeniden eğitilir; form, rakip-zafiyeti, önceki
-          sezon ve ev/deplasman özelliklerinden öğrenir. Sakatlıklar ayrıca
-          uygulanır (Out/Doubtful hariç, Questionable −%10).</>
-        ) : (
-          <> Motor: sezgisel model (form × matchup × şema × snap × sakatlık).</>
-        )}{" "}
-        Takımlar güncel kadrolardan. Doğruluk kıyaslaması için{" "}
-        <Link to="/accuracy">Karne</Link>. Veri: {data.data_season} sezonu.
+        <strong>{t("proj.realStats")}</strong> (P· = {t("common.projection")}).
+        {t(data.engine === "ml" ? "proj.mlNote" : "proj.heurNote")}{" "}
+        {t("proj.rosterNote")}
+        <Link to="/accuracy">{t("nav.accuracy")}</Link>.{" "}
+        {t("proj.dataNote", { season: data.data_season })}
       </p>
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${view === "pos" ? "active" : ""}`}
-                  onClick={() => setView("pos")}>Pozisyona göre</button>
+                  onClick={() => setView("pos")}>{t("common.byPosition")}</button>
           <button className={`pill ${view === "game" ? "active" : ""}`}
-                  onClick={() => setView("game")}>Maça göre</button>
+                  onClick={() => setView("game")}>{t("common.byGame")}</button>
         </div>
         {view === "pos" && (
           <div className="pill-row">

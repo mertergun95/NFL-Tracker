@@ -9,7 +9,7 @@ import {
 } from "../lib/data";
 import { projLine, PRIMARY_STAT } from "../lib/projText";
 import TeamLogo from "../components/TeamLogo";
-import { fmt as fmtStat, label, presetForPosition } from "../lib/columns";
+import { fmt as fmtStat, label, pct, presetForPosition } from "../lib/columns";
 import { trendOf, WeeklyBarChart } from "../components/charts";
 import StatusBadge from "../components/StatusBadge";
 import { loadInjuries } from "../lib/data";
@@ -18,6 +18,7 @@ import { downloadStatCard } from "../lib/statcard";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 import { teamName } from "../lib/teams";
+import { useT } from "../lib/i18n";
 
 const RZ_COLS: Record<string, string[]> = {
   QB: ["rz_pass_att", "rz_pass_tds", "rz_pass_ints", "rz_carries", "rz_rush_tds",
@@ -48,6 +49,7 @@ const NGS_VIEW_COLS: Record<string, string[]> = {
 };
 
 export default function PlayerDetail({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const [season, setSeason] = useState(seasons[0]);
 
@@ -201,10 +203,12 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
       {myProj && projections && (
         <div className="proj-now">
           <div className="proj-now-head">
-            <strong>📈 Bu Haftanın Projeksiyonu</strong>
+            <strong>{t("player.projThisWeek")}</strong>
             <span className="proj-now-sub">
-              {projections.target.season} · Hafta {projections.target.week} · motor:{" "}
-              {projections.engine === "ml" ? "ML (gradient boosting)" : "sezgisel"}
+              {projections.target.season} · {t("common.week")} {projections.target.week}
+              {" · "}
+              {t("player.projEngine", { engine: t(projections.engine === "ml"
+                  ? "player.engineMl" : "player.engineHeuristic") })}
             </span>
           </div>
           <div className="proj-now-body">
@@ -219,14 +223,14 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
         </div>
       )}
 
-      <h2>Kariyer (sezon toplamları, REG)</h2>
+      <h2>{t("player.career")}</h2>
       {careerErr && <ErrorMsg msg={careerErr} />}
       {career && (
         <StatTable rows={career} columns={["season", "team", "games", ...stats]}
                    defaultSort="season" />
       )}
 
-      <h2>Haftalık Game Log</h2>
+      <h2>{t("player.gamelog")}</h2>
       <div className="toolbar">
         <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
         <button className="pill"
@@ -237,7 +241,7 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
                                      String(row.team ?? ""), season, row,
                                      ["games", ...stats]);
                 }}>
-          ⬇ Stat Kartı (PNG)
+          {t("player.statCard")}
         </button>
       </div>
       {loading && <Loading />}
@@ -254,13 +258,15 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
               ))}
             </div>
             {(() => {
-              const t = trendOf(weeks, chartStat);
-              const txt = t.kind === "hot" ? "🔥 Yükselişte"
-                : t.kind === "cold" ? "🧊 Düşüşte" : "— Stabil";
+              const tr = trendOf(weeks, chartStat);
+              const txt = t(tr.kind === "hot" ? "common.trendHot"
+                : tr.kind === "cold" ? "common.trendCold" : "common.trendFlat");
               return (
-                <span className={`trend-chip ${t.kind}`}
-                      title={`son 3 hafta ort. ${t.recent.toFixed(1)} / sezon ${t.season.toFixed(1)}`}>
-                  {txt} · son 3: {t.recent.toFixed(1)} vs sezon: {t.season.toFixed(1)}
+                <span className={`trend-chip ${tr.kind}`}
+                      title={t("common.trendTitle", { recent: tr.recent.toFixed(1),
+                                                      season: tr.season.toFixed(1) })}>
+                  {txt} · {t("common.trendDetail", { recent: tr.recent.toFixed(1),
+                                                    season: tr.season.toFixed(1) })}
                 </span>
               );
             })()}
@@ -268,10 +274,9 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
           {threshold !== null && overCount && (
             <div className="toolbar" style={{ marginBottom: 4 }}>
               <span className="thr-chip">
-                🎯 Eşik <strong>{fmtStat(chartStat, threshold)}</strong>
-                {" — "}
-                <strong>{overCount.over}/{overCount.total}</strong> maçta eşiğin
-                üzerinde (%{overCount.pct})
+                {t("player.threshold", {
+                  value: fmtStat(chartStat, threshold), over: overCount.over,
+                  total: overCount.total, pct: pct(overCount.pct) })}
               </span>
               <input className="axis-select small" type="number" step="0.5"
                      style={{ width: 90 }}
@@ -301,17 +306,14 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
 
       {projHistory.length > 0 && (
         <>
-          <h2>Projeksiyon Karnesi (tahmin vs gerçekleşen)</h2>
+          <h2>{t("player.reportCard")}</h2>
           <p className="sub">
-            Geçmiş haftalar için walk-forward ML tahminleri ile gerçekleşen
-            statların karşılaştırması.
+            {t("player.reportCardSub")}
             {histAccuracy && (
               <>
-                {" "}<strong>{label(histAccuracy.prim)}</strong> statında ortalama
-                sapma (MAE) <strong>{histAccuracy.mae}</strong>;
-                {" "}{histAccuracy.n} haftanın{" "}
-                <strong>%{histAccuracy.closePct}</strong>'i isabetli
-                (±15 veya ±%25 tolerans).
+                {" "}{t("player.maeSummary", {
+                  stat: label(histAccuracy.prim), mae: histAccuracy.mae,
+                  n: histAccuracy.n, pct: pct(histAccuracy.closePct) })}
               </>
             )}
           </p>
@@ -319,8 +321,9 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
             <table className="stat-table">
               <thead>
                 <tr>
-                  <th>Hafta</th><th>Rakip</th><th>Tahmin</th>
-                  <th>Gerçekleşen</th><th>Δ ({label(histAccuracy?.prim ?? "")})</th>
+                  <th>{t("common.week")}</th><th>{t("common.opponent")}</th>
+                  <th>{t("common.projected")}</th><th>{t("common.actualStat")}</th>
+                  <th>Δ ({label(histAccuracy?.prim ?? "")})</th>
                 </tr>
               </thead>
               <tbody>
@@ -337,7 +340,7 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
                       <td>W{String(p.week)}</td>
                       <td>{String(p.opponent ?? "—")}</td>
                       <td>{projLine(p, "proj")}</td>
-                      <td>{played ? projLine(p, "act") : "oynamadı / veri yok"}</td>
+                      <td>{played ? projLine(p, "act") : t("player.dnp")}</td>
                       <td className={diff === null ? "" : close ? "delta-good" : "delta-bad"}>
                         {diff === null ? "—"
                           : `${diff > 0 ? "+" : ""}${diff.toFixed(0)}`}
@@ -353,17 +356,16 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
 
       {rz && (
         <>
-          <h2>Red Zone ({season}, REG)</h2>
+          <h2>{t("player.redzone", { season })}</h2>
           <StatTiles row={rz} cols={rzCols} />
         </>
       )}
 
       {scheme && scheme.length > 0 && (
         <>
-          <h2>Şema Splitleri ({season}, REG)</h2>
+          <h2>{t("player.schemeSplits", { season })}</h2>
           <p className="sub">
-            Play action, blitz, shotgun ve box bağlamlarına göre performans
-            (pbp + FTN charting; min. 8 play).
+            {t("player.schemeSplitsSub")}
           </p>
           <StatTable
             rows={scheme.map((r) => ({
@@ -378,8 +380,8 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
 
       {ngs && ngs.length > 0 && (
         <>
-          <h2>Advanced — Next Gen Stats ({season})</h2>
-          <p className="sub">week 0 satırı sezon toplamıdır.</p>
+          <h2>{t("player.ngs", { season })}</h2>
+          <p className="sub">{t("player.ngsSub")}</p>
           <StatTable rows={ngs}
             columns={["week", ...NGS_VIEW_COLS[ngsType!]]}
             defaultSort="week" />
@@ -388,7 +390,7 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
 
       {injuries && injuries.length > 0 && (
         <>
-          <h2>Sakatlık Geçmişi ({String(injuries[0].season)})</h2>
+          <h2>{t("player.injuryHistory", { season: String(injuries[0].season) })}</h2>
           <StatTable rows={injuries}
             columns={["week", "team", "report_status", "report_primary_injury",
                       "practice_status", "date_modified"]}
@@ -398,7 +400,7 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
 
       {snaps && snaps.length > 0 && (
         <>
-          <h2>Snap Counts ({season})</h2>
+          <h2>{t("player.snapCounts", { season })}</h2>
           <WeeklyBarChart rows={snaps} stat={snapStat} />
           <StatTable rows={snaps}
             columns={["week", "game_type", "opponent", "offense_snaps",

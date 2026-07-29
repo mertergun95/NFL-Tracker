@@ -7,10 +7,12 @@ import { Loading } from "../components/Pickers";
 import { loadInjuries } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { TEAMS, teamName } from "../lib/teams";
+import { useT } from "../lib/i18n";
 
 const STATUS_ORDER: Record<string, number> = { Out: 0, Doubtful: 1, Questionable: 2 };
 
 export default function Injuries() {
+  const t = useT();
   const [team, setTeam] = useState<string | null>(null);
   const { data, loading } = useAsync(() => loadInjuries(), []);
 
@@ -31,21 +33,19 @@ export default function Injuries() {
 
   if (loading) return <Loading />;
   if (!latest)
-    return <p className="empty">Sakatlık raporu henüz üretilmedi — pipeline'ı bekleyin.</p>;
+    return <p className="empty">{t("inj.notReady")}</p>;
 
   return (
     <section>
-      <h1>Sakatlık Raporu</h1>
+      <h1>{t("inj.title")}</h1>
       <p className="sub">
-        Resmi NFL sakatlık raporları (nflverse) — {String(latest.season)} sezonu,
-        hafta {latest.week}. Sezon içinde her Salı güncellenir; Out/Doubtful
-        oyuncular projeksiyonlardan otomatik düşülür, Questionable %10 kırpılır.
+        {t("inj.sub", { season: String(latest.season), week: String(latest.week) })}
       </p>
       <div className="logo-grid">
         <button className={`logo-btn ${team === null ? "active" : ""}`}
                 onClick={() => setTeam(null)}
                 style={{ padding: "8px 10px", color: "var(--text)" }}>
-          Tümü
+          {t("common.all")}
         </button>
         {Object.keys(TEAMS).map((t) => (
           <button key={t} className={`logo-btn ${t === team ? "active" : ""}`}
@@ -58,8 +58,9 @@ export default function Injuries() {
         <table className="stat-table">
           <thead>
             <tr>
-              <th>Oyuncu</th><th>Poz</th><th>Takım</th><th>Durum</th>
-              <th>Sakatlık</th><th>Antrenman</th>
+              <th>{t("common.player")}</th><th>{t("common.position")}</th>
+              <th>{t("common.team")}</th><th>{t("inj.status")}</th>
+              <th>{t("inj.injury")}</th><th>{t("inj.practice")}</th>
             </tr>
           </thead>
           <tbody>
@@ -83,7 +84,7 @@ export default function Injuries() {
           </tbody>
         </table>
       </div>
-      {filtered.length === 0 && <p className="empty">Bu takımda raporlu oyuncu yok.</p>}
+      {filtered.length === 0 && <p className="empty">{t("inj.none")}</p>}
     </section>
   );
 }

@@ -5,12 +5,14 @@ import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
 import StatTable from "../../components/StatTable";
 import { loadNcaaTeams, loadNcaaTeamSeason, teamMapOf } from "../../lib/ncaa";
 import { useAsync } from "../../lib/hooks";
+import { useT } from "../../lib/i18n";
 
 const COLS = ["wins", "losses", "points_pg", "points_allowed_pg",
               "total_yards_pg", "passing_yards_pg", "rushing_yards_pg",
               "third_down_pct_pg", "turnovers_pg"];
 
 export default function NcaaTeams({ seasons }: { seasons: number[] }) {
+  const t = useT();
   const [season, setSeason] = useState(seasons[0]);
   const [q, setQ] = useState("");
   const { data, error, loading } = useAsync(
@@ -29,10 +31,10 @@ export default function NcaaTeams({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>NCAA Takımları</h1>
+      <h1>{t("ncaa.teamsTitle")}</h1>
       <div className="toolbar">
         <SeasonPicker seasons={seasons} value={season} onChange={setSeason} />
-        <input className="axis-select" placeholder="Okul / konferans ara…"
+        <input className="axis-select" placeholder={t("ncaa.searchSchool")}
                value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {loading && <Loading />}
