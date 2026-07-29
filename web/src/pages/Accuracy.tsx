@@ -5,7 +5,7 @@ import { Loading } from "../components/Pickers";
 import { label } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
-import { translate, useT } from "../lib/i18n";
+import { localized, translate, useI18n } from "../lib/i18n";
 
 const BASE = `${import.meta.env.BASE_URL}data`;
 
@@ -14,7 +14,7 @@ type StatMetrics = Record<string, { n: number; mae: number; bias: number;
 interface EvalPayload {
   generated_at: string;
   data_season: number;
-  method: string;
+  method: string | Record<string, string>;
   weeks: { week: number; n?: number; stats: StatMetrics;
            methods?: Record<string, StatMetrics> }[];
   players: StatRow[];
@@ -45,7 +45,7 @@ function pairLine(p: StatRow, kind: "proj" | "act"): string {
 }
 
 export default function Accuracy() {
-  const t = useT();
+  const { t, lang } = useI18n();
   const [stat, setStat] = useState("receiving_yards");
   const [view, setView] = useState<"stat" | "game">("stat");
   const [gameKey, setGameKey] = useState<string | null>(null);
@@ -120,7 +120,7 @@ export default function Accuracy() {
       <h1>{t("acc.title")}</h1>
       <p className="sub">
         {t("acc.sub", { season: data.data_season, n: data.weeks.length,
-                        method: data.method })}
+                        method: localized(data.method, lang) })}
       </p>
 
       <h2>{t("acc.weeklySummary")}</h2>

@@ -57,7 +57,7 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "nav.matchups": ["Matchups", "Matchuplar", "Matchups"],
   "nav.props": "Prop Finder",
   "nav.compare": ["Compare", "Karşılaştır", "Vergleich"],
-  "nav.charts": "Deep Charts",
+  "nav.charts": ["Charts", "Grafikler", "Charts"],
   "nav.projections": ["Projections", "Projeksiyonlar", "Prognosen"],
   "nav.injuries": ["Injuries", "Sakatlıklar", "Verletzungen"],
   "nav.accuracy": ["Report Card", "Karne", "Trefferbilanz"],

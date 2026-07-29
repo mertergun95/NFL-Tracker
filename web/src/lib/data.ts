@@ -103,7 +103,7 @@ export type EvalStatMetrics = Record<string, {
 export interface ProjEvalPayload {
   generated_at: string;
   data_season: number;
-  method: string;
+  method: LocalizedText;
   weeks: { week: number; stats: EvalStatMetrics;
            methods?: Record<string, EvalStatMetrics> }[];
   players: StatRow[];
@@ -119,9 +119,12 @@ export async function loadProjEval(): Promise<ProjEvalPayload | null> {
   }
 }
 
+/** Pipeline üretimi metinler: düz dize (eski) ya da {en,tr,de} sözlüğü. */
+export type LocalizedText = string | Record<string, string>;
+
 export interface Insight {
-  title: string;
-  detail: string;
+  title: LocalizedText;
+  detail: LocalizedText;
   player_id?: string;
   team?: string;
   game?: string;

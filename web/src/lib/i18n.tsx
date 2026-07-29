@@ -72,5 +72,14 @@ export function useI18n(): I18nValue {
   return ctx;
 }
 
+/** Pipeline'dan gelen {en,tr,de} alanını (ya da düz dizeyi) seçili dile göre
+    çözer — insights başlık/detaylarında kullanılır. */
+export function localized(v: unknown, lang: Lang = currentLang): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  const rec = v as Record<string, string>;
+  return rec[lang] ?? rec.en ?? Object.values(rec)[0] ?? "";
+}
+
 /** Sadece t() lazımsa kısayol. */
 export const useT = () => useI18n().t;

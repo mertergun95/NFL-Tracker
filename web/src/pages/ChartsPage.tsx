@@ -193,7 +193,7 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
 
   return (
     <section>
-      <h1>Deep Charts</h1>
+      <h1>{t("nav.charts")}</h1>
       <p className="sub">
         {t("charts.sub")}
       </p>

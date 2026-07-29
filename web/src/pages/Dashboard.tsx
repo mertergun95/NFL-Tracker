@@ -9,7 +9,7 @@ import {
 import { useAsync } from "../lib/hooks";
 import { fmt } from "../lib/columns";
 import type { Manifest, StatRow } from "../lib/types";
-import { translate, useT } from "../lib/i18n";
+import { localized, translate, useI18n } from "../lib/i18n";
 
 const LEADER_BOARDS: { title: string; col: string; pos?: string[] }[] = [
   { title: "dash.passYards", col: "passing_yards", pos: ["QB"] },
@@ -67,7 +67,7 @@ function LeaderCard({ title, col, pos, data }:
 
 export default function Dashboard({ manifest, seasons }:
   { manifest: Manifest; seasons: number[] }) {
-  const t = useT();
+  const { t, lang } = useI18n();
   const [season, setSeason] = useState(seasons[0]);
   const info = manifest.seasons[String(season)];
   const lastWeek = info?.last_reg_week ?? 0;
@@ -182,10 +182,12 @@ export default function Dashboard({ manifest, seasons }:
               <div className="feed-item" key={i}>
                 <div className="feed-title">
                   {it.player_id
-                    ? <Link to={`/player/${it.player_id}`}>{it.title}</Link>
-                    : it.title}
+                    ? <Link to={`/player/${it.player_id}`}>
+                        {localized(it.title, lang)}
+                      </Link>
+                    : localized(it.title, lang)}
                 </div>
-                <div className="feed-detail">{it.detail}</div>
+                <div className="feed-detail">{localized(it.detail, lang)}</div>
               </div>
             ))}
             <Link className="drawer-link" to="/insights">{t("dash.allInsights")}</Link>

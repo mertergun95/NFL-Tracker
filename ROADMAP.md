@@ -248,8 +248,17 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Tüm NFL ve NCAA sayfaları + ortak bileşenler (tablolar, grafik notları,
       oyuncu künyesi, hata/boş durum mesajları) çeviri anahtarlarına taşındı
 - [x] Üst çubuğun sağ üst köşesinde EN | TR | DE seçici
-- [ ] Not: Insights/akış metinleri pipeline'da Türkçe üretiliyor; çok dilli
-      hale getirmek için insights.py'nin şablonlaştırılması gerekiyor
+
+### ✅ Faz 5.18 — Insights motoru çok dilli + "Charts" adlandırması (15. tur)
+- [x] pipeline/i18n.py: şablon sözlüğü + `tr()`, `pct()`, `join()`, `concat()`
+      yardımcıları; her insight metni üç dilde birden üretilir
+- [x] insights.py'nin tüm metin üreten yerleri (form, kullanım, matchup,
+      şema/coverage, blitz, takım gücü) ve karne "method" alanı şablonlara
+      taşındı; insights.json'da title/detail artık {en, tr, de} sözlüğü
+- [x] Arayüz: `localized()` yardımcısı ile Insights sayfası, Dashboard akışı
+      ve Karne açıklaması seçili dilde gösterir (eski düz-dize verisiyle de
+      geriye dönük uyumlu)
+- [x] "Deep Charts" → "Charts" / "Grafikler" / "Charts" (nav + sayfa başlığı)
 
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Loading } from "../components/Pickers";
 import { loadInsights, type Insight } from "../lib/data";
 import { useAsync } from "../lib/hooks";
-import { useT } from "../lib/i18n";
+import { localized, useI18n, useT } from "../lib/i18n";
 
 const SECTIONS: [string, string, string][] = [
   ["matchups", "insights.matchups", "insights.matchupsSub"],
@@ -14,16 +14,18 @@ const SECTIONS: [string, string, string][] = [
 ];
 
 function InsightCard({ item }: { item: Insight }) {
+  const { lang } = useI18n();
+  const title = localized(item.title, lang);
   return (
     <div className="insight-card">
       <h3>
         {item.player_id
-          ? <Link to={`/player/${item.player_id}`}>{item.title}</Link>
+          ? <Link to={`/player/${item.player_id}`}>{title}</Link>
           : item.team
-            ? <Link to={`/team/${item.team}`}>{item.title}</Link>
-            : item.title}
+            ? <Link to={`/team/${item.team}`}>{title}</Link>
+            : title}
       </h3>
-      <p>{item.detail}</p>
+      <p>{localized(item.detail, lang)}</p>
     </div>
   );
 }
