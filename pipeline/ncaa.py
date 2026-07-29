@@ -438,6 +438,20 @@ PASS_STATS = {"completions", "attempts", "passing_yards", "passing_tds",
               "receptions", "receiving_yards", "receiving_tds"}
 
 
+def _one_qb_per_team(df: pd.DataFrame, hist: pd.DataFrame) -> pd.DataFrame:
+    """Takım başına tek QB: geçen sezon en çok pas deneyen oyuncu başlar."""
+    qb = df[df["position"] == "QB"]
+    if qb.empty:
+        return df
+    vol = (hist[hist["position"] == "QB"].groupby("player_id")["attempts"]
+           .sum().to_dict()) if "attempts" in hist.columns else {}
+    keep = {grp.assign(_v=grp["player_id"].map(vol).fillna(0))
+               .sort_values("_v", ascending=False).iloc[0]["player_id"]
+            for _, grp in qb.groupby("team")}
+    return df[(df["position"] != "QB")
+              | df["player_id"].isin(keep)].reset_index(drop=True)
+
+
 def build_projections(rosters: pd.DataFrame | None,
                       next_sched: pd.DataFrame | None) -> None:
     """Sezgisel haftalık projeksiyon: son sezon form ortalamaları ×
@@ -513,6 +527,7 @@ def build_projections(rosters: pd.DataFrame | None,
     if not rows:
         return
     df = pd.DataFrame(rows)
+    df = _one_qb_per_team(df, hist)
     prim = (df.get("proj_passing_yards", pd.Series(0, index=df.index)).fillna(0)
             + df.get("proj_rushing_yards", pd.Series(0, index=df.index)).fillna(0)
             + df.get("proj_receiving_yards", pd.Series(0, index=df.index)).fillna(0))

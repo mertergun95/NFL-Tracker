@@ -408,6 +408,11 @@ POS_PRIMARY = {"QB": "passing_yards", "RB": "rushing_yards",
                "WR": "receiving_yards", "TE": "receiving_yards"}
 
 
+def _depth_chart() -> pd.DataFrame | None:
+    """Güncel derinlik şeması (varsa) — QB1 seçiminde kullanılır."""
+    return transform.read_json(config.DATA_DIR / "depth_charts.json")
+
+
 def current_team_map() -> dict:
     """Güncel kadro eşlemesi: player_id -> takım (roster+depth birleşik dosyadan)."""
     for name in ("current_teams.json", "depth_charts.json"):
@@ -626,6 +631,102 @@ def _pseudo_ppr(row: dict) -> float:
         - 2 * v("passing_interceptions"), 1)
 
 
+# --------------------------------------- rol & takım hacmi düzeltmesi
+
+# Hacim grupları: (bütçe kolonu, ölçeklenecek proj_ kolonları)
+# Bir oyuncunun hacmi ölçeklenirken ona bağlı yard/TD'ler de aynı oranda
+# ölçeklenir; böylece verimlilik (yd/deneme) korunur, yalnızca pay değişir.
+VOLUME_GROUPS = [
+    ("attempts", ["attempts", "completions", "passing_yards", "passing_tds",
+                  "passing_interceptions"]),
+    ("carries", ["carries", "rushing_yards", "rushing_tds"]),
+    ("targets", ["targets", "receptions", "receiving_yards", "receiving_tds"]),
+]
+
+
+def _team_budgets(tw: pd.DataFrame | None) -> dict[str, dict[str, float]]:
+    """Takım başına maç başı gerçekçi hacim (REG ortalamaları)."""
+    if tw is None or tw.empty:
+        return {}
+    reg = tw[tw["season_type"] == "REG"] if "season_type" in tw.columns else tw
+    cols = [c for c, _ in VOLUME_GROUPS if c in reg.columns]
+    if not cols:
+        return {}
+    means = reg.groupby("team")[cols].mean()
+    return {t: {c: float(v) for c, v in row.items() if pd.notna(v)}
+            for t, row in means.iterrows()}
+
+
+def _starter_ids(df: pd.DataFrame, depth: pd.DataFrame | None,
+                 pw: pd.DataFrame | None) -> set[str]:
+    """Her takımın oynayacak QB'si: önce depth chart sırası, sonra son
+    sezondaki pas denemesi hacmi. Takımdaki diğer QB'ler projeksiyondan
+    düşer (sakat QB1 zaten üst akışta elenmiş olur, sırası yedeğe geçer)."""
+    qb = df[df["position"] == "QB"]
+    if qb.empty:
+        return set()
+    rank: dict[str, int] = {}
+    if depth is not None and not depth.empty and "depth" in depth.columns:
+        d = depth[depth["position"] == "QB"]
+        for _, r in d.iterrows():
+            pid = str(r["player_id"])
+            rank[pid] = min(rank.get(pid, 99), int(r["depth"]))
+    vol: dict[str, float] = {}
+    if pw is not None and "attempts" in pw.columns:
+        vol = (pw[pw["position"] == "QB"].groupby("player_id")["attempts"]
+               .sum().to_dict())
+    keep = set()
+    for team, grp in qb.groupby("team"):
+        best, best_key = None, None
+        for _, r in grp.iterrows():
+            pid = str(r["player_id"])
+            # düşük sıra numarası (QB1) önce; eşitlikte fazla deneme yapan
+            key = (rank.get(pid, 9), -float(vol.get(pid, 0.0)))
+            if best_key is None or key < best_key:
+                best, best_key = pid, key
+        if best:
+            keep.add(best)
+    return keep
+
+
+def apply_role_and_volume(df: pd.DataFrame, tw: pd.DataFrame | None,
+                          depth: pd.DataFrame | None,
+                          pw: pd.DataFrame | None) -> pd.DataFrame:
+    """Projeksiyonları gerçekçi kıl: (1) takım başına tek QB, (2) takımın
+    toplam hacmi (pas denemesi / koşu / target) maç başı ortalamasını aşarsa
+    oyuncular oransal olarak kısılır."""
+    if df.empty:
+        return df
+    qb_keep = _starter_ids(df, depth, pw)
+    if qb_keep:
+        df = df[(df["position"] != "QB") | df["player_id"].isin(qb_keep)]
+        df = df.reset_index(drop=True)
+
+    budgets = _team_budgets(tw)
+    if budgets:
+        for team, idx in df.groupby("team").groups.items():
+            budget = budgets.get(team)
+            if not budget:
+                continue
+            for base, cols in VOLUME_GROUPS:
+                cap = budget.get(base)
+                col = f"proj_{base}"
+                if cap is None or col not in df.columns:
+                    continue
+                total = float(df.loc[idx, col].fillna(0).sum())
+                if total <= cap or total == 0:
+                    continue  # yalnızca şişmeyi kırp, azı büyütme
+                f = cap / total
+                for c in cols:
+                    cc = f"proj_{c}"
+                    if cc in df.columns:
+                        df.loc[idx, cc] = (df.loc[idx, cc] * f).round(1)
+
+    df["proj_ppr"] = [_pseudo_ppr(r) for r in df.to_dict("records")]
+    df = df[df["proj_ppr"] >= 4].sort_values("proj_ppr", ascending=False)
+    return df.reset_index(drop=True)
+
+
 def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
                          schedules: pd.DataFrame, games: pd.DataFrame,
                          target_season: int, target_week: int,
@@ -667,8 +768,9 @@ def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
     df = pd.DataFrame(recs)
     if df.empty:
         return df
-    df = df[df["proj_ppr"] >= 4].sort_values("proj_ppr", ascending=False)
-    return df.reset_index(drop=True)
+    # Rol/hacim düzeltmesi çağıran tarafta yapılır (canlı ve karne ortak);
+    # burada yalnızca ham sıralama döner.
+    return df.sort_values("proj_ppr", ascending=False).reset_index(drop=True)
 
 
 # -------------------------------------------------- projeksiyon karnesi
@@ -715,6 +817,7 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
     players_latest: list[dict] = []
 
     # ML: tüm tarihi bir kez yükle + özellikleri bir kez çıkar
+    tw_hist = _read(data_season, "team_weeks")
     history_all = ml.load_all_weeks()
     feat_all = (ml.build_features(history_all, schedules)
                 if not history_all.empty else pd.DataFrame())
@@ -733,9 +836,17 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
         methods: dict = {}
         j_ml = None
 
+        # Geriye dönük testte de canlı motorla aynı rol/hacim düzeltmesi
+        # uygulanır; ancak yalnızca o haftadan ÖNCEKİ veriyle (depth chart
+        # bugünün kadrosu olduğu için kullanılmaz).
+        tw_cut = tw_hist[tw_hist["week"] < wk] if tw_hist is not None else None
+        fix = lambda d: apply_role_and_volume(d, tw_cut, None, cut)
+
         heur = build_projections(cut, points_allowed(cut), games_w,
                                  data_season, wk, data_season,
                                  use_current=False, apply_injuries=False)
+        if not heur.empty:
+            heur = fix(heur)
         if not heur.empty:
             methods["heuristic"], _ = _method_metrics(heur, actual, all_stats)
 
@@ -745,6 +856,8 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
                                       & (history_all["week"] < wk))]
             proj_ml = build_projections_ml(hist_cut, feat_all, schedules,
                                            games_w, data_season, wk)
+            if not proj_ml.empty:
+                proj_ml = fix(proj_ml)
             if not proj_ml.empty:
                 methods["ml"], j_ml = _method_metrics(proj_ml, actual, all_stats)
 
@@ -882,6 +995,9 @@ def build_and_write(schedules: pd.DataFrame, run_eval: bool = True) -> None:
         log.exception("ML projeksiyonu başarısız, sezgisel modele dönülüyor")
     if proj.empty:
         proj = build_projections(pw, allowed, games, next_season, next_week, season)
+    if not proj.empty:
+        proj = apply_role_and_volume(proj, _read(season, "team_weeks"),
+                                     _depth_chart(), pw)
     if not proj.empty:
         proj_safe = proj.astype(object).where(pd.notna(proj), None)
         payload_p = {
