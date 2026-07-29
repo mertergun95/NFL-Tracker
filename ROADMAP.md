@@ -273,6 +273,18 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       chart'ı yerine yalnızca o haftadan önceki hacim verisi kullanılır
 - [x] NCAA projeksiyonlarında da takım başına tek QB (132/132 takım)
 
+### ✅ Faz 5.20 — Kendi domainine taşıma hazırlığı (17. tur)
+- [x] Kod tarafında değişiklik gerekmediği doğrulandı: Vite `base: './'`
+      göreli varlık yolları üretiyor, arayüz HashRouter kullanıyor → site
+      hem `/NFL-Tracker/` altında hem kök dizinde birebir çalışıyor
+- [x] `docs/CUSTOM_DOMAIN.md`: registrar önerisi, kök domain için A/AAAA
+      kayıtları, www CNAME, GitHub ayarı ve HTTPS adımları
+- [x] `scripts/check-domain.sh`: DNS kayıtları, HTTPS, HTTP→HTTPS
+      yönlendirmesi ve veri dosyalarını doğrulayan betik (dig yoksa
+      python3 ile çözümler)
+- [x] Not: Actions ile yayınlandığı için depoya `CNAME` dosyası gerekmiyor
+      (GitHub bu yöntemde onu yok sayar)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
