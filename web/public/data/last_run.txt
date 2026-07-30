@@ -54,7 +54,7 @@ INFO Yazıldı: web/public/data/pos_allowed.json (128 satır, 12.5 KB)
 INFO Yazıldı: web/public/data/next_schedule.json (272 satır, 38.7 KB)
 INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
 INFO ML modelleri eğitildi: 12 hedef, 43994 satır
-INFO Projeksiyonlar yazıldı: 266 oyuncu (2026 W1)
+INFO Projeksiyonlar yazıldı: 247 oyuncu (2026 W1)
 INFO ML modelleri eğitildi: 12 hedef, 39764 satır
 INFO ML modelleri eğitildi: 12 hedef, 40079 satır
 INFO ML modelleri eğitildi: 12 hedef, 40410 satır
@@ -68,7 +68,7 @@ INFO ML modelleri eğitildi: 12 hedef, 42603 satır
 INFO ML modelleri eğitildi: 12 hedef, 42941 satır
 INFO ML modelleri eğitildi: 12 hedef, 43301 satır
 INFO ML modelleri eğitildi: 12 hedef, 43653 satır
-INFO Projeksiyon karnesi yazıldı: 13 hafta, son hafta 2453 oyuncu
+INFO Projeksiyon karnesi yazıldı: 13 hafta, son hafta 2427 oyuncu
 INFO NCAA 2025: 934 maç bulundu
 INFO NCAA 2025: 1 yeni maçın box score'u çekilecek
 INFO Yazıldı: web/public/data/ncaa/seasons/2025/schedule.json (934 satır, 93.9 KB)
