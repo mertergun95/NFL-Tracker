@@ -28,6 +28,7 @@ const POS_SORT: Record<string, string> = {
 const HEUR_FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor"];
 const GAME_COLS = ["proj_passing_yards", "proj_carries", "proj_rushing_yards",
                    "proj_targets", "proj_receptions", "proj_receiving_yards"];
+const RANGE_COL = "proj_range";
 
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
@@ -79,6 +80,7 @@ export default function Projections() {
         {t("proj.rosterNote")}
         <Link to="/accuracy">{t("nav.accuracy")}</Link>.{" "}
         {t("proj.dataNote", { season: data.data_season })}
+        {data.engine === "ml" && <> {t("proj.rangeNote")}</>}
       </p>
       <div className="toolbar">
         <div className="pill-row">
@@ -107,9 +109,9 @@ export default function Projections() {
       <StatTable rows={view === "game" ? gameRows : rows}
         columns={view === "game"
           ? ["player_name", "position", "team", "opponent", ...GAME_COLS,
-             "injury_status"]
+             RANGE_COL, "injury_status"]
           : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? []),
-             ...(data.engine === "ml" ? [] : HEUR_FACTOR_COLS),
+             ...(data.engine === "ml" ? [RANGE_COL] : HEUR_FACTOR_COLS),
              "injury_status"]}
         defaultSort={view === "game" ? "proj_receiving_yards" : POS_SORT[pos]}
         maxRows={60}
@@ -126,6 +128,12 @@ export default function Projections() {
           opponent: (row) => (
             <Link to={`/team/${row.opponent}`}>{String(row.opponent)}</Link>
           ),
+          [RANGE_COL]: (row) => {
+            const lo = row.proj_floor_ppr, hi = row.proj_ceiling_ppr;
+            if (lo === null || lo === undefined || hi === null || hi === undefined)
+              return "—";
+            return `${lo}–${hi}`;
+          },
         }}
       />
     </section>

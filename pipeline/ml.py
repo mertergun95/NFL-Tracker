@@ -4,9 +4,25 @@
 kullanarak stat başına birer HistGradientBoostingRegressor eğitir.
 Özellikler yalnızca hedef haftadan ÖNCEKİ bilgiden türetilir (sızıntı yok):
 - oyuncunun sezon-içi kümülatif ve son-3-maç ortalamaları (hacim + üretim)
+- oyuncunun kullanım/verimlilik oranları (target share, air yards share,
+  carry share, EPA/play) — ham hacimden bağımsız, asıl "fırsat" sinyali
 - önceki sezonun maç başı ortalamaları (sezon başı soğuk-başlangıcı çözer)
 - rakibin o pozisyona o statta sezon-içi verdiği (maç başı)
+- takım skor bağlamı: kendi takımının ve rakibin sezon-içi maç başı
+  attığı/yediği sayı (gerçek Vegas hattı yerine geçen ücretsiz proxy —
+  maç temposu/shootout potansiyelini yakalar, özellikle TD ve pas
+  hacminde ham "rakibe verilen yard" özelliklerinden daha güçlü sinyal)
 - ev/deplasman, hafta numarası, pozisyon, o sezonki maç sayısı
+
+Not (18. tur — projeksiyon kalitesi araştırması): geriye dönük test
+(proj_eval.json) tahmin/gerçek varyans oranını doğruluk korelasyonuna
+(r) çok yakın gösteriyordu — yani "her oyuncu ortalamaya yakınsıyor"
+şikâyeti aşırı regularizasyondan değil, düşük açıklayıcı güçten (zayıf
+özellik seti) kaynaklanıyordu; bu en belirgin TD ve pas hacminde
+görülüyordu (r≈0.15-0.30). Literatür (bkz. Tweedie/Poisson loss ile
+overdispersed count-data çalışmaları) sayım-tipi hedeflerde kare-hata
+yerine Poisson loss önerir; bu dosyada hem yeni özellik grupları hem
+de hedefe göre loss seçimi eklendi.
 """
 import logging
 
@@ -29,6 +45,19 @@ STATS = ["targets", "receptions", "receiving_yards", "receiving_tds",
 # tahmin edilen hedefler (fantasy hariç — o türetilir)
 TARGETS = [s for s in STATS if s != "fantasy_points_ppr"]
 
+# sayım-tipi hedefler: Poisson loss (kare-hata düz hacim/pas-yardı statları
+# için kalır — bunlar sürekli/skewed ama "sayım" değil)
+COUNT_TARGETS = {"targets", "receptions", "carries", "attempts", "completions",
+                 "passing_tds", "rushing_tds", "receiving_tds",
+                 "passing_interceptions"}
+
+# yalnızca ÖZELLİK olarak kullanılan kullanım/verimlilik oranları — hedef
+# DEĞİL. Ham hacimden (targets, carries...) bağımsız "fırsat kalitesi"
+# sinyali taşırlar, bu yüzden zayıf-korelasyonlu statlarda (TD, pas)
+# açıklayıcı gücü belirgin artırırlar.
+AUX_STATS = ["target_share", "air_yards_share", "carry_share",
+            "passing_epa", "rushing_epa", "receiving_epa"]
+
 # rakip-zafiyeti özelliği eklenecek statlar
 OPP_STATS = ["receptions", "receiving_yards", "receiving_tds",
              "carries", "rushing_yards", "rushing_tds",
@@ -50,6 +79,13 @@ def load_all_weeks() -> pd.DataFrame:
         if s not in df.columns:
             df[s] = 0.0
         df[s] = pd.to_numeric(df[s], errors="coerce").fillna(0.0)
+    for s in AUX_STATS:
+        # 0 ile doldurulmaz: gerçekten "yok" (ör. eski sezonda kolon yok)
+        # ile "gerçekten sıfır pay" farklı şeyler — HGBR eksik değeri
+        # doğal olarak işleyebiliyor, yanlış sinyal vermektense NaN bırak.
+        if s not in df.columns:
+            df[s] = np.nan
+        df[s] = pd.to_numeric(df[s], errors="coerce")
     return df.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
 
 
@@ -59,6 +95,40 @@ def _home_map(schedules: pd.DataFrame) -> set:
             for r in reg.itertuples()}
 
 
+def _team_game_log(schedules: pd.DataFrame) -> pd.DataFrame:
+    """Her maç için iki satır (ev/deplasman) — takım bazlı skor günlüğü."""
+    reg = schedules[schedules["game_type"] == "REG"].copy()
+    home = reg[["season", "week", "home_team", "home_score", "away_score"]].rename(
+        columns={"home_team": "team", "home_score": "points_for",
+                 "away_score": "points_against"})
+    away = reg[["season", "week", "away_team", "away_score", "home_score"]].rename(
+        columns={"away_team": "team", "away_score": "points_for",
+                 "home_score": "points_against"})
+    tg = pd.concat([home, away], ignore_index=True)
+    tg["points_for"] = pd.to_numeric(tg["points_for"], errors="coerce")
+    tg["points_against"] = pd.to_numeric(tg["points_against"], errors="coerce")
+    tg = tg.dropna(subset=["points_for", "points_against"])
+    return tg.sort_values(["team", "season", "week"])
+
+
+def _scoring_context(schedules: pd.DataFrame) -> pd.DataFrame:
+    """Takım-hafta bazlı sızıntısız skor bağlamı: o haftadan ÖNCEKİ
+    maçların sezon-içi maç başı averajı. Gerçek Vegas hattı yerine geçen
+    ücretsiz bir proxy — maç temposu/shootout potansiyelini yakalar."""
+    tg = _team_game_log(schedules)
+    if tg.empty:
+        return pd.DataFrame(columns=["team", "season", "week",
+                                     "team_ppg", "team_pa_ppg"])
+    g = tg.groupby(["team", "season"], sort=False)
+    tg["team_ppg"] = g["points_for"].shift(1).groupby(
+        [tg["team"], tg["season"]]).expanding().mean().reset_index(
+        level=[0, 1], drop=True)
+    tg["team_pa_ppg"] = g["points_against"].shift(1).groupby(
+        [tg["team"], tg["season"]]).expanding().mean().reset_index(
+        level=[0, 1], drop=True)
+    return tg[["team", "season", "week", "team_ppg", "team_pa_ppg"]]
+
+
 def build_features(df: pd.DataFrame, schedules: pd.DataFrame) -> pd.DataFrame:
     """Her oyuncu-hafta satırı için sızıntısız özellik seti (hedefler dahil)."""
     df = df.copy()
@@ -66,6 +136,14 @@ def build_features(df: pd.DataFrame, schedules: pd.DataFrame) -> pd.DataFrame:
 
     feats = {}
     for s in STATS:
+        shifted = g[s].shift(1)
+        feats[f"szn_{s}"] = shifted.groupby(
+            [df["player_id"], df["season"]]).expanding().mean().reset_index(
+            level=[0, 1], drop=True)
+        feats[f"l3_{s}"] = shifted.groupby(
+            [df["player_id"], df["season"]]).rolling(3, min_periods=1).mean(
+            ).reset_index(level=[0, 1], drop=True)
+    for s in AUX_STATS:
         shifted = g[s].shift(1)
         feats[f"szn_{s}"] = shifted.groupby(
             [df["player_id"], df["season"]]).expanding().mean().reset_index(
@@ -99,6 +177,22 @@ def build_features(df: pd.DataFrame, schedules: pd.DataFrame) -> pd.DataFrame:
     for k, v in feats.items():
         df[k] = v.values if hasattr(v, "values") else v
 
+    # takım skor bağlamı: kendi takımın hücum gücü + rakibin savunma
+    # zafiyeti + rakibin kendi hücum gücü (tempo/shootout proxy'si)
+    sc = _scoring_context(schedules)
+    if not sc.empty:
+        df = df.merge(sc, on=["team", "season", "week"], how="left")
+        opp_sc = sc.rename(columns={"team": "opponent_team",
+                                    "team_ppg": "opp_pf_ppg",
+                                    "team_pa_ppg": "opp_pa_ppg"})
+        df = df.merge(
+            opp_sc[["opponent_team", "season", "week",
+                    "opp_pf_ppg", "opp_pa_ppg"]],
+            on=["opponent_team", "season", "week"], how="left")
+    else:
+        for c in ("team_ppg", "team_pa_ppg", "opp_pf_ppg", "opp_pa_ppg"):
+            df[c] = np.nan
+
     homes = _home_map(schedules)
     df["is_home"] = [(int(r.season), int(r.week), str(r.team)) in homes
                      for r in df.itertuples()]
@@ -109,17 +203,17 @@ def build_features(df: pd.DataFrame, schedules: pd.DataFrame) -> pd.DataFrame:
 
 FEATURE_COLS = (
     [f"szn_{s}" for s in STATS] + [f"l3_{s}" for s in STATS]
+    + [f"szn_{s}" for s in AUX_STATS] + [f"l3_{s}" for s in AUX_STATS]
     + [f"prev_{s}" for s in STATS] + [f"opp_{s}" for s in OPP_STATS]
+    + ["team_ppg", "opp_pf_ppg", "opp_pa_ppg"]
     + ["games_so_far", "week", "is_home"]
     + [f"pos_{p}" for p in SKILL_POS]
 )
 
 
-def train_models(feat_df: pd.DataFrame,
-                 max_season: int, max_week: int | None = None) -> dict:
-    """(max_season, max_week) ÖNCESİ satırlarla stat başına model eğitir."""
-    from sklearn.ensemble import HistGradientBoostingRegressor
-
+def _train_split(feat_df: pd.DataFrame, max_season: int,
+                 max_week: int | None) -> pd.DataFrame | None:
+    """(max_season, max_week) ÖNCESİ, geçmişi olan satırlar. Yetersizse None."""
     mask = (feat_df["season"] < max_season) | (
         (feat_df["season"] == max_season)
         & (feat_df["week"] < (max_week or 99)))
@@ -129,18 +223,87 @@ def train_models(feat_df: pd.DataFrame,
     train = feat_df[mask & has_hist]
     if len(train) < 2000:
         log.warning("ML eğitimi için yetersiz veri: %s satır", len(train))
+        return None
+    return train
+
+
+def train_models(feat_df: pd.DataFrame,
+                 max_season: int, max_week: int | None = None) -> dict:
+    """(max_season, max_week) ÖNCESİ satırlarla stat başına model eğitir.
+
+    Sayım-tipi hedefler (targets, receptions, TD'ler, int...) Poisson loss
+    ile eğitilir — kare-hata bu statlarda dağılımı aşırı düzleştirip
+    tahmini gerçek varyanstan çok daha dar bir aralığa sıkıştırıyordu.
+    Yard statları (sürekli, sayım değil) kare-hatada kalır.
+    """
+    from sklearn.ensemble import HistGradientBoostingRegressor
+
+    train = _train_split(feat_df, max_season, max_week)
+    if train is None:
         return {}
     X = train[FEATURE_COLS].astype(float)
     models = {}
     for t in TARGETS:
+        loss = "poisson" if t in COUNT_TARGETS else "squared_error"
         m = HistGradientBoostingRegressor(
+            loss=loss,
             max_iter=220, learning_rate=0.06, max_depth=None,
-            max_leaf_nodes=31, min_samples_leaf=40,
-            l2_regularization=1.0, random_state=42)
-        m.fit(X, train[t].astype(float))
+            max_leaf_nodes=31, min_samples_leaf=20,
+            l2_regularization=0.4, random_state=42)
+        y = train[t].astype(float)
+        if loss == "poisson":
+            y = y.clip(lower=0)  # Poisson negatif hedef kabul etmez
+        m.fit(X, y)
         models[t] = m
     log.info("ML modelleri eğitildi: %s hedef, %s satır", len(models), len(train))
     return models
+
+
+# taban (p20) / tavan (p80) — "ortalamaya yakınsama" şikâyetinin asıl
+# çözümü: tek bir nokta tahmini yerine gerçekçi bir aralık. Kare-hata/
+# Poisson modelleri E[Y|X]'i (koşullu BEKLENEN değeri) tahmin eder — bu,
+# matematiksel olarak gerçek sonuçlardan daha düşük varyanslı olmak
+# ZORUNDADIR (Var(Y) = Var(E[Y|X]) + E[Var(Y|X)]); yani "herkes ortalamaya
+# yakın" görünümü büyük ölçüde beklenen-değer tahmininin doğası. Asıl
+# eksik olan, bu belirsizliği kullanıcıya göstermekti.
+QUANTILES = (0.2, 0.8)
+
+
+def train_quantile_models(feat_df: pd.DataFrame, max_season: int,
+                          max_week: int | None = None) -> dict:
+    """fantasy_points_ppr için taban/tavan (p20/p80) quantile regressor'ları."""
+    from sklearn.ensemble import HistGradientBoostingRegressor
+
+    train = _train_split(feat_df, max_season, max_week)
+    if train is None:
+        return {}
+    X = train[FEATURE_COLS].astype(float)
+    y = train["fantasy_points_ppr"].astype(float)
+    models = {}
+    for q in QUANTILES:
+        m = HistGradientBoostingRegressor(
+            loss="quantile", quantile=q,
+            max_iter=220, learning_rate=0.06, max_depth=None,
+            max_leaf_nodes=31, min_samples_leaf=20,
+            l2_regularization=0.4, random_state=42)
+        m.fit(X, y)
+        models[q] = m
+    return models
+
+
+def predict_quantiles(models: dict, rows: pd.DataFrame) -> pd.DataFrame:
+    """proj_floor_ppr (p20) / proj_ceiling_ppr (p80) tahminleri."""
+    X = rows[FEATURE_COLS].astype(float)
+    out = rows[["player_id"]].copy()
+    for q, m in models.items():
+        col = "proj_floor_ppr" if q < 0.5 else "proj_ceiling_ppr"
+        out[col] = np.clip(m.predict(X), 0, None).round(1)
+    if "proj_floor_ppr" in out.columns and "proj_ceiling_ppr" in out.columns:
+        # p20 > p80 gibi nadir çapraz durumları düzelt (küçük örneklemde olabilir)
+        lo = out[["proj_floor_ppr", "proj_ceiling_ppr"]].min(axis=1)
+        hi = out[["proj_floor_ppr", "proj_ceiling_ppr"]].max(axis=1)
+        out["proj_floor_ppr"], out["proj_ceiling_ppr"] = lo, hi
+    return out
 
 
 def predict(models: dict, rows: pd.DataFrame) -> pd.DataFrame:
@@ -185,6 +348,7 @@ def inference_rows(history: pd.DataFrame, schedules: pd.DataFrame,
             "season": target_season, "week": target_week,
             "season_type": "REG",
             **{s: 0.0 for s in STATS},
+            **{s: np.nan for s in AUX_STATS},
         })
     if not cands:
         return pd.DataFrame()

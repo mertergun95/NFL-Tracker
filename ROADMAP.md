@@ -300,6 +300,45 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       `mertergun95.github.io/NFL-Tracker` adresleri 301 ile yeni domaine
       yönleniyor, NFL ve NCAA veri dosyaları erişilebilir
 
+### ✅ Faz 5.22 — Projeksiyon modeli araştırması: "ortalamaya yakınsama" (19. tur)
+- [x] **Araştırma:** Tablosal spor verisinde SOTA hâlâ gradient boosting
+      (LightGBM/XGBoost/CatBoost ailesi) — mimari değişikliğe gerek
+      yoktu. Sayım-tipi (TD, reception, target...) hedeflerde kare-hata
+      yerine Poisson/Tweedie loss literatürde standart öneri. DFS
+      projeksiyon siteleri (FantasyLabs, Fantasy Projection Lab vb.)
+      "ortalamaya yakınsama" sorununu tek nokta tahminini değiştirerek
+      değil, floor/ceiling (dağılım) göstererek çözüyor.
+- [x] **Teşhis (ölçülü):** proj_eval.json üzerinde tahmin/gerçek
+      standart sapma oranı hesaplandı — reception/yard statlarında
+      ~0.5-0.7, TD ve pas hacminde ~0.18-0.33. Bu oranların korelasyona
+      (r) neredeyse birebir denk gelmesi (Var(Y)=Var(E[Y|X])+E[Var(Y|X)])
+      "aşırı regularizasyon" değil **düşük açıklayıcı güç** teşhisini
+      doğruladı — özellikle TD'ler NFL analitiğinde bilinen şekilde
+      büyük ölçüde şansa bağlı, haftalık r≈0.15-0.30 gerçekçi bir tavan.
+- [x] `pipeline/ml.py`: kullanım/verimlilik oranı özellikleri eklendi
+      (target_share, air_yards_share, carry_share, passing/rushing/
+      receiving_epa — veride vardı, hiç kullanılmıyordu), takım skor
+      bağlamı özelliği eklendi (kendi takımın + rakibin sezon-içi maç
+      başı attığı/yediği sayı — gerçek Vegas hattı yerine geçen ücretsiz
+      proxy, maç temposu/shootout sinyali taşır)
+- [x] Sayım-tipi hedefler (targets, receptions, carries, TD'ler, int)
+      artık Poisson loss ile eğitiliyor; yard statları kare-hatada kaldı.
+      Regularizasyon hafifçe gevşetildi (min_samples_leaf 40→20,
+      l2 1.0→0.4)
+- [x] Yerel geriye dönük test: yeni özellikler MAE/korelasyonu
+      neredeyse değiştirmedi (~0.55-0.63 → aynı) — bu da düşük-R²
+      teşhisini doğruladı, sorunun veri/özellik eksikliği değil
+      istatistiksel bir gerçek olduğunu gösterdi
+- [x] **Asıl çözüm:** p20/p80 quantile regression ile taban/tavan
+      (floor/ceiling) — `train_quantile_models`/`predict_quantiles`.
+      Projeksiyonlar sayfasına "Floor–Ceiling" kolonu, oyuncu künyesine
+      "gerçekçi aralık" satırı eklendi; artık tek bir sayı yerine
+      gerçekçi bir aralık gösteriliyor (ör. Mahomes 6.8–26.4 PPR)
+- [x] Gelecek veri kaynağı fikirleri (dokümante edildi, uygulanmadı):
+      gerçek Vegas kapanış oranları (ücretli API), haftalık granülerlikte
+      red zone fırsat payı (mevcut player_redzone.json yalnızca sezon
+      toplamı — haftalık için ham pbp'den yeniden hesaplama gerekir)
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi

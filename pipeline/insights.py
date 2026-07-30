@@ -768,6 +768,10 @@ def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
     if rows.empty:
         return pd.DataFrame()
     preds = ml.predict(models, rows)
+    qmodels = ml.train_quantile_models(feat_df, target_season, target_week)
+    if qmodels:
+        qpreds = ml.predict_quantiles(qmodels, rows)
+        preds = preds.merge(qpreds, on="player_id", how="left")
     out = rows[["player_id", "player_name", "position", "team",
                 "opponent"]].merge(preds, on="player_id")
 
@@ -777,6 +781,7 @@ def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
         status, note = injuries.get(r["player_id"], (None, None))
         if status in ("Out", "Doubtful"):
             continue
+        inj_mult = 0.9 if status == "Questionable" else 1.0
         rec = {
             "player_id": r["player_id"], "player_name": r["player_name"],
             "position": r["position"], "team": r["team"],
@@ -786,9 +791,16 @@ def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
         for stat in POS_PROJ_STATS.get(str(r["position"]), []):
             val = r.get(f"proj_{stat}")
             if val is not None and not pd.isna(val):
-                rec[f"proj_{stat}"] = float(val) * (0.9 if status == "Questionable" else 1.0)
-                rec[f"proj_{stat}"] = round(rec[f"proj_{stat}"], 1)
+                rec[f"proj_{stat}"] = round(float(val) * inj_mult, 1)
         rec["proj_ppr"] = _pseudo_ppr(rec)
+        # taban/tavan: fantasy_points_ppr hedefine doğrudan eğitilen ayrı
+        # p20/p80 quantile modellerinden — proj_ppr (stat toplamından
+        # türetilen) ile aynı ölçekte, ayrıca ölçeklemeye gerek yok.
+        floor_raw, ceil_raw = r.get("proj_floor_ppr"), r.get("proj_ceiling_ppr")
+        if floor_raw is not None and not pd.isna(floor_raw):
+            rec["proj_floor_ppr"] = round(float(floor_raw) * inj_mult, 1)
+        if ceil_raw is not None and not pd.isna(ceil_raw):
+            rec["proj_ceiling_ppr"] = round(float(ceil_raw) * inj_mult, 1)
         recs.append(rec)
     df = pd.DataFrame(recs)
     if df.empty:

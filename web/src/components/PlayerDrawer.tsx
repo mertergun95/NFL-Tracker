@@ -160,6 +160,14 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 <div className="drawer-proj-stats">
                   {projStatLine(proj)}
                 </div>
+                {proj.proj_floor_ppr !== undefined
+                    && proj.proj_ceiling_ppr !== undefined && (
+                  <div className="drawer-proj-sub">
+                    {t("drawer.pprRange", {
+                      lo: String(proj.proj_floor_ppr),
+                      hi: String(proj.proj_ceiling_ppr) })}
+                  </div>
+                )}
                 {proj.matchup_factor !== undefined && (
                   <div className="drawer-proj-sub">
                     {t("drawer.factors", {

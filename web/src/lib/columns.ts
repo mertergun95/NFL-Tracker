@@ -194,6 +194,7 @@ export const STAT_LABELS: Record<string, string | [string, string, string]> = {
   // projeksiyon
   proj_ppr: "Proj PPR",
   proj_stat: "Proj Yds",
+  proj_range: ["Floor–Ceiling", "Taban–Tavan", "Boden–Decke"],
   recent_avg: ["Last 5 Avg", "Son 5 Ort", "Ø letzte 5"],
   season_avg: ["Season Avg", "Sezon Ort", "Ø Saison"],
   matchup_factor: "Matchup",
