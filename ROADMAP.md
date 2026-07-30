@@ -372,6 +372,14 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       kombinasyon × 2 quantile = 46 model). Sonuç: Rice 38.8–98.8,
       Chase 40.0–118.1, Nacua 42.1–127.9 rec yd — gerçek ampirik dağılımla
       örtüşüyor, artık kişiye özel ve dar bir aralık
+- [x] **5. bug (kullanıcı geri bildirimiyle):** UI'de taban/tavan yalnızca
+      pozisyonun "birincil" TEK statı için gösteriliyordu (ör. WR'de
+      sadece Rec Yds); oysa veride her stat için ayrı ayrı vardı. Artık
+      Projeksiyonlar tablosunda HER stat sütunu (P·Att, P·Cmp, P·Pass Yds,
+      P·Tgt, P·Rec, P·Rec TD...) kendi taban–tavanını hücrenin altında
+      küçük gösteriyor; oyuncu künyesinde de pozisyonun tüm ilgili
+      statları (QB: 7 stat, WR/TE: 4 stat, RB: 6 stat) liste halinde,
+      her biri kendi aralığıyla
 - [x] Gelecek veri kaynağı fikirleri (dokümante edildi, uygulanmadı):
       gerçek Vegas kapanış oranları (ücretli API), haftalık granülerlikte
       red zone fırsat payı (mevcut player_redzone.json yalnızca sezon
