@@ -509,3 +509,48 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 .game-line { display: flex; justify-content: space-between; padding: 2px 0; }
 .game-line a { color: var(--text); text-decoration: none; }
 .game-line a:hover { color: var(--link); }
+
+/* ---- tablet ---- */
+@media (max-width: 900px) {
+  main { padding: 18px 16px 40px; }
+  .topbar { padding: 10px 16px; gap: 14px; }
+  .perf-card { min-width: 260px; }
+}
+
+/* ---- telefon ---- */
+@media (max-width: 640px) {
+  main { padding: 14px 12px 32px; }
+
+  .topbar { padding: 10px 12px; gap: 8px 10px; }
+  .logo { font-size: 1rem; }
+  .logo svg { width: 22px; height: 22px; }
+  .topbar nav { gap: 2px; }
+  .topbar nav a { padding: 5px 8px; font-size: 0.82rem; }
+  .league-switch { margin: 0; }
+  .league-switch a { padding: 4px 11px; font-size: 0.8rem; }
+  .lang-switch button { padding: 4px 9px; font-size: 0.72rem; }
+
+  h1 { font-size: 1.3rem; }
+  h2 { font-size: 1.05rem; margin: 20px 0 8px; }
+  .player-header { gap: 12px; }
+  .headshot { width: 66px; height: 49px; }
+
+  .toolbar { gap: 10px; }
+  .search { min-width: 0; width: 100%; }
+  .prop-suggest { min-width: 0; width: 100%; max-width: calc(100vw - 24px); }
+
+  .stat-table { font-size: 0.78rem; }
+  .stat-table th, .stat-table td { padding: 6px 8px; }
+
+  .game-hero { padding: 14px 16px; gap: 12px; font-size: 1rem; }
+  .game-hero strong { font-size: 1.4rem; }
+
+  .perf-card { min-width: 78vw; }
+
+  .leader-grid, .insight-grid, .standings-grid, .matchup-cols,
+  .game-grid, .depth-grid, .prop-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .drawer { width: 100%; max-width: 100vw; }
+}
