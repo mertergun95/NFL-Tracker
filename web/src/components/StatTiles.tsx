@@ -1,5 +1,6 @@
 import type { StatRow } from "../lib/types";
 import { fmt, label } from "../lib/columns";
+import { useT } from "../lib/i18n";
 
 interface Props {
   row: StatRow;
@@ -10,6 +11,7 @@ interface Props {
 
 /** Tek satırlık istatistikleri kutucuk ızgarası olarak gösterir. */
 export default function StatTiles({ row, cols, avg }: Props) {
+  const t = useT();
   const present = cols.filter((c) => row[c] !== null && row[c] !== undefined);
   if (present.length === 0) return null;
   return (
@@ -19,7 +21,7 @@ export default function StatTiles({ row, cols, avg }: Props) {
           <div className="tile-label">{label(c)}</div>
           <div className="tile-value">{fmt(c, row[c])}</div>
           {avg && avg[c] !== undefined && (
-            <div className="tile-avg">lig ort. {fmt(c, avg[c])}</div>
+            <div className="tile-avg">{t("chart.leagueAvgShort")} {fmt(c, avg[c])}</div>
           )}
         </div>
       ))}

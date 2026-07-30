@@ -30,12 +30,8 @@ const DEFAULT_AXES: Record<string, [string, string]> = {
   DEF: ["def_tackles_solo", "def_sacks"],
 };
 
-const DATASETS = [
-  ["season", "Sezon"],
-  ["redzone", "Red Zone"],
-  ["ngs", "Next Gen"],
-] as const;
-type Dataset = (typeof DATASETS)[number][0];
+const DATASETS = ["season", "redzone", "ngs"] as const;
+type Dataset = (typeof DATASETS)[number];
 
 const NGS_TYPE: Record<string, "passing" | "rushing" | "receiving"> = {
   QB: "passing", RB: "rushing", WR: "receiving", TE: "receiving",
@@ -200,7 +196,7 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
       <div className="toolbar">
         <div className="pill-row">
           <button className={`pill ${mode === "player" ? "active" : ""}`}
-                  onClick={() => setMode("player")}>Oyuncular</button>
+                  onClick={() => setMode("player")}>{t("charts.playersBtn")}</button>
           <button className={`pill ${mode === "team" ? "active" : ""}`}
                   onClick={() => setMode("team")}>{t("common.teams")}</button>
         </div>
@@ -210,9 +206,9 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
         <div className="toolbar">
           <PositionPicker value={pos} onChange={setPos} />
           <div className="pill-row">
-            {DATASETS.map(([key, lbl]) => (
+            {DATASETS.map((key) => (
               <button key={key} className={`pill small ${dataset === key ? "active" : ""}`}
-                      onClick={() => setDataset(key)}>{lbl}</button>
+                      onClick={() => setDataset(key)}>{t(`charts.dataset.${key}`)}</button>
             ))}
           </div>
         </div>

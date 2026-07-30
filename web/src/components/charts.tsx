@@ -276,7 +276,7 @@ export function PlayerScatterChart({ rows, x, y, labelTop = 12, nameKey = "playe
                    labelFormatter={() => ""}
                    content={undefined} />
           <ReferenceLine x={meanX} stroke={CHART.axis} strokeDasharray="5 5"
-                         label={{ value: "lig ort.", position: "insideTopLeft",
+                         label={{ value: translate("chart.leagueAvgShort"), position: "insideTopLeft",
                                   fill: CHART.muted, fontSize: 10 }} />
           <ReferenceLine y={meanY} stroke={CHART.axis} strokeDasharray="5 5" />
           {trend && (
