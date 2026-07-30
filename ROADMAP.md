@@ -358,6 +358,20 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
 - [x] Doğrulama: düzeltme sonrası QB'lerin pas yardı aralığı ör.
       Mahomes 19.8–301.1, Stafford 176.1–308.1 gibi gerçekçi çıktı;
       nokta tahmini metrikleri (MAE/korelasyon) düzeltmelerden etkilenmedi
+- [x] **4. bug (kullanıcı geri bildirimiyle bulundu):** aralıklar hâlâ
+      çok geniş/anlamsızdı — ör. Rashee Rice "0–101.2 rec yd" (herhangi
+      bir insan zaten "0 ile 100 arası" der, modelin katma değeri yok).
+      Kök neden: receiving_yards gibi statlar TÜM pozisyonlar (QB/RB/WR/TE)
+      havuzlanarak eğitiliyordu; düşük-hacimli çoğunluk (RB/TE/backup)
+      p20'yi gerçek WR1'ler için bile 0'a çekiyordu. Ölçüldü: sezon 60+
+      yd/maç ortalamalı gerçek WR'lerin ampirik p20'si ~39 yd — modelin
+      verdiği 0 değil. RB+WR+TE birlikte havuzlamak bile yetmedi (yine 0);
+      yalnızca TEK pozisyonla (sadece WR) eğitince taban 38.8'e çıktı.
+      **Çözüm:** `train_quantile_models`/`predict_quantiles` artık her
+      (pozisyon, stat) çifti için AYRI model eğitiyor/kullanıyor (23
+      kombinasyon × 2 quantile = 46 model). Sonuç: Rice 38.8–98.8,
+      Chase 40.0–118.1, Nacua 42.1–127.9 rec yd — gerçek ampirik dağılımla
+      örtüşüyor, artık kişiye özel ve dar bir aralık
 - [x] Gelecek veri kaynağı fikirleri (dokümante edildi, uygulanmadı):
       gerçek Vegas kapanış oranları (ücretli API), haftalık granülerlikte
       red zone fırsat payı (mevcut player_redzone.json yalnızca sezon

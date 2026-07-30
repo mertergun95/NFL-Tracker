@@ -63,6 +63,23 @@ OPP_STATS = ["receptions", "receiving_yards", "receiving_tds",
              "carries", "rushing_yards", "rushing_tds",
              "passing_yards", "passing_tds"]
 
+# Bir statı gerçekten üreten pozisyonlar — quantile (taban/tavan) eğitimi
+# için kritik: TÜM pozisyonlar havuzlanınca (ör. receiving_yards'ta QB/RB
+# gibi düşük-hacimli satırlar WR'lerden kat kat fazla), p20 tahmini gerçek
+# WR1 taban değerine değil, düşük-hacimli çoğunluğa yakınsıyordu (ör. Rashee
+# Rice taban=0 çıkıyordu; oysa gerçek veri: sezon 60+ yd/maç ortalamalı
+# WR'lerin p20'si ~39 yd). Yalnızca ilgili pozisyonlarla eğitince taban
+# 38.8'e çıktı — doğrulandı. Nokta tahmini (kare-hata/Poisson) etkilenmedi,
+# bu yüzden yalnızca quantile modellerinde uygulanıyor.
+STAT_POSITIONS = {
+    "attempts": ["QB"], "completions": ["QB"], "passing_yards": ["QB"],
+    "passing_tds": ["QB"], "passing_interceptions": ["QB"],
+    "carries": ["QB", "RB"], "rushing_yards": ["QB", "RB"],
+    "rushing_tds": ["QB", "RB"],
+    "targets": ["RB", "WR", "TE"], "receptions": ["RB", "WR", "TE"],
+    "receiving_yards": ["RB", "WR", "TE"], "receiving_tds": ["RB", "WR", "TE"],
+}
+
 
 def load_all_weeks() -> pd.DataFrame:
     """Repo'daki tüm işlenmiş sezonların REG oyuncu-haftaları."""
@@ -284,46 +301,67 @@ QUANTILES = (0.2, 0.8)
 def train_quantile_models(feat_df: pd.DataFrame, max_season: int,
                           max_week: int | None = None,
                           targets: list[str] | None = None) -> dict:
-    """Her hedef GERÇEK istatistik için taban/tavan (p20/p80) quantile
-    regressor'ları. targets verilmezse TARGETS'teki 12 statın hepsi için
-    eğitir. Dönüş: {stat: {quantile: model}}."""
+    """Her (pozisyon, hedef GERÇEK istatistik) çifti için taban/tavan
+    (p20/p80) quantile regressor'ları — POZİSYONA GÖRE AYRI eğitilir.
+
+    Önce tüm ilgili pozisyonları havuzlayarak denedik (ör. receiving_yards
+    için RB+WR+TE birlikte) ama bu bile p20'yi yanlış çekiyordu: WR1
+    seviyesi bir oyuncu için taban 0 çıkıyordu, oysa gerçek veride sezon
+    60+ yd/maç ortalamalı WR'lerin p20'si ~39 yd. Havuzdaki RB/TE
+    satırları (çok daha düşük hacim) düşük ucu domine ediyor, pos_WR
+    özelliği tek başına ağacın bunu telafi etmesine yetmiyor — yalnızca
+    TEK pozisyonla eğitince (ör. sadece WR) taban 38.8'e çıktı, doğrulandı.
+    targets verilmezse TARGETS'teki 12 statın hepsi için eğitir.
+    Dönüş: {(pozisyon, stat): {quantile: model}}."""
     from sklearn.ensemble import HistGradientBoostingRegressor
 
     targets = list(targets) if targets is not None else TARGETS
     train = _train_split(feat_df, max_season, max_week)
     if train is None:
         return {}
-    X = train[FEATURE_COLS].astype(float)
     models: dict = {}
     for t in targets:
-        y = train[t].astype(float).clip(lower=0)
-        tm = {}
-        for q in QUANTILES:
-            # l2_regularization=0 ZORUNLU: pinball (quantile) loss'un
-            # gradyanları sabit ve küçüktür (±q civarı), kare-hata/Poisson
-            # için ayarlanmış l2 burada orantısız güçlü kalıp modeli her
-            # girdide 0'a çöktürüyordu (doğrulandı — l2>0 iken tüm
-            # tahminler 0 çıkıyordu, l2=0'da doğru ayrışıyor).
-            m = HistGradientBoostingRegressor(
-                loss="quantile", quantile=q,
-                max_iter=220, learning_rate=0.06, max_depth=None,
-                max_leaf_nodes=31, min_samples_leaf=20,
-                l2_regularization=0.0, random_state=42)
-            m.fit(X, y)
-            tm[q] = m
-        models[t] = tm
+        for pos in STAT_POSITIONS.get(t, SKILL_POS):
+            sub = train[train["position"] == pos]
+            if len(sub) < 500:
+                continue  # bu pozisyon-stat kombinasyonu için yetersiz veri
+            X = sub[FEATURE_COLS].astype(float)
+            y = sub[t].astype(float).clip(lower=0)
+            tm = {}
+            for q in QUANTILES:
+                # l2_regularization=0 ZORUNLU: pinball (quantile) loss'un
+                # gradyanları sabit ve küçüktür (±q civarı), kare-hata/
+                # Poisson için ayarlanmış l2 burada orantısız güçlü kalıp
+                # modeli her girdide 0'a çöktürüyordu (doğrulandı — l2>0
+                # iken tüm tahminler 0 çıkıyordu, l2=0'da doğru ayrışıyor).
+                m = HistGradientBoostingRegressor(
+                    loss="quantile", quantile=q,
+                    max_iter=220, learning_rate=0.06, max_depth=None,
+                    max_leaf_nodes=31, min_samples_leaf=20,
+                    l2_regularization=0.0, random_state=42)
+                m.fit(X, y)
+                tm[q] = m
+            models[(pos, t)] = tm
     return models
 
 
 def predict_quantiles(models: dict, rows: pd.DataFrame) -> pd.DataFrame:
-    """Her hedef stat için proj_floor_<stat> (p20) / proj_ceiling_<stat>
-    (p80) tahminleri."""
-    X = rows[FEATURE_COLS].astype(float)
+    """Her (pozisyon, hedef stat) çifti için proj_floor_<stat> (p20) /
+    proj_ceiling_<stat> (p80) tahminleri — her satır kendi pozisyonunun
+    modeliyle tahmin edilir."""
     out = rows[["player_id"]].copy()
-    for t, tm in models.items():
+    stats = {t for (_, t) in models}
+    for (pos, t), tm in models.items():
+        mask = (rows["position"] == pos).values
+        if not mask.any():
+            continue
+        Xp = rows.loc[mask, FEATURE_COLS].astype(float)
         for q, m in tm.items():
             col = f"proj_floor_{t}" if q < 0.5 else f"proj_ceiling_{t}"
-            out[col] = np.clip(m.predict(X), 0, None).round(1)
+            if col not in out.columns:
+                out[col] = np.nan
+            out.loc[mask, col] = np.clip(m.predict(Xp), 0, None).round(1)
+    for t in stats:
         fc, cc = f"proj_floor_{t}", f"proj_ceiling_{t}"
         if fc in out.columns and cc in out.columns:
             # p20 > p80 gibi nadir çapraz durumları düzelt (küçük örneklemde olabilir)
