@@ -64,6 +64,7 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "nav.accuracy": ["Report Card", "Karne", "Trefferbilanz"],
   "nav.insights": "Insights",
   "nav.language": ["Language", "Dil", "Sprache"],
+  "nav.menu": ["Menu", "Menü", "Menü"],
 
   // ---------------------------------------------------------------- dashboard
   "dash.sub": ["{n} seasons loaded · {season} REG weeks 1–{week} · last update {date}",

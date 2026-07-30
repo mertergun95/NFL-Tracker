@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Players from "./pages/Players";
@@ -70,30 +71,43 @@ export default function App() {
   const seasons = manifest ? seasonsFromManifest(manifest) : [];
   const { data: ncaaManifest } = useAsync(() => loadNcaaManifest(), []);
   const ncaaSeasons = ncaaManifest ? seasonsFromManifest(ncaaManifest) : [];
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   return (
     <div className="app">
       <header className="topbar">
-        <Link to={isNcaa ? "/ncaa" : "/"} className="logo">
-          <Logo /> {t("app.brand")}
-        </Link>
-        <span className="league-switch">
-          <Link to="/" className={!isNcaa ? "active" : ""}>NFL</Link>
-          <Link to="/ncaa" className={isNcaa ? "active" : ""}>NCAA</Link>
-        </span>
-        <nav>
-          {(isNcaa ? NCAA_NAV : NAV).map(({ to, key }) => (
-            <NavLink key={to} to={to} end={to === "/" || to === "/ncaa"}>
-              {t(key)}
-            </NavLink>
-          ))}
-        </nav>
-        <span className="lang-switch" title={t("nav.language")}>
-          {LANGS.map((l) => (
-            <button key={l} className={l === lang ? "active" : ""}
-                    onClick={() => setLang(l)}>{LANG_NAMES[l]}</button>
-          ))}
-        </span>
+        <div className="topbar-row">
+          <Link to={isNcaa ? "/ncaa" : "/"} className="logo">
+            <Logo /> {t("app.brand")}
+          </Link>
+          <button type="button"
+                  className={`menu-toggle ${menuOpen ? "open" : ""}`}
+                  aria-label={t("nav.menu")} aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((v) => !v)}>
+            <span className="menu-toggle-bars" />
+          </button>
+        </div>
+        <div className={`topbar-menu ${menuOpen ? "open" : ""}`}>
+          <span className="league-switch">
+            <Link to="/" className={!isNcaa ? "active" : ""}>NFL</Link>
+            <Link to="/ncaa" className={isNcaa ? "active" : ""}>NCAA</Link>
+          </span>
+          <nav>
+            {(isNcaa ? NCAA_NAV : NAV).map(({ to, key }) => (
+              <NavLink key={to} to={to} end={to === "/" || to === "/ncaa"}>
+                {t(key)}
+              </NavLink>
+            ))}
+          </nav>
+          <span className="lang-switch" title={t("nav.language")}>
+            {LANGS.map((l) => (
+              <button key={l} className={l === lang ? "active" : ""}
+                      onClick={() => setLang(l)}>{LANG_NAMES[l]}</button>
+            ))}
+          </span>
+        </div>
       </header>
       <main>
         {loading && <Loading />}

@@ -317,6 +317,10 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 
 /* üst satırın sağ ucunda kalsın; nav tam genişlikte alt satıra iner */
 .topbar nav { order: 2; width: 100%; }
+
+/* masaüstü/tablette görünmez; ≤640px'te topbar hamburger menüye döner */
+.topbar-row, .topbar-menu { display: contents; }
+.menu-toggle { display: none; }
 .lang-switch {
   order: 1; margin-left: auto; display: inline-flex; flex-shrink: 0;
   border: 1px solid var(--border); border-radius: 999px; overflow: hidden;
@@ -521,14 +525,49 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
 @media (max-width: 640px) {
   main { padding: 14px 12px 32px; }
 
-  .topbar { padding: 10px 12px; gap: 8px 10px; }
+  .topbar { flex-direction: column; align-items: stretch; gap: 0; padding: 10px 14px; }
   .logo { font-size: 1rem; }
   .logo svg { width: 22px; height: 22px; }
-  .topbar nav { gap: 2px; }
-  .topbar nav a { padding: 5px 8px; font-size: 0.82rem; }
-  .league-switch { margin: 0; }
-  .league-switch a { padding: 4px 11px; font-size: 0.8rem; }
-  .lang-switch button { padding: 4px 9px; font-size: 0.72rem; }
+
+  .topbar-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%;
+  }
+  .menu-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 34px; flex-shrink: 0; position: relative;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer;
+  }
+  .menu-toggle-bars {
+    position: absolute; left: 9px; top: 16px; width: 20px; height: 2px;
+    background: var(--text); border-radius: 2px;
+    transition: background 0.2s ease;
+  }
+  .menu-toggle-bars::before, .menu-toggle-bars::after {
+    content: ""; position: absolute; left: 0; top: -6px; width: 20px; height: 2px;
+    background: var(--text); border-radius: 2px;
+    transition: transform 0.2s ease, top 0.2s ease;
+  }
+  .menu-toggle-bars::after { top: 6px; }
+  .menu-toggle.open .menu-toggle-bars { background: transparent; }
+  .menu-toggle.open .menu-toggle-bars::before { top: 0; transform: rotate(45deg); }
+  .menu-toggle.open .menu-toggle-bars::after { top: 0; transform: rotate(-45deg); }
+
+  .topbar-menu {
+    display: flex; flex-direction: column; align-items: stretch;
+    width: 100%; max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+  }
+  .topbar-menu.open {
+    max-height: 70vh; overflow-y: auto; opacity: 1; margin-top: 12px;
+  }
+  .topbar-menu .league-switch { order: 0; margin: 0 0 10px; align-self: flex-start; }
+  .topbar-menu nav {
+    order: 1; display: flex; flex-direction: column; gap: 2px; width: 100%;
+  }
+  .topbar-menu nav a { padding: 11px 12px; border-radius: 8px; font-size: 0.92rem; }
+  .topbar-menu .lang-switch { order: 2; margin: 12px 0 2px; align-self: flex-start; }
 
   h1 { font-size: 1.3rem; }
   h2 { font-size: 1.05rem; margin: 20px 0 8px; }
