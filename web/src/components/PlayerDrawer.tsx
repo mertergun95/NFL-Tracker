@@ -11,37 +11,20 @@ import {
 import { fmt, label, presetForPosition } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
-import { translate, useT } from "../lib/i18n";
+import { useT } from "../lib/i18n";
 
 const TREND_COLOR = { hot: "#3fb950", cold: "#f0883e", flat: CHART.series1 };
 
-/** Pozisyona göre gerçek stat projeksiyon satırı. */
-function projStatLine(p: Record<string, unknown>): string {
-  const v = (c: string) =>
-    p[c] !== null && p[c] !== undefined ? String(p[c]) : "—";
-  const pos = String(p.position);
-  const u = (k: string) => translate(`u.${k}`);
-  if (pos === "QB")
-    return `${v("proj_completions")}/${v("proj_attempts")} · ${v("proj_passing_yards")} ${u("passYd")} · ` +
-           `${v("proj_passing_tds")} TD · ${v("proj_passing_interceptions")} int`;
-  if (pos === "RB")
-    return `${v("proj_carries")} ${u("car")} · ${v("proj_rushing_yards")} ${u("rushYd")} · ` +
-           `${v("proj_receptions")} rec · ${v("proj_receiving_yards")} ${u("recYd")}`;
-  return `${v("proj_targets")} tgt · ${v("proj_receptions")} rec · ` +
-         `${v("proj_receiving_yards")} ${u("yd")} · ${v("proj_receiving_tds")} TD`;
-}
-
-/** Pozisyonun birincil GERÇEK istatistiği için taban–tavan aralığı
-    (fantasy puanı değil — rec/rush/pass yardı gibi asıl istatistik). */
-function rangeLine(p: Record<string, unknown>): string | null {
-  const pos = String(p.position);
-  const statKey = pos === "QB" ? "passing_yards"
-    : pos === "RB" ? "rushing_yards" : "receiving_yards";
-  const lo = p[`proj_floor_${statKey}`], hi = p[`proj_ceiling_${statKey}`];
-  if (lo === null || lo === undefined || hi === null || hi === undefined)
-    return null;
-  return `${lo}–${hi} ${label(statKey)}`;
-}
+// pozisyona göre gösterilecek GERÇEK stat projeksiyonları — hepsi kendi
+// taban/tavan aralığıyla (fantasy puanı değil, tek bir stat da değil)
+const POS_PROJ_STATS: Record<string, string[]> = {
+  QB: ["attempts", "completions", "passing_yards", "passing_tds",
+       "passing_interceptions", "carries", "rushing_yards"],
+  RB: ["carries", "rushing_yards", "rushing_tds", "targets", "receptions",
+       "receiving_yards"],
+  WR: ["targets", "receptions", "receiving_yards", "receiving_tds"],
+  TE: ["targets", "receptions", "receiving_yards", "receiving_tds"],
+};
 
 interface Props {
   playerId: string | null;
@@ -169,14 +152,25 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                     {String(proj.opponent)}
                   </span>
                 </div>
-                <div className="drawer-proj-stats">
-                  {projStatLine(proj)}
+                <div className="drawer-stats">
+                  {(POS_PROJ_STATS[String(proj.position)] ?? []).map((s) => {
+                    const col = `proj_${s}`;
+                    const lo = proj[`proj_floor_${s}`], hi = proj[`proj_ceiling_${s}`];
+                    const hasRange = lo !== null && lo !== undefined
+                      && hi !== null && hi !== undefined;
+                    return (
+                      <div className="drawer-row" key={s}>
+                        <span>{label(s)}</span>
+                        <div style={{ textAlign: "right" }}>
+                          <strong>{fmt(col, proj[col])}</strong>
+                          {hasRange && (
+                            <div className="stat-range">{fmt(col, lo)}–{fmt(col, hi)}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                {rangeLine(proj) && (
-                  <div className="drawer-proj-sub">
-                    {t("drawer.statRange", { range: rangeLine(proj) as string })}
-                  </div>
-                )}
                 {proj.matchup_factor !== undefined && (
                   <div className="drawer-proj-sub">
                     {t("drawer.factors", {

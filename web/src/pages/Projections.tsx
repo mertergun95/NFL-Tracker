@@ -7,7 +7,7 @@ import { Loading } from "../components/Pickers";
 import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
-import { label } from "../lib/columns";
+import { fmt } from "../lib/columns";
 import { useT } from "../lib/i18n";
 
 // pozisyona göre gösterilecek GERÇEK stat projeksiyonları
@@ -26,15 +26,15 @@ const POS_SORT: Record<string, string> = {
   QB: "proj_passing_yards", RB: "proj_rushing_yards",
   WR: "proj_receiving_yards", TE: "proj_receiving_yards",
 };
-// taban/tavan aralığı gösterilecek "birincil" GERÇEK istatistik (pozisyona göre)
-const RANGE_STAT: Record<string, string> = {
-  QB: "passing_yards", RB: "rushing_yards",
-  WR: "receiving_yards", TE: "receiving_yards",
-};
 const HEUR_FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor"];
 const GAME_COLS = ["proj_passing_yards", "proj_carries", "proj_rushing_yards",
                    "proj_targets", "proj_receptions", "proj_receiving_yards"];
-const RANGE_COL = "proj_range";
+// tüm proj_ kolonları (POS_COLS + GAME_COLS'taki hepsi) — her biri kendi
+// taban/tavanını hücrenin altında küçük gösterir (yalnızca fantasy puanı
+// değil, HER gerçek istatistik için)
+const ALL_STAT_COLS = [...new Set([
+  ...Object.values(POS_COLS).flat(), ...GAME_COLS,
+])];
 
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
@@ -42,6 +42,24 @@ const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   WR: (p) => p.position === "WR",
   TE: (p) => p.position === "TE",
 };
+
+/** Her stat hücresi: ana değer + altında küçük taban–tavan (varsa). */
+function statCellRender(col: string, showRange: boolean) {
+  const stat = col.replace(/^proj_/, "");
+  return (row: StatRow) => {
+    const main = fmt(col, row[col]);
+    if (!showRange) return main;
+    const lo = row[`proj_floor_${stat}`], hi = row[`proj_ceiling_${stat}`];
+    if (lo === null || lo === undefined || hi === null || hi === undefined)
+      return main;
+    return (
+      <>
+        {main}
+        <div className="stat-range">{fmt(col, lo)}–{fmt(col, hi)}</div>
+      </>
+    );
+  };
+}
 
 export default function Projections() {
   const t = useT();
@@ -115,9 +133,9 @@ export default function Projections() {
       <StatTable rows={view === "game" ? gameRows : rows}
         columns={view === "game"
           ? ["player_name", "position", "team", "opponent", ...GAME_COLS,
-             RANGE_COL, "injury_status"]
+             "injury_status"]
           : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? []),
-             ...(data.engine === "ml" ? [RANGE_COL] : HEUR_FACTOR_COLS),
+             ...(data.engine === "ml" ? [] : HEUR_FACTOR_COLS),
              "injury_status"]}
         defaultSort={view === "game" ? "proj_receiving_yards" : POS_SORT[pos]}
         maxRows={60}
@@ -134,13 +152,8 @@ export default function Projections() {
           opponent: (row) => (
             <Link to={`/team/${row.opponent}`}>{String(row.opponent)}</Link>
           ),
-          [RANGE_COL]: (row) => {
-            const stat = RANGE_STAT[String(row.position)] ?? "receiving_yards";
-            const lo = row[`proj_floor_${stat}`], hi = row[`proj_ceiling_${stat}`];
-            if (lo === null || lo === undefined || hi === null || hi === undefined)
-              return "—";
-            return `${lo}–${hi} ${label(stat)}`;
-          },
+          ...Object.fromEntries(
+            ALL_STAT_COLS.map((c) => [c, statCellRender(c, data.engine === "ml")])),
         }}
       />
     </section>
