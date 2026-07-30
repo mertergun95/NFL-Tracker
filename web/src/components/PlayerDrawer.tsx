@@ -31,6 +31,18 @@ function projStatLine(p: Record<string, unknown>): string {
          `${v("proj_receiving_yards")} ${u("yd")} · ${v("proj_receiving_tds")} TD`;
 }
 
+/** Pozisyonun birincil GERÇEK istatistiği için taban–tavan aralığı
+    (fantasy puanı değil — rec/rush/pass yardı gibi asıl istatistik). */
+function rangeLine(p: Record<string, unknown>): string | null {
+  const pos = String(p.position);
+  const statKey = pos === "QB" ? "passing_yards"
+    : pos === "RB" ? "rushing_yards" : "receiving_yards";
+  const lo = p[`proj_floor_${statKey}`], hi = p[`proj_ceiling_${statKey}`];
+  if (lo === null || lo === undefined || hi === null || hi === undefined)
+    return null;
+  return `${lo}–${hi} ${label(statKey)}`;
+}
+
 interface Props {
   playerId: string | null;
   season: number;
@@ -160,12 +172,9 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 <div className="drawer-proj-stats">
                   {projStatLine(proj)}
                 </div>
-                {proj.proj_floor_ppr !== undefined
-                    && proj.proj_ceiling_ppr !== undefined && (
+                {rangeLine(proj) && (
                   <div className="drawer-proj-sub">
-                    {t("drawer.pprRange", {
-                      lo: String(proj.proj_floor_ppr),
-                      hi: String(proj.proj_ceiling_ppr) })}
+                    {t("drawer.statRange", { range: rangeLine(proj) as string })}
                   </div>
                 )}
                 {proj.matchup_factor !== undefined && (

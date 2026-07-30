@@ -331,9 +331,33 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       istatistiksel bir gerçek olduğunu gösterdi
 - [x] **Asıl çözüm:** p20/p80 quantile regression ile taban/tavan
       (floor/ceiling) — `train_quantile_models`/`predict_quantiles`.
-      Projeksiyonlar sayfasına "Floor–Ceiling" kolonu, oyuncu künyesine
-      "gerçekçi aralık" satırı eklendi; artık tek bir sayı yerine
-      gerçekçi bir aralık gösteriliyor (ör. Mahomes 6.8–26.4 PPR)
+      **Önemli düzeltme (kullanıcı geri bildirimiyle):** asıl amaç fantasy
+      puanı değil GERÇEK maç istatistikleri (rec/rush/pass yardı, target,
+      reception...) olduğu için quantile eğitimi TARGETS'teki 12 statın
+      HEPSİNE genelleştirildi (`proj_floor_<stat>`/`proj_ceiling_<stat>`,
+      her biri kendi p20/p80 modelinden); PPR taban/tavanı artık bu
+      per-stat aralıklardan türetiliyor (ayrı bir ppr-modeli yerine).
+      Projeksiyonlar sayfasında pozisyonun birincil statı için (QB→pas
+      yardı, RB→koşu yardı, WR/TE→hava yardı) "Floor–Ceiling" kolonu,
+      künyede aynı statın aralığı gösteriliyor (3 dilde)
+- [x] **İki gerçek bug bulundu ve düzeltildi (quantile modelleri 0/0
+      döndürüyordu):**
+      1) `l2_regularization=0.4` (kare-hata/Poisson için ayarlanmış)
+      pinball loss'un küçük/sabit gradyanlarıyla orantısız güçlü kalıp
+      modeli her girdide 0'a çöktürüyordu — quantile modelleri için
+      `l2_regularization=0.0` zorunlu olduğu doğrulandı (izole sklearn
+      testiyle kanıtlandı)
+      2) Sezon başı (haftanın ilk maçı, `szn_/l3_` özellikleri NaN) satırlar
+      quantile modellerini bazı özellik kombinasyonlarında dejenere bir
+      yaprağa düşürüyordu; `szn_/l3_` NaN olduğunda `prev_` (geçen sezon
+      ortalaması) değerine düşen bir "soğuk başlangıç" fallback eklendi —
+      bu tasarım zaten `prev_` özelliğinin amacıydı ama kullanılmıyordu
+      3) Kalan nadir (~%0.2, ör. Caleb Williams) dejenere satırlar için
+      güvenlik ağı: taban=tavan=0 iken nokta tahmini belirgin pozitifse
+      aralık gösterilmiyor ("—"), yanlış "0-0" göstermek yerine
+- [x] Doğrulama: düzeltme sonrası QB'lerin pas yardı aralığı ör.
+      Mahomes 19.8–301.1, Stafford 176.1–308.1 gibi gerçekçi çıktı;
+      nokta tahmini metrikleri (MAE/korelasyon) düzeltmelerden etkilenmedi
 - [x] Gelecek veri kaynağı fikirleri (dokümante edildi, uygulanmadı):
       gerçek Vegas kapanış oranları (ücretli API), haftalık granülerlikte
       red zone fırsat payı (mevcut player_redzone.json yalnızca sezon

@@ -177,6 +177,15 @@ def build_features(df: pd.DataFrame, schedules: pd.DataFrame) -> pd.DataFrame:
     for k, v in feats.items():
         df[k] = v.values if hasattr(v, "values") else v
 
+    # sezon başı "soğuk başlangıç": bu sezon henüz maç oynanmadıysa (szn_/l3_
+    # NaN) geçen sezonun maç başı ortalamasına düş. Bu satırlar tüm eğitim
+    # verisinin ~%7'si (her oyuncunun her sezonun ilk maçı) ve NaN bırakınca
+    # quantile (p20/p80) modelleri bu alt kümede sabit 0 tahmin etmeye
+    # yakınsıyordu (kare-hata/Poisson etkilenmiyordu) — doğrulandı.
+    for s in STATS:
+        df[f"szn_{s}"] = df[f"szn_{s}"].fillna(df[f"prev_{s}"])
+        df[f"l3_{s}"] = df[f"l3_{s}"].fillna(df[f"prev_{s}"])
+
     # takım skor bağlamı: kendi takımın hücum gücü + rakibin savunma
     # zafiyeti + rakibin kendi hücum gücü (tempo/shootout proxy'si)
     sc = _scoring_context(schedules)
@@ -265,44 +274,62 @@ def train_models(feat_df: pd.DataFrame,
 # matematiksel olarak gerçek sonuçlardan daha düşük varyanslı olmak
 # ZORUNDADIR (Var(Y) = Var(E[Y|X]) + E[Var(Y|X)]); yani "herkes ortalamaya
 # yakın" görünümü büyük ölçüde beklenen-değer tahmininin doğası. Asıl
-# eksik olan, bu belirsizliği kullanıcıya göstermekti.
+# eksik olan, bu belirsizliği kullanıcıya göstermekti. ÖNEMLİ: bu aralık
+# fantasy puanı için değil, TARGETS'teki HER GERÇEK MAÇ İSTATİSTİĞİ için
+# ayrı ayrı üretilir (rec yds, rush yds, pas yds, target, reception...) —
+# projeksiyonun asıl amacı fantasy skoru değil gerçek istatistiklerdir.
 QUANTILES = (0.2, 0.8)
 
 
 def train_quantile_models(feat_df: pd.DataFrame, max_season: int,
-                          max_week: int | None = None) -> dict:
-    """fantasy_points_ppr için taban/tavan (p20/p80) quantile regressor'ları."""
+                          max_week: int | None = None,
+                          targets: list[str] | None = None) -> dict:
+    """Her hedef GERÇEK istatistik için taban/tavan (p20/p80) quantile
+    regressor'ları. targets verilmezse TARGETS'teki 12 statın hepsi için
+    eğitir. Dönüş: {stat: {quantile: model}}."""
     from sklearn.ensemble import HistGradientBoostingRegressor
 
+    targets = list(targets) if targets is not None else TARGETS
     train = _train_split(feat_df, max_season, max_week)
     if train is None:
         return {}
     X = train[FEATURE_COLS].astype(float)
-    y = train["fantasy_points_ppr"].astype(float)
-    models = {}
-    for q in QUANTILES:
-        m = HistGradientBoostingRegressor(
-            loss="quantile", quantile=q,
-            max_iter=220, learning_rate=0.06, max_depth=None,
-            max_leaf_nodes=31, min_samples_leaf=20,
-            l2_regularization=0.4, random_state=42)
-        m.fit(X, y)
-        models[q] = m
+    models: dict = {}
+    for t in targets:
+        y = train[t].astype(float).clip(lower=0)
+        tm = {}
+        for q in QUANTILES:
+            # l2_regularization=0 ZORUNLU: pinball (quantile) loss'un
+            # gradyanları sabit ve küçüktür (±q civarı), kare-hata/Poisson
+            # için ayarlanmış l2 burada orantısız güçlü kalıp modeli her
+            # girdide 0'a çöktürüyordu (doğrulandı — l2>0 iken tüm
+            # tahminler 0 çıkıyordu, l2=0'da doğru ayrışıyor).
+            m = HistGradientBoostingRegressor(
+                loss="quantile", quantile=q,
+                max_iter=220, learning_rate=0.06, max_depth=None,
+                max_leaf_nodes=31, min_samples_leaf=20,
+                l2_regularization=0.0, random_state=42)
+            m.fit(X, y)
+            tm[q] = m
+        models[t] = tm
     return models
 
 
 def predict_quantiles(models: dict, rows: pd.DataFrame) -> pd.DataFrame:
-    """proj_floor_ppr (p20) / proj_ceiling_ppr (p80) tahminleri."""
+    """Her hedef stat için proj_floor_<stat> (p20) / proj_ceiling_<stat>
+    (p80) tahminleri."""
     X = rows[FEATURE_COLS].astype(float)
     out = rows[["player_id"]].copy()
-    for q, m in models.items():
-        col = "proj_floor_ppr" if q < 0.5 else "proj_ceiling_ppr"
-        out[col] = np.clip(m.predict(X), 0, None).round(1)
-    if "proj_floor_ppr" in out.columns and "proj_ceiling_ppr" in out.columns:
-        # p20 > p80 gibi nadir çapraz durumları düzelt (küçük örneklemde olabilir)
-        lo = out[["proj_floor_ppr", "proj_ceiling_ppr"]].min(axis=1)
-        hi = out[["proj_floor_ppr", "proj_ceiling_ppr"]].max(axis=1)
-        out["proj_floor_ppr"], out["proj_ceiling_ppr"] = lo, hi
+    for t, tm in models.items():
+        for q, m in tm.items():
+            col = f"proj_floor_{t}" if q < 0.5 else f"proj_ceiling_{t}"
+            out[col] = np.clip(m.predict(X), 0, None).round(1)
+        fc, cc = f"proj_floor_{t}", f"proj_ceiling_{t}"
+        if fc in out.columns and cc in out.columns:
+            # p20 > p80 gibi nadir çapraz durumları düzelt (küçük örneklemde olabilir)
+            lo = out[[fc, cc]].min(axis=1)
+            hi = out[[fc, cc]].max(axis=1)
+            out[fc], out[cc] = lo, hi
     return out
 
 

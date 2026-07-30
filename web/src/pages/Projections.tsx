@@ -7,6 +7,7 @@ import { Loading } from "../components/Pickers";
 import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
+import { label } from "../lib/columns";
 import { useT } from "../lib/i18n";
 
 // pozisyona göre gösterilecek GERÇEK stat projeksiyonları
@@ -24,6 +25,11 @@ const POS_COLS: Record<string, string[]> = {
 const POS_SORT: Record<string, string> = {
   QB: "proj_passing_yards", RB: "proj_rushing_yards",
   WR: "proj_receiving_yards", TE: "proj_receiving_yards",
+};
+// taban/tavan aralığı gösterilecek "birincil" GERÇEK istatistik (pozisyona göre)
+const RANGE_STAT: Record<string, string> = {
+  QB: "passing_yards", RB: "rushing_yards",
+  WR: "receiving_yards", TE: "receiving_yards",
 };
 const HEUR_FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor"];
 const GAME_COLS = ["proj_passing_yards", "proj_carries", "proj_rushing_yards",
@@ -129,10 +135,11 @@ export default function Projections() {
             <Link to={`/team/${row.opponent}`}>{String(row.opponent)}</Link>
           ),
           [RANGE_COL]: (row) => {
-            const lo = row.proj_floor_ppr, hi = row.proj_ceiling_ppr;
+            const stat = RANGE_STAT[String(row.position)] ?? "receiving_yards";
+            const lo = row[`proj_floor_${stat}`], hi = row[`proj_ceiling_${stat}`];
             if (lo === null || lo === undefined || hi === null || hi === undefined)
               return "—";
-            return `${lo}–${hi}`;
+            return `${lo}–${hi} ${label(stat)}`;
           },
         }}
       />

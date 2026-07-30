@@ -788,19 +788,40 @@ def build_projections_ml(history: pd.DataFrame, feat_df: pd.DataFrame,
             "opponent": r["opponent"],
             "injury_status": status, "injury_note": note,
         }
-        for stat in POS_PROJ_STATS.get(str(r["position"]), []):
+        pos_stats = POS_PROJ_STATS.get(str(r["position"]), [])
+        floor_stats, ceil_stats = {}, {}
+        for stat in pos_stats:
             val = r.get(f"proj_{stat}")
             if val is not None and not pd.isna(val):
                 rec[f"proj_{stat}"] = round(float(val) * inj_mult, 1)
+            # taban/tavan: HER GERÇEK istatistik için ayrı ayrı eğitilen
+            # p20/p80 quantile modellerinden (fantasy puanı değil — rec
+            # yds, rush yds, pas yds, target, reception... hepsi kendi
+            # aralığıyla)
+            fval, cval = r.get(f"proj_floor_{stat}"), r.get(f"proj_ceiling_{stat}")
+            has_f = fval is not None and not pd.isna(fval)
+            has_c = cval is not None and not pd.isna(cval)
+            # nadir (~%0.2) dejenere durum: quantile ağacı bazı özel
+            # kombinasyonlarda hem taban hem tavanı 0'a çökertebiliyor —
+            # nokta tahmini anlamlı derecede pozitifken bu yanlış bir "0-0"
+            # aralığı gösterir; böyle satırlarda aralığı yanıltıcı olmasın
+            # diye tamamen atla (UI "—" gösterir)
+            degenerate = (has_f and has_c and float(fval) == 0 and float(cval) == 0
+                         and val is not None and not pd.isna(val) and float(val) > 5)
+            if has_f and not degenerate:
+                rec[f"proj_floor_{stat}"] = round(float(fval) * inj_mult, 1)
+                floor_stats[f"proj_{stat}"] = rec[f"proj_floor_{stat}"]
+            if has_c and not degenerate:
+                rec[f"proj_ceiling_{stat}"] = round(float(cval) * inj_mult, 1)
+                ceil_stats[f"proj_{stat}"] = rec[f"proj_ceiling_{stat}"]
         rec["proj_ppr"] = _pseudo_ppr(rec)
-        # taban/tavan: fantasy_points_ppr hedefine doğrudan eğitilen ayrı
-        # p20/p80 quantile modellerinden — proj_ppr (stat toplamından
-        # türetilen) ile aynı ölçekte, ayrıca ölçeklemeye gerek yok.
-        floor_raw, ceil_raw = r.get("proj_floor_ppr"), r.get("proj_ceiling_ppr")
-        if floor_raw is not None and not pd.isna(floor_raw):
-            rec["proj_floor_ppr"] = round(float(floor_raw) * inj_mult, 1)
-        if ceil_raw is not None and not pd.isna(ceil_raw):
-            rec["proj_ceiling_ppr"] = round(float(ceil_raw) * inj_mult, 1)
+        # PPR taban/tavanı ayrı bir model yerine per-stat taban/tavandan
+        # türetilir (tutarlı: aynı _pseudo_ppr formülü, gerçek statların
+        # kendi belirsizliğini yansıtır)
+        if floor_stats:
+            rec["proj_floor_ppr"] = _pseudo_ppr(floor_stats)
+        if ceil_stats:
+            rec["proj_ceiling_ppr"] = _pseudo_ppr(ceil_stats)
         recs.append(rec)
     df = pd.DataFrame(recs)
     if df.empty:
