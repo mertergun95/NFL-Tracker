@@ -3,8 +3,9 @@
 
 export const STRINGS: Record<string, string | [string, string, string]> = {
   // ---------------------------------------------------------------- genel
-  "app.nfl": "NFL Tracker",
-  "app.ncaa": "NCAA Tracker",
+  "app.brand": "StatGrade",
+  "nfl.dashTitle": ["NFL · {season} Season", "NFL · {season} Sezonu",
+                    "NFL · Saison {season}"],
   "app.footer": ["Data: nflverse + ESPN (NCAA) · updated every Tuesday",
                  "Veri: nflverse + ESPN (NCAA) · her Salı otomatik güncellenir",
                  "Daten: nflverse + ESPN (NCAA) · jeden Dienstag aktualisiert"],

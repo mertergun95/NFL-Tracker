@@ -15,12 +15,13 @@ const STORAGE_KEY = "nfltracker.lang";
 let currentLang: Lang = "en";
 export const getLang = (): Lang => currentLang;
 
+// Varsayılan dil İngilizce'dir; tarayıcı dili dikkate alınmaz. Kullanıcı
+// üstteki seçiciden değiştirirse tercihi localStorage'da kalıcı olur.
 function detect(): Lang {
   if (typeof window === "undefined") return "en";
   const saved = window.localStorage.getItem(STORAGE_KEY);
   if (saved && (LANGS as readonly string[]).includes(saved)) return saved as Lang;
-  const nav = window.navigator.language.slice(0, 2).toLowerCase();
-  return nav === "tr" ? "tr" : nav === "de" ? "de" : "en";
+  return "en";
 }
 currentLang = detect();
 

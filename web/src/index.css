@@ -28,7 +28,11 @@ body {
   position: sticky; top: 0; z-index: 10;
   flex-wrap: wrap;
 }
-.logo { font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px; }
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px;
+  color: var(--text); text-decoration: none;
+}
 .topbar nav { display: flex; gap: 4px; flex-wrap: wrap; }
 .topbar nav a {
   color: var(--text-dim); text-decoration: none;

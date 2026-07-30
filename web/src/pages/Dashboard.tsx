@@ -115,7 +115,7 @@ export default function Dashboard({ manifest, seasons }:
     <section>
       <div className="dash-head">
         <div>
-          <h1>{t("app.nfl")}</h1>
+          <h1>{t("nfl.dashTitle", { season })}</h1>
           <p className="sub">
             {t("dash.sub", { n: seasons.length, season, week: lastWeek,
                              date: manifest.generated_at.slice(0, 10) })}

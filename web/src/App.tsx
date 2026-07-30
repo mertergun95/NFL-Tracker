@@ -31,6 +31,7 @@ import { loadManifest, seasonsFromManifest } from "./lib/data";
 import { loadNcaaManifest } from "./lib/ncaa";
 import { useAsync } from "./lib/hooks";
 import { ErrorMsg, Loading } from "./components/Pickers";
+import Logo from "./components/Logo";
 import { LANG_NAMES, LANGS, useI18n } from "./lib/i18n";
 
 const NAV = [
@@ -73,7 +74,9 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="logo">🏈 {t(isNcaa ? "app.ncaa" : "app.nfl")}</span>
+        <Link to={isNcaa ? "/ncaa" : "/"} className="logo">
+          <Logo /> {t("app.brand")}
+        </Link>
         <span className="league-switch">
           <Link to="/" className={!isNcaa ? "active" : ""}>NFL</Link>
           <Link to="/ncaa" className={isNcaa ? "active" : ""}>NCAA</Link>
