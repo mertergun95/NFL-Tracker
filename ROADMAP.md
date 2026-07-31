@@ -380,6 +380,20 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       küçük gösteriyor; oyuncu künyesinde de pozisyonun tüm ilgili
       statları (QB: 7 stat, WR/TE: 4 stat, RB: 6 stat) liste halinde,
       her biri kendi aralığıyla
+- [x] **6. bug (kullanıcı geri bildirimiyle):** (a) Projeksiyonlar sayfası
+      tabloyu 60 satırda kesiyordu — havuzdaki 247 oyuncunun bir kısmı hiç
+      görünmüyordu; satır sınırı kaldırıldı, "Tümü" pozisyon sekmesi ve
+      isim/takım/rakip araması eklendi, kaç satırın listelendiği yazılıyor.
+      (b) Oyuncu künyesi (`/player/:id`) yalnızca tek satırlık kompakt
+      projeksiyon metnini gösteriyordu (aralıksız); artık `ProjRanges` ile
+      pozisyonun HER statı kendi taban–tavanıyla kutu kutu listeleniyor
+      (drawer'daki mantıkla ortak: `lib/projText.ts`).
+      (c) `StatTable` `defaultSort` değişince eski kolonda takılı kalıyordu
+      (pozisyon sekmesi değişse de sıralama eskisinde kalıyordu) — düzeltildi.
+      Not: veri havuzunun kendisi hâlâ `ACTIVE_SLOTS` (takım+pozisyon başına
+      QB1/RB3/WR5/TE2) ve `proj_ppr >= 4` filtresiyle sınırlı; yedeklerin de
+      girmesi istenirse bu iki eşik gevşetilmeli (takım hacim bütçesi daha
+      çok oyuncuya bölüneceği için yıldızların projeksiyonu bir miktar düşer).
 - [x] Gelecek veri kaynağı fikirleri (dokümante edildi, uygulanmadı):
       gerçek Vegas kapanış oranları (ücretli API), haftalık granülerlikte
       red zone fırsat payı (mevcut player_redzone.json yalnızca sezon

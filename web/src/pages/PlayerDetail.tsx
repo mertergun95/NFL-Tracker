@@ -8,6 +8,7 @@ import {
   loadSnapCounts,
 } from "../lib/data";
 import { projLine, PRIMARY_STAT } from "../lib/projText";
+import ProjRanges from "../components/ProjRanges";
 import TeamLogo from "../components/TeamLogo";
 import { fmt as fmtStat, label, pct, presetForPosition } from "../lib/columns";
 import { trendOf, WeeklyBarChart } from "../components/charts";
@@ -216,10 +217,12 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
               <TeamLogo abbr={String(myProj.opponent ?? "")} size={24} />
               {" vs "}{teamName(myProj.opponent as string | null)}
             </span>
-            <span className="proj-now-line">{projLine(myProj, "proj")}</span>
             <StatusBadge status={myProj.injury_status as string}
                          note={myProj.injury_note as string} />
           </div>
+          {/* her stat kendi taban–tavan aralığıyla */}
+          <ProjRanges row={myProj} />
+          <p className="proj-now-note">{t("proj.rangeNote")}</p>
         </div>
       )}
 

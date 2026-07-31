@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { StatRow } from "../lib/types";
 import { fmt, label } from "../lib/columns";
 import { translate } from "../lib/i18n";
@@ -15,6 +15,14 @@ interface Props {
 export default function StatTable({ rows, columns, defaultSort, render, maxRows }: Props) {
   const [sortCol, setSortCol] = useState(defaultSort ?? columns[0]);
   const [desc, setDesc] = useState(true);
+
+  // Çağıran taraf varsayılan sıralamayı değiştirdiğinde (ör. pozisyon sekmesi)
+  // tablo eski kolonda takılı kalmasın.
+  useEffect(() => {
+    if (!defaultSort) return;
+    setSortCol(defaultSort);
+    setDesc(true);
+  }, [defaultSort]);
 
   const sorted = useMemo(() => {
     const copy = [...rows];

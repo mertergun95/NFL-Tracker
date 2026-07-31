@@ -7,7 +7,8 @@ import { Loading } from "../components/Pickers";
 import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
-import { fmt } from "../lib/columns";
+import { fmt, fmtRange } from "../lib/columns";
+import { rangeOf } from "../lib/projText";
 import { useT } from "../lib/i18n";
 
 // pozisyona göre gösterilecek GERÇEK stat projeksiyonları
@@ -29,19 +30,38 @@ const POS_SORT: Record<string, string> = {
 const HEUR_FACTOR_COLS = ["matchup_factor", "scheme_factor", "snap_factor"];
 const GAME_COLS = ["proj_passing_yards", "proj_carries", "proj_rushing_yards",
                    "proj_targets", "proj_receptions", "proj_receiving_yards"];
-// tüm proj_ kolonları (POS_COLS + GAME_COLS'taki hepsi) — her biri kendi
-// taban/tavanını hücrenin altında küçük gösterir (yalnızca fantasy puanı
-// değil, HER gerçek istatistik için)
+// "Tümü" görünümü: pozisyon farkı gözetmeden bütün stat kolonları
+// (sıralama kolonu proj_ppr en başta dursun ki kaydırmadan görünsün)
+const ALL_VIEW_COLS = [
+  "proj_ppr",
+  "proj_attempts", "proj_completions", "proj_passing_yards", "proj_passing_tds",
+  "proj_passing_interceptions", "proj_carries", "proj_rushing_yards",
+  "proj_rushing_tds", "proj_targets", "proj_receptions", "proj_receiving_yards",
+  "proj_receiving_tds",
+];
+// tüm proj_ kolonları — her biri kendi taban/tavanını hücrenin altında küçük
+// gösterir (yalnızca fantasy puanı değil, HER gerçek istatistik için)
 const ALL_STAT_COLS = [...new Set([
-  ...Object.values(POS_COLS).flat(), ...GAME_COLS,
+  ...Object.values(POS_COLS).flat(), ...GAME_COLS, ...ALL_VIEW_COLS,
 ])];
 
+const ALL = "ALL";
+const POSITIONS = [ALL, "QB", "RB", "WR", "TE"];
 const POS_FILTER: Record<string, (p: StatRow) => boolean> = {
   QB: (p) => p.position === "QB",
-  RB: (p) => p.position === "RB",
+  RB: (p) => p.position === "RB" || p.position === "FB",
   WR: (p) => p.position === "WR",
   TE: (p) => p.position === "TE",
 };
+
+/** Arama: isim, takım, rakip ve pozisyon üzerinde eşleşir. */
+function makeMatcher(q: string): (p: StatRow) => boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return () => true;
+  return (p) =>
+    [p.player_name, p.team, p.opponent, p.position]
+      .some((v) => String(v ?? "").toLowerCase().includes(needle));
+}
 
 /** Her stat hücresi: ana değer + altında küçük taban–tavan (varsa). */
 function statCellRender(col: string, showRange: boolean) {
@@ -49,13 +69,12 @@ function statCellRender(col: string, showRange: boolean) {
   return (row: StatRow) => {
     const main = fmt(col, row[col]);
     if (!showRange) return main;
-    const lo = row[`proj_floor_${stat}`], hi = row[`proj_ceiling_${stat}`];
-    if (lo === null || lo === undefined || hi === null || hi === undefined)
-      return main;
+    const band = rangeOf(row, stat);
+    if (!band) return main;
     return (
       <>
         {main}
-        <div className="stat-range">{fmt(col, lo)}–{fmt(col, hi)}</div>
+        <div className="stat-range">{fmtRange(col, band[0], band[1])}</div>
       </>
     );
   };
@@ -66,11 +85,20 @@ export default function Projections() {
   const [pos, setPos] = useState("WR");
   const [view, setView] = useState<"pos" | "game">("pos");
   const [gameKey, setGameKey] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const { data, loading } = useAsync(() => loadProjections(), []);
 
+  const match = useMemo(() => makeMatcher(search), [search]);
   const rows = useMemo(
-    () => (data?.rows ?? []).filter(POS_FILTER[pos] ?? (() => true)),
-    [data, pos]);
+    () => (data?.rows ?? [])
+      .filter(pos === ALL ? () => true : (POS_FILTER[pos] ?? (() => true)))
+      .filter(match),
+    [data, pos, match]);
+  // aramanın başka pozisyonlarda kaç karşılığı var (sonuç boşken ipucu)
+  const otherMatches = useMemo(() => {
+    if (!search.trim() || rows.length > 0 || pos === ALL) return 0;
+    return (data?.rows ?? []).filter(match).length;
+  }, [data, match, rows.length, search, pos]);
 
   // maç bazlı gruplama: away@home anahtarı (takım-rakip çiftinden)
   const games = useMemo(() => {
@@ -86,9 +114,11 @@ export default function Projections() {
   const gameTeams = games.find(([k]) => k === activeGame)?.[1] ?? null;
   const gameRows = useMemo(
     () => gameTeams
-      ? (data?.rows ?? []).filter((p) => gameTeams.includes(String(p.team)))
+      ? (data?.rows ?? [])
+          .filter((p) => gameTeams.includes(String(p.team)))
+          .filter(match)
       : [],
-    [data, gameTeams]);
+    [data, gameTeams, match]);
 
   if (loading) return <Loading />;
   if (!data)
@@ -115,12 +145,16 @@ export default function Projections() {
         </div>
         {view === "pos" && (
           <div className="pill-row">
-            {["QB", "RB", "WR", "TE"].map((p) => (
+            {POSITIONS.map((p) => (
               <button key={p} className={`pill ${p === pos ? "active" : ""}`}
-                      onClick={() => setPos(p)}>{p}</button>
+                      onClick={() => setPos(p)}>
+                {p === ALL ? t("common.all") : p}
+              </button>
             ))}
           </div>
         )}
+        <input className="search" placeholder={t("common.searchPlayerTeam")}
+               value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
       {view === "game" && (
         <div className="pill-row">
@@ -130,15 +164,31 @@ export default function Projections() {
           ))}
         </div>
       )}
+      <p className="result-count">
+        {t("proj.count", { n: view === "game" ? gameRows.length : rows.length,
+                           total: data.rows.length })}
+        {otherMatches > 0 && view === "pos" && (
+          <>
+            {" · "}
+            <button className="link-btn" onClick={() => setPos(ALL)}>
+              {t("proj.otherPositions", { n: otherMatches })}
+            </button>
+          </>
+        )}
+      </p>
+      {/* satır sınırı yok: havuzdaki bütün oyuncular listelenir */}
       <StatTable rows={view === "game" ? gameRows : rows}
         columns={view === "game"
           ? ["player_name", "position", "team", "opponent", ...GAME_COLS,
              "injury_status"]
-          : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? []),
-             ...(data.engine === "ml" ? [] : HEUR_FACTOR_COLS),
-             "injury_status"]}
-        defaultSort={view === "game" ? "proj_receiving_yards" : POS_SORT[pos]}
-        maxRows={60}
+          : pos === ALL
+            ? ["player_name", "position", "team", "opponent", ...ALL_VIEW_COLS,
+               "injury_status"]
+            : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? []),
+               ...(data.engine === "ml" ? [] : HEUR_FACTOR_COLS),
+               "injury_status"]}
+        defaultSort={view === "game" ? "proj_receiving_yards"
+          : pos === ALL ? "proj_ppr" : POS_SORT[pos]}
         render={{
           player_name: (row) => (
             <PName name={String(row.player_name)} pos={String(row.position ?? "")}
