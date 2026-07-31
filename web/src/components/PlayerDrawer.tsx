@@ -8,23 +8,13 @@ import {
   loadInjuries, loadPlayerIndex, loadPlayerSeason, loadPlayerWeeks,
   loadProjections,
 } from "../lib/data";
-import { fmt, label, presetForPosition } from "../lib/columns";
+import { fmt, fmtRange, label, presetForPosition } from "../lib/columns";
+import { POS_PROJ_STATS, rangeOf } from "../lib/projText";
 import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 import { useT } from "../lib/i18n";
 
 const TREND_COLOR = { hot: "#3fb950", cold: "#f0883e", flat: CHART.series1 };
-
-// pozisyona göre gösterilecek GERÇEK stat projeksiyonları — hepsi kendi
-// taban/tavan aralığıyla (fantasy puanı değil, tek bir stat da değil)
-const POS_PROJ_STATS: Record<string, string[]> = {
-  QB: ["attempts", "completions", "passing_yards", "passing_tds",
-       "passing_interceptions", "carries", "rushing_yards"],
-  RB: ["carries", "rushing_yards", "rushing_tds", "targets", "receptions",
-       "receiving_yards"],
-  WR: ["targets", "receptions", "receiving_yards", "receiving_tds"],
-  TE: ["targets", "receptions", "receiving_yards", "receiving_tds"],
-};
 
 interface Props {
   playerId: string | null;
@@ -155,16 +145,16 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                 <div className="drawer-stats">
                   {(POS_PROJ_STATS[String(proj.position)] ?? []).map((s) => {
                     const col = `proj_${s}`;
-                    const lo = proj[`proj_floor_${s}`], hi = proj[`proj_ceiling_${s}`];
-                    const hasRange = lo !== null && lo !== undefined
-                      && hi !== null && hi !== undefined;
+                    const band = rangeOf(proj, s);
                     return (
                       <div className="drawer-row" key={s}>
                         <span>{label(s)}</span>
                         <div style={{ textAlign: "right" }}>
                           <strong>{fmt(col, proj[col])}</strong>
-                          {hasRange && (
-                            <div className="stat-range">{fmt(col, lo)}–{fmt(col, hi)}</div>
+                          {band && (
+                            <div className="stat-range">
+                              {fmtRange(col, band[0], band[1])}
+                            </div>
                           )}
                         </div>
                       </div>

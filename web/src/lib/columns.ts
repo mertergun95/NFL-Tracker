@@ -292,6 +292,13 @@ export function presetForPosition(pos: string | null): string[] {
   return POSITION_PRESETS.DEF;
 }
 
+/** Taban–tavan aralığı: iki uç aynı hassasiyetle yazılır ("8.6 – 19.0"). */
+export function fmtRange(col: string, lo: number, hi: number): string {
+  if (PERCENT_COLS.has(col)) return `${fmt(col, lo)} – ${fmt(col, hi)}`;
+  const dec = Number.isInteger(lo) && Number.isInteger(hi) ? 0 : 1;
+  return `${lo.toFixed(dec)} – ${hi.toFixed(dec)}`;
+}
+
 export function fmt(col: string, v: string | number | null): string {
   if (v === null || v === undefined || v === "") return "—";
   if (typeof v === "number") {
