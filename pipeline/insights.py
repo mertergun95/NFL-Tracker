@@ -631,6 +631,18 @@ def _pseudo_ppr(row: dict) -> float:
         - 2 * v("passing_interceptions"), 1)
 
 
+def _ppr_from(row: dict, prefix: str) -> float | None:
+    """proj_floor_/proj_ceiling_ kolonlarından PPR taban/tavanını türetir.
+
+    Statlar uzlaştırmada yeniden ölçeklendiği için PPR taban/tavanı da
+    yeniden hesaplanmalı; build_projections_ml'deki ilk hesapla aynı
+    semantik (yalnızca değeri olan statlar toplanır).
+    """
+    vals = {f"proj_{k[len(prefix):]}": v for k, v in row.items()
+            if k.startswith(prefix) and v is not None and not pd.isna(v)}
+    return _pseudo_ppr(vals) if vals else None
+
+
 # --------------------------------------- rol & takım hacmi düzeltmesi
 
 # Hacim grupları: (bütçe kolonu, ölçeklenecek proj_ kolonları)
@@ -642,6 +654,111 @@ VOLUME_GROUPS = [
     ("carries", ["carries", "rushing_yards", "rushing_tds"]),
     ("targets", ["targets", "receptions", "receiving_yards", "receiving_tds"]),
 ]
+
+
+# ------------------------------------------- pas hattı kimliği (takım içi)
+#
+# Bir maçın box score'unda aşağıdakiler tahmin DEĞİL, KİMLİK'tir: bir pas
+# tamamlandığında aynı yard hem QB'nin pas yardına hem de topu yakalayanın
+# receiving yardına yazılır. 2023-2025 REG verisinde takım-hafta bazında
+# doğrulandı (Σ rec_yd / Σ pass_yd oranı 1632 takım-haftanın hepsinde tam
+# 1.000; receptions/completions aynı şekilde).
+#
+# Statlar birbirinden BAĞIMSIZ GBM'lerle tahmin edildiği için bu kimlik
+# projeksiyonda kendiliğinden tutmuyordu: ölçüldüğünde Σ alıcı yardı /
+# QB pas yardı oranı takımlara göre 0.66-1.03 arasında geziyordu (lig
+# geneli 0.83) — yani "QB 237 yard atıyor ama alıcıların toplamı 200"
+# durumu. Sebep alıcı modellerinin sistematik düşük tahmini (geri test
+# biası: receiving_yards -4.45/oyuncu, passing_yards +2.34/oyuncu) ve
+# hacim bütçesinin yalnızca aşağı kırpması ("azı büyütme").
+#
+# Çözüm: QB'nin pas satırını çıpa alıp alıcı statlarını takım içinde
+# oransal ölçeklemek — oyuncular arası PAY korunur, yalnızca ölçek
+# kimliğe oturur. Çıpa QB'dir çünkü tek satırdır ve hacmi zaten takım
+# bütçesiyle sınırlanmıştır; alıcı tarafı 8-10 satıra bölünmüş, her biri
+# ayrı ayrı ortalamaya çeken tahminlerdir.
+#
+# Oranlar: (QB stat'i, karşılık gelen alıcı stat'i, pay). Pay = gösterilen
+# alıcı kadrosunun (RB3/WR5/TE2/FB1) QB1'in kendi satırına oranı, 2023-2025
+# takım-hafta MEDYANI. Yard/reception/TD'de 1.00; targets'ta 0.96 çünkü
+# atışların ~%4'ü (throwaway, spike) hiçbir oyuncuya target yazmaz.
+PASS_IDENTITY = [
+    ("passing_yards", "receiving_yards", 1.00),
+    ("completions", "receptions", 1.00),
+    ("passing_tds", "receiving_tds", 1.00),
+    ("attempts", "targets", 0.96),
+]
+
+# Emniyet sübabı: veri bozuksa (ör. QB satırı saçma) tek bir takımın
+# projeksiyonunu uçurmamak için ölçek çarpanı sınırlanır. Gerçekte
+# gözlenen en uç çarpan ~1.5 olduğu için bu sınırlar normalde bağlamaz.
+RECONCILE_MIN_FACTOR, RECONCILE_MAX_FACTOR = 0.5, 2.5
+
+
+def reconcile_passing(df: pd.DataFrame) -> pd.DataFrame:
+    """Alıcı statlarının takım toplamını QB'nin pas satırına oturtur.
+
+    Her takımda her (QB stat'i -> alıcı stat'i) çifti için tek bir ölçek
+    çarpanı hesaplanır ve o takımın QB dışı satırlarına uygulanır; taban/
+    tavan kolonları da aynı çarpanla ölçeklenir, yoksa nokta tahmini kendi
+    aralığının dışına taşabilir.
+    """
+    if df.empty or "team" not in df.columns or "position" not in df.columns:
+        return df
+    for team, idx in df.groupby("team").groups.items():
+        sub = df.loc[idx]
+        qb_rows = sub.index[sub["position"] == "QB"]
+        rec_rows = sub.index[sub["position"] != "QB"]
+        if len(qb_rows) == 0 or len(rec_rows) == 0:
+            continue
+        for pass_stat, rec_stat, share in PASS_IDENTITY:
+            pc, rc = f"proj_{pass_stat}", f"proj_{rec_stat}"
+            if pc not in df.columns or rc not in df.columns:
+                continue
+            anchor = float(pd.to_numeric(df.loc[qb_rows, pc],
+                                         errors="coerce").fillna(0).sum()) * share
+            total = float(pd.to_numeric(df.loc[rec_rows, rc],
+                                        errors="coerce").fillna(0).sum())
+            if anchor <= 0 or total <= 0:
+                continue
+            f = anchor / total
+            if not RECONCILE_MIN_FACTOR <= f <= RECONCILE_MAX_FACTOR:
+                log.warning("%s %s uzlaştırma çarpanı sınırda: %.2f "
+                            "(çıpa %.1f, toplam %.1f)", team, rec_stat, f,
+                            anchor, total)
+                f = min(max(f, RECONCILE_MIN_FACTOR), RECONCILE_MAX_FACTOR)
+            for c in (rc, f"proj_floor_{rec_stat}", f"proj_ceiling_{rec_stat}"):
+                if c in df.columns:
+                    vals = pd.to_numeric(df.loc[rec_rows, c], errors="coerce")
+                    df.loc[rec_rows, c] = (vals * f).round(1)
+    return df
+
+
+def _clamp_ranges(df: pd.DataFrame) -> pd.DataFrame:
+    """taban <= nokta <= tavan garantisi.
+
+    Nokta tahmini (kare-hata/Poisson) ile taban/tavan (p20/p80 quantile)
+    AYRI modellerden geldiği için birbirini tutmak zorunda değil; ölçümde
+    247 satırın 120'sinde nokta kendi aralığının dışına düşüyordu (ör.
+    "21.5 yard, aralık 28.3-45.4"). Aralık genişletilir, nokta tahmini
+    korunur: karnede (proj_eval) ölçülen ve sıralamayı belirleyen değer
+    nokta tahmini, quantile modelleri ise daha gürültülü.
+    """
+    if df.empty:
+        return df
+    for col in [c for c in df.columns if c.startswith("proj_floor_")]:
+        stat = col[len("proj_floor_"):]
+        pc, cc = f"proj_{stat}", f"proj_ceiling_{stat}"
+        if pc not in df.columns or cc not in df.columns:
+            continue
+        p = pd.to_numeric(df[pc], errors="coerce")
+        f = pd.to_numeric(df[col], errors="coerce")
+        c = pd.to_numeric(df[cc], errors="coerce")
+        # yalnızca ikisi de mevcut VE kimlik bozuksa dokun; eksik (NaN)
+        # taban/tavan eksik kalır (UI "—" gösterir)
+        df[col] = f.mask(p.notna() & f.notna() & (f > p), p)
+        df[cc] = c.mask(p.notna() & c.notna() & (c < p), p)
+    return df
 
 
 def _team_budgets(tw: pd.DataFrame | None) -> dict[str, dict[str, float]]:
@@ -742,13 +859,32 @@ def apply_role_and_volume(df: pd.DataFrame, tw: pd.DataFrame | None,
                 if total <= cap or total == 0:
                     continue  # yalnızca şişmeyi kırp, azı büyütme
                 f = cap / total
+                # taban/tavan da aynı çarpanla ölçeklenir: yalnızca nokta
+                # tahmini kırpılınca nokta kendi aralığının DIŞINA düşüyordu
+                # (ör. QB attempts noktası 26.1'e inip tabanı 27.0'da kalıyordu)
                 for c in cols:
-                    cc = f"proj_{c}"
-                    if cc in df.columns:
-                        df.loc[idx, cc] = (df.loc[idx, cc] * f).round(1)
+                    for cc in (f"proj_{c}", f"proj_floor_{c}",
+                               f"proj_ceiling_{c}"):
+                        if cc in df.columns:
+                            vals = pd.to_numeric(df.loc[idx, cc], errors="coerce")
+                            df.loc[idx, cc] = (vals * f).round(1)
 
     df["proj_ppr"] = [_pseudo_ppr(r) for r in df.to_dict("records")]
-    df = df[df["proj_ppr"] >= 4].sort_values("proj_ppr", ascending=False)
+    df = df[df["proj_ppr"] >= 4].reset_index(drop=True)
+
+    # Son adım: takım içi pas kimliği. Gösterilen kadro kesinleştikten
+    # SONRA çalışır ki toplamlar ekranda görünen satırlarla tutsun.
+    df = reconcile_passing(df)
+    df["proj_ppr"] = [_pseudo_ppr(r) for r in df.to_dict("records")]
+    for pref, col in (("proj_floor_", "proj_floor_ppr"),
+                      ("proj_ceiling_", "proj_ceiling_ppr")):
+        if col in df.columns:
+            df[col] = [_ppr_from(r, pref) for r in df.to_dict("records")]
+    # PPR taban/tavanı yeniden türetildikten SONRA clamp: _pseudo_ppr
+    # interception'da negatif katsayı taşıdığı için (düşük INT tabanı =
+    # yüksek PPR) türetilen taban, noktayı aşabiliyor.
+    df = _clamp_ranges(df)
+    df = df.sort_values("proj_ppr", ascending=False)
     return df.reset_index(drop=True)
 
 
