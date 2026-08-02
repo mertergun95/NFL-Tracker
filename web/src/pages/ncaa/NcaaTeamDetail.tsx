@@ -89,7 +89,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
                   {home ? "vs" : "@"} {String(opp)}
                 </Link>
                 {played && (
-                  <strong style={{ color: us > them ? "#3fb950" : "#f85149" }}>
+                  <strong style={{ color: us > them ? "var(--good)" : "var(--bad)" }}>
                     {us > them ? "G" : "M"} {us}–{them}
                   </strong>
                 )}
@@ -105,7 +105,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
 
       {nextFix && nextFix.length > 0 && (
         <>
-          <h2>📅 {t("team.fixture", { season: String(nextFix[0].season) })}</h2>
+          <h2>{t("team.fixture", { season: String(nextFix[0].season) })}</h2>
           <div className="game-grid">
             {nextFix.map((g) => {
               const home = g.home_team === abbr;
@@ -115,7 +115,7 @@ export default function NcaaTeamDetail({ seasons }: { seasons: number[] }) {
                   <div className="game-date">
                     W{String(g.week)} · {String(g.season_type)} · {String(g.gameday)}
                     {kickoffBerlin(g.kickoff as string) &&
-                      ` · 🕐 ${kickoffBerlin(g.kickoff as string)} (DE)`}
+                      ` · ${kickoffBerlin(g.kickoff as string)} (DE)`}
                   </div>
                   <div className="game-line">
                     <Link to={`/ncaa/team/${opp}`} className="team-cell">

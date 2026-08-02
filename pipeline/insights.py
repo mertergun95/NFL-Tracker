@@ -67,7 +67,7 @@ def form_trends(pw: pd.DataFrame, last_week: int,
                  for c, key in POS_STAT_LINES.get(pos, []) if c in cols]
         return tr("form.compare", n=FORM_WINDOW, parts=i18n.join(parts))
 
-    def items(rows, emoji):
+    def items(rows, kind):
         out = []
         for pid, r in rows.iterrows():
             team = cur_map.get(pid, r["team"])
@@ -76,16 +76,16 @@ def form_trends(pw: pd.DataFrame, last_week: int,
                         recent=f"{r['recent']:.1f}", avg=f"{r['avg']:.1f}",
                         diff=f"{r['diff']:+.1f}")
             out.append({
-                "player_id": pid, "team": team,
-                "title": tr("form.title", emoji=emoji, name=r["name"],
+                "player_id": pid, "team": team, "kind": kind,
+                "title": tr("form.title", name=r["name"],
                             pos=r["pos"], team=team),
                 "detail": i18n.concat(detail, cmp_) if cmp_ else detail,
                 "value": round(float(r["diff"]), 1),
             })
         return out
 
-    hot = items(j[j["diff"] >= 4].sort_values("diff", ascending=False).head(8), "🔥")
-    cold = items(j[j["diff"] <= -4].sort_values("diff").head(8), "🧊")
+    hot = items(j[j["diff"] >= 4].sort_values("diff", ascending=False).head(8), "up")
+    cold = items(j[j["diff"] <= -4].sort_values("diff").head(8), "down")
     return hot, cold
 
 
@@ -115,8 +115,8 @@ def usage_shifts(pw: pd.DataFrame, last_week: int,
                        .sort_values("diff", ascending=False).head(6)).iterrows():
             team = cur_map.get(pid, r["team"])
             out.append({
-                "player_id": pid, "team": team,
-                "title": tr("form.title", emoji="📈", name=r["name"],
+                "player_id": pid, "team": team, "kind": "up",
+                "title": tr("form.title", name=r["name"],
                             pos=r["pos"], team=team),
                 "detail": tr("usage.detail", n=FORM_WINDOW,
                              label=i18n.MSG[label_key],
@@ -232,7 +232,7 @@ def matchup_notes(games: pd.DataFrame, ranks: pd.DataFrame,
                 o, d = int(ro[f"off_{kind}"]), int(rd[f"def_{kind}"])
                 if o <= 10 and d >= 23:
                     notes.append({
-                        "team": off, "game": game_lbl,
+                        "team": off, "game": game_lbl, "kind": "up",
                         "title": tr("match.edgeTitle", game=game_lbl, off=off,
                                     kind=i18n.MSG[key]),
                         "detail": tr("match.edgeDetail", off=off, deff=deff,
@@ -259,7 +259,7 @@ def matchup_notes(games: pd.DataFrame, ranks: pd.DataFrame,
                         detail = i18n.concat(detail,
                                              tr("match.watch", players=players))
                     notes.append({
-                        "team": off, "game": game_lbl,
+                        "team": off, "game": game_lbl, "kind": "up",
                         "title": tr("match.generousTitle", game=game_lbl,
                                     deff=deff, pos=pos),
                         "detail": detail,
@@ -284,7 +284,7 @@ def scheme_insights(pscheme: pd.DataFrame | None,
         return out
     for _, r in blitz.sort_values("epa_play", ascending=False).head(3).iterrows():
         out.append({
-            "player_id": r["player_id"], "team": r["team"],
+            "player_id": r["player_id"], "team": r["team"], "kind": "up",
             "title": tr("scheme.blitzGoodTitle", name=r["player_name"]),
             "detail": tr("scheme.blitzGoodDetail", plays=int(r["plays"]),
                          epa=f"{r['epa_play']:+.2f}", season=data_season),
@@ -292,7 +292,7 @@ def scheme_insights(pscheme: pd.DataFrame | None,
         })
     for _, r in blitz.sort_values("epa_play").head(3).iterrows():
         out.append({
-            "player_id": r["player_id"], "team": r["team"],
+            "player_id": r["player_id"], "team": r["team"], "kind": "down",
             "title": tr("scheme.blitzBadTitle", name=r["player_name"]),
             "detail": tr("scheme.blitzBadDetail", plays=int(r["plays"]),
                          epa=f"{r['epa_play']:+.2f}", season=data_season),
@@ -340,8 +340,8 @@ def scheme_insights(pscheme: pd.DataFrame | None,
                                        players=", ".join(top_wr)))
                     out.append({
                         "team": off, "game": game_lbl,
+                        "kind": "up" if weak else "down",
                         "title": tr("scheme.coverageTitle",
-                                    emoji="🎯" if weak else "🛡️",
                                     game=game_lbl, deff=deff,
                                     rate=i18n.pct(rate * 100),
                                     cov=i18n.MSG[cov_key]),
@@ -376,8 +376,8 @@ def scheme_insights(pscheme: pd.DataFrame | None,
                     out.append({
                         "player_id": qb["player_id"], "team": off,
                         "game": game_lbl,
+                        "kind": "up" if good else "down",
                         "title": tr("scheme.blitzHeavyTitle",
-                                    emoji="🧠" if good else "⚠️",
                                     game=game_lbl, deff=deff,
                                     rate=i18n.pct(rate * 100)),
                         "detail": tr("scheme.blitzHeavyDetail",
@@ -1096,15 +1096,15 @@ def evaluate_projections(pw: pd.DataFrame, schedules: pd.DataFrame,
 
 def team_power(ta: pd.DataFrame) -> list:
     out = []
-    for col, asc, emoji, key in (
-        ("off_epa_play", False, "🚀", "power.offEpa"),
-        ("def_epa_play", True, "🛡️", "power.defEpa"),
+    for col, asc, key in (
+        ("off_epa_play", False, "power.offEpa"),
+        ("def_epa_play", True, "power.defEpa"),
     ):
         s = ta.sort_values(col, ascending=asc).head(3)
         for i, (_, r) in enumerate(s.iterrows(), 1):
             out.append({
-                "team": r["team"],
-                "title": tr("power.title", emoji=emoji, team=r["team"],
+                "team": r["team"], "kind": "up",
+                "title": tr("power.title", team=r["team"],
                             metric=i18n.MSG[key], rank=i),
                 "detail": tr("power.detail", metric=i18n.MSG[key],
                              value=f"{r[col]:+.3f}"),

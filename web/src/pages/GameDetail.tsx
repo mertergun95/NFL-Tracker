@@ -91,7 +91,7 @@ export default function GameDetail() {
       <p className="sub">
         {String(game.gameday)} · {String(game.game_type)} · Hafta {String(game.week)}
         {etBerlin(game.gameday as string, game.gametime as string) &&
-          ` · 🕐 ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
+          ` · ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
         {game.stadium ? ` · ${game.stadium}` : ""}
       </p>
       <div className="game-hero">

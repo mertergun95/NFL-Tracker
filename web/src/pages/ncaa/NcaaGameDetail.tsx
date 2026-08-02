@@ -95,7 +95,7 @@ export default function NcaaGameDetail() {
       <p className="sub">
         {String(game.gameday)} · {String(game.season_type)} W{String(game.week)}
         {kickoffBerlin(game.kickoff as string) &&
-          ` · 🕐 ${kickoffBerlin(game.kickoff as string)} (DE)`}
+          ` · ${kickoffBerlin(game.kickoff as string)} (DE)`}
         {Boolean(game.neutral_site) && t("game.neutral")}
         {Boolean(game.conference_game) && t("game.conference")}
       </p>

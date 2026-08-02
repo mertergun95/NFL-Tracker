@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PName from "../components/PName";
 import TeamLogo from "../components/TeamLogo";
+import Trend from "../components/Trend";
 import { Loading } from "../components/Pickers";
 import { PropBarChart, type PropGame } from "../components/charts";
 import { label, pct } from "../lib/columns";
@@ -305,6 +306,7 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
             ))}
             {streak && (
               <span className={`trend-chip ${streak.side ? "hot" : "cold"}`}>
+                <Trend kind={streak.side ? "up" : "down"} />
                 {t(streak.side ? "props.streakOver" : "props.streakUnder",
                    { n: streak.n })}
               </span>
@@ -362,7 +364,7 @@ export default function PropFinder({ seasons }: { seasons: number[] }) {
                   };
                   return (
                     <tr key={l}
-                        style={l === line ? { background: "#1c2430" } : undefined}>
+                        style={l === line ? { background: "var(--bg-raised)" } : undefined}>
                       <td><strong>{l}</strong>{l === line && t("props.selected")}</td>
                       <td className="num">{cell(desc.slice(0, 5))}</td>
                       <td className="num">{cell(desc.slice(0, 10))}</td>

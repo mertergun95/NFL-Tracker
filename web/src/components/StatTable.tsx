@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { StatRow } from "../lib/types";
-import { fmt, label } from "../lib/columns";
+import { describe, fmt, label } from "../lib/columns";
 import { translate } from "../lib/i18n";
 
 interface Props {
@@ -44,6 +44,20 @@ export default function StatTable({ rows, columns, defaultSort, render, maxRows 
     else { setSortCol(c); setDesc(true); }
   };
 
+  // Sayısal kolonların BAŞLIĞI da sağa hizalanmalı: hücreler .num ile sağa
+  // yaslanırken başlıklar solda kalıyordu, bu yüzden başlık ile altındaki
+  // sayı sütunu görsel olarak birbirini tutmuyordu. Kolonun sayısal olup
+  // olmadığı ilk dolu değerden okunur (render override'ı olsa da veri tipi
+  // aynı kalır).
+  const numericCols = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of columns) {
+      const row = rows.find((r) => r[c] !== null && r[c] !== undefined);
+      if (row && typeof row[c] === "number") set.add(c);
+    }
+    return set;
+  }, [rows, columns]);
+
   return (
     <div className="table-wrap">
       <table className="stat-table">
@@ -51,7 +65,10 @@ export default function StatTable({ rows, columns, defaultSort, render, maxRows 
           <tr>
             {columns.map((c) => (
               <th key={c} onClick={() => onSort(c)}
-                  className={c === sortCol ? "sorted" : ""}>
+                  title={describe(c) || undefined}
+                  className={[c === sortCol ? "sorted" : "",
+                              numericCols.has(c) ? "num" : ""]
+                              .filter(Boolean).join(" ")}>
                 {label(c)}
                 {c === sortCol ? (desc ? " ▾" : " ▴") : ""}
               </th>

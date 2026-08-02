@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import Trend from "./Trend";
 import { Line, LineChart, ResponsiveContainer } from "recharts";
 import TeamLogo from "./TeamLogo";
 import StatusBadge from "./StatusBadge";
@@ -14,7 +15,8 @@ import { useAsync } from "../lib/hooks";
 import { teamName } from "../lib/teams";
 import { useT } from "../lib/i18n";
 
-const TREND_COLOR = { hot: "#3fb950", cold: "#f0883e", flat: CHART.series1 };
+const TREND_COLOR = { hot: "var(--good)", cold: "var(--neutral-warm)",
+                      flat: CHART.series1 };
 
 interface Props {
   playerId: string | null;
@@ -110,6 +112,8 @@ export default function PlayerDrawer({ playerId, season, onClose }: Props) {
                   {t("drawer.pprForm")}{" "}
                   <span className={`trend-chip ${spark.trend.kind}`}
                         style={{ padding: "1px 8px", fontSize: "0.72rem" }}>
+                    <Trend kind={spark.trend.kind === "hot" ? "up"
+                      : spark.trend.kind === "cold" ? "down" : "flat"} />
                     {t(spark.trend.kind === "hot" ? "drawer.up"
                       : spark.trend.kind === "cold" ? "drawer.down" : "drawer.flat")}
                   </span>

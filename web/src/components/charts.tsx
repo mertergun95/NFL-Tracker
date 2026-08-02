@@ -7,8 +7,11 @@ import type { StatRow } from "../lib/types";
 import { fmt, label } from "../lib/columns";
 import { translate } from "../lib/i18n";
 
-// dataviz paleti — koyu yüzeye (#161b22) karşı doğrulandı (validate_palette.js: ALL PASS)
-export const CHART = {
+// dataviz paleti. Açık tema, koyunun otomatik ters çevrilmişi DEĞİL: kendi
+// adımlarıyla seçilip kendi yüzeyine karşı ayrı doğrulandı.
+//   koyu  (yüzey #161b22): ALL PASS, en kötü komşu CVD ΔE 8.4
+//   açık  (yüzey #f2f4f7): ALL PASS, en kötü komşu CVD ΔE 10.9
+const DARK = {
   series1: "#3987e5",
   series2: "#199e70",
   series3: "#c98500",
@@ -17,16 +20,55 @@ export const CHART = {
   muted: "#898781",
   ink: "#e6edf3",
   surface: "#161b22",
+  accent: "#d50a0a",
+  good: "#2ea043",
+  bad: "#da3633",
+  badInk: "#f85149",
+  cursor: "#ffffff10",
 };
-export const SERIES_COLORS = [CHART.series1, CHART.series2, CHART.series3];
+const LIGHT: typeof DARK = {
+  series1: "#1f6fd0",
+  series2: "#068a6b",
+  series3: "#bd4f05",
+  grid: "#dce1e8",
+  axis: "#b9c1cb",
+  muted: "#5a6673",
+  ink: "#16202b",
+  surface: "#f2f4f7",
+  accent: "#b30909",
+  good: "#1a7f37",
+  bad: "#b42318",
+  badInk: "#b42318",
+  cursor: "#0f172a12",
+};
 
-const tooltipStyle = {
+function activePalette(): typeof DARK {
+  return typeof document !== "undefined"
+    && document.documentElement.getAttribute("data-theme") === "light"
+    ? LIGHT : DARK;
+}
+
+/** Tema anahtarı çevrildiğinde App yeniden render olur; grafikler de onun
+ *  altında olduğu için palet erişimi o anda güncel değeri döner. */
+export const CHART: typeof DARK = new Proxy({} as typeof DARK, {
+  get: (_t, prop: string) => activePalette()[prop as keyof typeof DARK],
+});
+export const SERIES_COLORS: string[] = new Proxy([] as string[], {
+  get: (_t, prop: string) => {
+    if (prop === "length") return 3;
+    const i = Number(prop);
+    if (!Number.isNaN(i)) return activePalette()[`series${i + 1}` as keyof typeof DARK];
+    return undefined;
+  },
+});
+
+const tooltipStyle = () => ({
   backgroundColor: CHART.surface,
   border: `1px solid ${CHART.axis}`,
   borderRadius: 8,
   color: CHART.ink,
   fontSize: 13,
-};
+});
 
 interface WeeklyBarProps {
   rows: StatRow[]; // tek oyuncunun haftalık satırları (week sıralı)
@@ -94,7 +136,7 @@ export function WeeklyBarChart({ rows, stat, threshold, onThresholdChange }:
                    domain={[0, yMax]} allowDataOverflow
                    tickFormatter={(v) => fmt(stat, Number(v))}
                    axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
+            <Tooltip contentStyle={tooltipStyle()} cursor={{ fill: CHART.cursor }}
                      formatter={(v, name) =>
                        [fmt(stat, Number(v)),
                         name === "ma" ? translate("chart.ma3") : label(stat)]}
@@ -104,12 +146,12 @@ export function WeeklyBarChart({ rows, stat, threshold, onThresholdChange }:
                                     position: "insideTopRight",
                                     fill: CHART.muted, fontSize: 10 }} />
             {hasThr && (
-              <ReferenceLine y={Number(threshold)} stroke="#d50a0a"
+              <ReferenceLine y={Number(threshold)} stroke={CHART.accent}
                              strokeWidth={2}
                              label={{ value: translate("chart.thrLabel",
                                         { v: fmt(stat, Number(threshold)) }),
                                       position: "insideLeft",
-                                      fill: "#f85149", fontSize: 11 }} />
+                                      fill: CHART.badInk, fontSize: 11 }} />
             )}
             <Bar dataKey="value" radius={[4, 4, 0, 0]}
                  maxBarSize={28} name={label(stat)} isAnimationActive={false}>
@@ -360,7 +402,7 @@ export function BarRankingChart({ rows, metric, nameKey = "player_name",
                      backgroundColor: CHART.surface, border: `1px solid ${CHART.axis}`,
                      borderRadius: 8, color: CHART.ink, fontSize: 13,
                    }}
-                   cursor={{ fill: "#ffffff10" }}
+                   cursor={{ fill: CHART.cursor }}
                    formatter={(v) => [fmt(metric, Number(v)), label(metric)]} />
           <Bar dataKey="value" isAnimationActive={false} maxBarSize={18}
                radius={[0, 4, 4, 0]}
@@ -422,7 +464,7 @@ export function TeamScatterChart({ rows, highlight }: TeamScatterProps) {
                  axisLine={false} tickLine={false} />
           <ReferenceLine x={avgPf} stroke={CHART.axis} strokeDasharray="4 4" />
           <ReferenceLine y={avgPa} stroke={CHART.axis} strokeDasharray="4 4" />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: CHART.muted }}
+          <Tooltip contentStyle={tooltipStyle()} cursor={{ stroke: CHART.muted }}
                    formatter={(v, name) =>
                      [String(v), label(name === "pf" ? "points_for" : "points_against")]}
                    labelFormatter={() => ""} />
@@ -457,20 +499,20 @@ export function PropBarChart({ games, line, statLabel }:
           <XAxis dataKey="label" stroke={CHART.muted} fontSize={11}
                  interval={0} angle={-35} textAnchor="end" height={44} />
           <YAxis stroke={CHART.muted} fontSize={12} width={44} />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff10" }}
+          <Tooltip contentStyle={tooltipStyle()} cursor={{ fill: CHART.cursor }}
                    formatter={(v) => [String(v), statLabel]}
                    labelFormatter={(l, p) => {
                      const g = (p as unknown as { payload?: PropGame }[])?.[0]?.payload;
                      return g ? `${l} · vs ${g.opp}` : String(l);
                    }} />
-          <ReferenceLine y={line} stroke="#d50a0a" strokeDasharray="6 3"
+          <ReferenceLine y={line} stroke={CHART.accent} strokeDasharray="6 3"
                          strokeWidth={2}
                          label={{ value: translate("chart.line", { v: line }),
-                                  fill: "#f85149",
+                                  fill: CHART.badInk,
                                   fontSize: 11, position: "insideTopLeft" }} />
           <Bar dataKey="value" isAnimationActive={false} radius={[3, 3, 0, 0]}>
             {games.map((g, i) => (
-              <Cell key={i} fill={g.value > line ? "#2ea043" : "#da3633"} />
+              <Cell key={i} fill={g.value > line ? CHART.good : CHART.bad} />
             ))}
           </Bar>
         </BarChart>

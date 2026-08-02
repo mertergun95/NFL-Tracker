@@ -73,7 +73,7 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
               <div className="game-date">
                 {String(g.gameday)}
                 {kickoffBerlin(g.kickoff as string) &&
-                  ` · 🕐 ${kickoffBerlin(g.kickoff as string)} (DE)`}
+                  ` · ${kickoffBerlin(g.kickoff as string)} (DE)`}
                 {Boolean(g.conference_game) && t("game.conference")}
               </div>
               <div className="game-line">

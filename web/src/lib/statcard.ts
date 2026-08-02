@@ -50,7 +50,7 @@ export function downloadStatCard(
   // alt bilgi
   ctx.fillStyle = "#8b949e";
   ctx.font = "400 15px system-ui, sans-serif";
-  ctx.fillText("🏈 StatGrade · veri: nflverse", 44, H - 24);
+  ctx.fillText("StatGrade · veri: nflverse", 44, H - 24);
 
   const a = document.createElement("a");
   a.download = `${name.replace(/\s+/g, "-")}-${season}.png`;

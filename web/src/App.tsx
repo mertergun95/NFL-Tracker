@@ -32,7 +32,9 @@ import { loadNcaaManifest } from "./lib/ncaa";
 import { useAsync } from "./lib/hooks";
 import { ErrorMsg, Loading } from "./components/Pickers";
 import Logo from "./components/Logo";
+import ThemeIcon from "./components/ThemeIcon";
 import { LANG_NAMES, LANGS, useI18n } from "./lib/i18n";
+import { useTheme } from "./lib/theme";
 
 const NAV = [
   { to: "/", key: "nav.dashboard" },
@@ -65,6 +67,7 @@ const NCAA_NAV = [
 export default function App() {
   const location = useLocation();
   const { t, lang, setLang } = useI18n();
+  const { theme, toggle } = useTheme();
   const isNcaa = location.pathname.startsWith("/ncaa");
   const { data: manifest, error, loading } = useAsync(() => loadManifest(), []);
   const seasons = manifest ? seasonsFromManifest(manifest) : [];
@@ -94,6 +97,11 @@ export default function App() {
                     onClick={() => setLang(l)}>{LANG_NAMES[l]}</button>
           ))}
         </span>
+        <button className="theme-toggle" onClick={toggle}
+                title={t(theme === "dark" ? "nav.themeLight" : "nav.themeDark")}
+                aria-label={t(theme === "dark" ? "nav.themeLight" : "nav.themeDark")}>
+          <ThemeIcon theme={theme} />
+        </button>
       </header>
       <main>
         {loading && <Loading />}

@@ -58,7 +58,7 @@ export const STAT_LABELS: Record<string, string | [string, string, string]> = {
   points_for: ["PF", "Atılan Sayı", "Erz. Punkte"],
   points_against: ["PA", "Yenilen Sayı", "Gegenpunkte"],
   gametime: ["Time (ET)", "Saat (ET)", "Zeit (ET)"],
-  saat_de: ["Time (DE) 🕐", "Saat (DE) 🕐", "Zeit (DE) 🕐"],
+  saat_de: ["Time (DE)", "Saat (DE)", "Zeit (DE)"],
   // NCAA (ESPN box score) kolonları
   jersey: "#",
   class: ["Class", "Sınıf", "Jahrgang"],
@@ -248,6 +248,81 @@ export const label = (col: string): string => {
   if (m) return ALLOWED_FMT[getLang()](m[1].toUpperCase(), label(m[2]));
   return col;
 };
+
+// Kolon açıklamaları — tablo başlıklarında tooltip olarak gösterilir.
+// Amaç: advanced stats'a hakim olmayan kullanıcı "P·Tgt" veya "EPA" gibi
+// bir kısaltmayı arayüzden ayrılmadan çözebilsin.
+const STAT_HELP: Record<string, string | [string, string, string]> = {
+  attempts: ["Pass attempts", "Pas denemesi", "Passversuche"],
+  completions: ["Completed passes", "Tamamlanan pas", "Angekommene Pässe"],
+  passing_yards: ["Yards gained through the air",
+                  "Pasla kazanılan yard", "Erpasste Yards"],
+  passing_tds: ["Touchdown passes thrown", "Atılan TD pası", "Touchdown-Pässe"],
+  passing_interceptions: ["Passes intercepted by the defense",
+                          "Savunmaya kaptırılan pas", "Abgefangene Pässe"],
+  carries: ["Rushing attempts", "Koşu denemesi", "Laufversuche"],
+  rushing_yards: ["Yards gained running the ball",
+                  "Koşarak kazanılan yard", "Erlaufene Yards"],
+  rushing_tds: ["Touchdowns scored on the ground",
+                "Koşuyla atılan TD", "Erlaufene Touchdowns"],
+  targets: ["Passes thrown to this player",
+            "Bu oyuncuya atılan pas sayısı", "Auf ihn geworfene Pässe"],
+  receptions: ["Passes caught", "Yakalanan pas", "Gefangene Pässe"],
+  receiving_yards: ["Yards gained after catching the ball",
+                    "Pas yakalayarak kazanılan yard", "Yards nach Fang"],
+  receiving_tds: ["Touchdowns scored by catching a pass",
+                  "Pas yakalayarak atılan TD", "Touchdowns nach Fang"],
+  target_share: ["Share of the team's targets this player saw",
+                 "Takımın toplam target'ının bu oyuncuya düşen payı",
+                 "Anteil an den Targets des Teams"],
+  air_yards_share: ["Share of the team's air yards (how deep he is used)",
+                    "Takımın air yard payı (ne kadar derinde kullanıldığı)",
+                    "Anteil an den Air Yards des Teams"],
+  fantasy_points_ppr: ["Fantasy points, PPR scoring (1 point per reception)",
+                       "Fantasy puanı, PPR (her yakalama 1 puan)",
+                       "Fantasy-Punkte, PPR (1 Punkt je Fang)"],
+  passing_epa: ["Expected Points Added passing — how much the play improved the team's scoring expectation",
+                "Pasta EPA — oyunun takımın sayı beklentisini ne kadar artırdığı",
+                "EPA im Passspiel — wie sehr der Spielzug die Punkterwartung verbessert"],
+  rushing_epa: ["Expected Points Added rushing",
+                "Koşuda EPA", "EPA im Laufspiel"],
+  receiving_epa: ["Expected Points Added receiving",
+                  "Pas yakalamada EPA", "EPA im Passempfang"],
+  injury_status: ["Official injury report status",
+                  "Resmi sakatlık raporu durumu", "Offizieller Verletzungsstatus"],
+  opponent: ["Opponent this week", "Bu haftaki rakip", "Gegner diese Woche"],
+  proj_ppr: ["Projected fantasy points (PPR) — used to rank the table",
+             "Projekte edilen fantasy puanı (PPR) — tablo sıralaması buna göre",
+             "Prognostizierte Fantasy-Punkte (PPR) — Sortierkriterium"],
+};
+
+const PROJ_HELP = {
+  en: (s: string) => `Projected ${s.toLowerCase()} for this week`,
+  tr: (s: string) => `Bu hafta için projeksiyon: ${s.toLowerCase()}`,
+  de: (s: string) => `Prognose für diese Woche: ${s.toLowerCase()}`,
+};
+const ACT_HELP = {
+  en: (s: string) => `Actual ${s.toLowerCase()} recorded`,
+  tr: (s: string) => `Gerçekleşen: ${s.toLowerCase()}`,
+  de: (s: string) => `Tatsächlich erzielt: ${s.toLowerCase()}`,
+};
+
+/** Kolonun insan diliyle açıklaması; yoksa boş dize (tooltip gösterilmez). */
+export function describe(col: string): string {
+  const entry = STAT_HELP[col];
+  if (entry)
+    return typeof entry === "string"
+      ? entry : entry[LANGS.indexOf(getLang())] ?? entry[0];
+  if (col.startsWith("proj_")) {
+    const base = describe(col.slice(5)) || label(col.slice(5));
+    return PROJ_HELP[getLang()](base);
+  }
+  if (col.startsWith("act_")) {
+    const base = describe(col.slice(4)) || label(col.slice(4));
+    return ACT_HELP[getLang()](base);
+  }
+  return "";
+}
 
 /** Yüzdeyi dile göre biçimler: TR "%60", EN "60%", DE "60 %". */
 export function pct(v: number | string): string {
