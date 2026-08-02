@@ -399,6 +399,56 @@ tamamlayıcı veriler ve içerik ilhamı için ek kaynak olarak planda duruyor.
       red zone fırsat payı (mevcut player_redzone.json yalnızca sezon
       toplamı — haftalık için ham pbp'den yeniden hesaplama gerekir)
 
+### ✅ Faz 5.23 — Projeksiyon iç tutarlılığı: pas hattı kimliği (20. tur)
+
+Kullanıcı geri bildirimi: *"QB 237 yard pass diyorsun, takımdaki receiving
+yard projeksiyonlarını topluyorum 200 çıkıyor — QB kime atıyor o pası?"*
+Haklı: maçı bir bütün olarak projekte etmek yerine oyuncular tek tek,
+birbirinden bağımsız modellerle tahmin ediliyordu.
+
+- [x] **Sorun doğrulandı (ölçüldü, tahmin edilmedi):** 32 takımın 31'inde
+      Σ alıcı yardı ≠ QB pas yardı. Oran takımlara göre **0.66–1.03**
+      arasında geziyordu, lig geneli 0.83 — yani ortalama %17 açık.
+      Aynı kopukluk targets/attempts (0.63–0.99) ve receptions/completions'ta da
+      vardı. Kullanıcının bahsettiği satır: Mahomes 237.7 pas yd, KC
+      alıcıları toplam 212.3.
+- [x] **Kimlik doğrulandı:** 2023–2025 REG, 1632 takım-haftanın **hepsinde**
+      Σ receiving_yards / Σ passing_yards = tam 1.000 (receptions/completions
+      da aynı). Bunlar tahmin değil, box score kimliği: bir pas tamamlandığında
+      aynı yard iki yere birden yazılır. targets/attempts ise 0.96 —
+      atışların ~%4'ü (throwaway, spike) kimseye target yazmıyor.
+- [x] **Kök neden:** (a) her stat ayrı GBM ile bağımsız tahmin ediliyor,
+      takım düzeyinde hiçbir bağ yok; (b) alıcı modelleri sistematik düşük
+      tahmin ediyor (geri test biası: receiving_yards −4.45/oyuncu iken
+      passing_yards +2.34/oyuncu); (c) takım hacim bütçesi yalnızca aşağı
+      kırpıyordu ("azı büyütme"), açığı hiç kapatmıyordu.
+- [x] **Çözüm — `reconcile_passing`:** QB'nin pas satırı çıpa alınıp alıcı
+      statları takım içinde oransal ölçekleniyor (`PASS_IDENTITY`).
+      Oyuncular arası PAY korunur, yalnızca ölçek kimliğe oturur; taban/tavan
+      kolonları da aynı çarpanla ölçeklenir. Çıpa QB'dir çünkü tek satırdır
+      ve hacmi zaten takım bütçesiyle sınırlı; alıcı tarafı 8-10 satıra
+      bölünmüş, her biri ayrı ayrı ortalamaya çeken tahminler.
+      Gösterilen kadro kesinleştikten **sonra** çalışır ki toplamlar ekranda
+      görünen satırlarla tutsun. Sonuç: kimlik sapması ort. **%16.70 → %0.03**
+      (max %34.42 → %0.12), kimliği bozuk takım **31/32 → 0/32**.
+- [x] **Yan bug (bu iş sırasında ölçülerek bulundu):** 247 satırın
+      **120'sinde** nokta tahmini kendi taban–tavan aralığının DIŞINDA
+      kalıyordu (ör. "21.5 yard, aralık 28.3–45.4"; Purdy rush yd 15.4 iken
+      tavan 14.2). İki sebebi vardı: (a) hacim bütçesi nokta tahminini
+      kırparken taban/tavanı kırpmıyordu — artık üçü birlikte ölçekleniyor;
+      (b) nokta (kare-hata/Poisson) ile p20/p80 ayrı modellerden geldiği için
+      birbirini tutmak zorunda değil — `_clamp_ranges` ile aralık genişletiliyor,
+      nokta tahmini korunuyor (karnede ölçülen ve sıralamayı belirleyen o).
+      PPR taban/tavanı uzlaştırmadan sonra `_ppr_from` ile yeniden türetiliyor;
+      clamp en sonda çünkü `_pseudo_ppr` interception'da negatif katsayı taşır
+      (düşük INT tabanı = yüksek PPR), türetilen taban noktayı aşabiliyordu.
+      Sonuç: aralık ihlali **120 → 0**.
+- [ ] **Not (yapılmadı):** aynı kopukluk koşu tarafında da var (Σ oyuncu
+      rushing_yards ↔ takım koşu yardı) ama orada QB gibi tek satırlık doğal
+      bir çıpa yok; takım hacim bütçesini iki yönlü hale getirmek gerekir.
+      NCAA projeksiyonları (`ncaa.py`) ayrı bir sezgisel yol ve aynı
+      uzlaştırmadan geçmiyor.
+
 ### Faz 6 — Fikirler (gelecek)
 - [ ] Oyuncu bazlı kariyer trend sayfaları (sezonlar arası çizgi grafikler)
 - [ ] Haftalık e-posta/Slack özeti, insights arşivi
