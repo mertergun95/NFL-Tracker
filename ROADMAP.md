@@ -443,6 +443,31 @@ birbirinden bağımsız modellerle tahmin ediliyordu.
       clamp en sonda çünkü `_pseudo_ppr` interception'da negatif katsayı taşır
       (düşük INT tabanı = yüksek PPR), türetilen taban noktayı aşabiliyordu.
       Sonuç: aralık ihlali **120 → 0**.
+- [x] **Geri testle doğrulandı — bedava değil, bir TAKAS (13 hafta, ML motoru):**
+
+      | stat | MAE eski | MAE yeni | bias eski | bias yeni |
+      |---|---|---|---|---|
+      | receiving_yards | 19.87 | 20.26 (+%2.0) | −4.45 | **−2.37** |
+      | receptions | 1.48 | 1.50 (+%1.8) | −0.35 | **−0.14** |
+      | targets | 1.92 | 1.94 (+%1.0) | −0.54 | **−0.25** |
+      | receiving_tds | 0.38 | 0.40 (+%4.2) | −0.03 | **+0.01** |
+
+      Yani sistematik düşük tahmin (bias) yarıya indi ama MAE bir tık arttı,
+      korelasyon da hafif düştü (rec yd r: 0.551 → 0.538). Sebep açık:
+      alıcılar QB'nin pas yardı tahminine bağlanıyor ve o tahminin kendi
+      MAE'si 62 yard — çıpanın gürültüsü alıcılara da bulaşıyor. QB
+      tarafındaki hiçbir stat değişmiyor (çıpa, ölçeklenen değil).
+      %2'lik MAE bedeli bilinçli kabul edildi: kimlik ihlali gerçeğe aykırı
+      ve savunulamaz, doğruluk metriği ne derse desin.
+- [x] **Çıpa seçimi ölçüldü, tahmin edilmedi:** takım düzeyinde alıcı
+      toplamı, takım pas yardını QB projeksiyonundan DAHA iyi tahmin ediyor
+      (MAE 53.6 vs 61.4), bu yüzden "iki tarafı ortak uzlaşıya çek"
+      (T = a·QB + (1−a)·alıcı) denendi. Oyuncu bazlı MAE'de a<1 her zaman
+      daha kötü çıktı (a=0'da QB pas yd MAE 62.3 → 83.8). Sebep bir metrik
+      artefaktı: karnenin hedefi QB1'in KENDİ gerçek pas yardı; QB1 sakatlanıp
+      yerini yedeğe bırakınca alıcılar yedeğin yardlarını da topluyor, dolayısıyla
+      alıcı toplamı QB1'i tahminde kötü. Kimliği koruyan seçenekler arasında
+      **a=1.0 (saf QB çıpası) toplam MAE'yi minimize ediyor** — uygulanan bu.
 - [ ] **Not (yapılmadı):** aynı kopukluk koşu tarafında da var (Σ oyuncu
       rushing_yards ↔ takım koşu yardı) ama orada QB gibi tek satırlık doğal
       bir çıpa yok; takım hacim bütçesini iki yönlü hale getirmek gerekir.
