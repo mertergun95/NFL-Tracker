@@ -1,91 +1,19 @@
 INFO OK 7548 satır <- http://www.habitatring.com/games.csv
-INFO OK 25027 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
-INFO === 2025 sezonu işleniyor ===
-INFO OK 19421 satır <- https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.csv.gz
-INFO Eksik kolonlar (atlandı): ['def_fumble_recovery_opp']
-INFO OK 570 satır <- https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2025.csv.gz
-INFO Eksik kolonlar (atlandı): ['fantasy_points', 'fantasy_points_ppr']
-INFO Yazıldı: web/public/data/seasons/2025/player_weeks.json (19421 satır, 5200.5 KB)
-INFO Yazıldı: web/public/data/seasons/2025/player_season.json (2019 satır, 516.6 KB)
-INFO Yazıldı: web/public/data/seasons/2025/team_weeks.json (570 satır, 40.2 KB)
-INFO Yazıldı: web/public/data/seasons/2025/team_season.json (32 satır, 3.2 KB)
-INFO Yazıldı: web/public/data/seasons/2025/schedule.json (285 satır, 40.3 KB)
-INFO OK 48771 satır <- https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2025.csv.gz
-INFO Yazıldı: web/public/data/seasons/2025/player_redzone.json (482 satır, 35.5 KB)
-INFO Yazıldı: web/public/data/seasons/2025/team_advanced.json (32 satır, 4.5 KB)
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/ftn_charting/ftn_charting_2025.csv.gz
-INFO OK 47316 satır <- https://github.com/nflverse/nflverse-data/releases/download/ftn_charting/ftn_charting_2025.csv
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2025.csv.gz
-INFO OK 45184 satır <- https://github.com/nflverse/nflverse-data/releases/download/pbp_participation/pbp_participation_2025.csv
-INFO Yazıldı: web/public/data/seasons/2025/team_scheme.json (32 satır, 1.9 KB)
-INFO Oyuncu şema splitleri: 1274 satır (FTN: True)
-INFO Yazıldı: web/public/data/seasons/2025/player_scheme.json (1274 satır, 103.4 KB)
-INFO OK 26612 satır <- https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2025.csv.gz
-INFO Snap counts gsis eşleşme oranı: 99.8%
-INFO Yazıldı: web/public/data/seasons/2025/snap_counts.json (26612 satır, 2105.2 KB)
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_passing.csv.gz
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_passing.csv
-INFO OK 5933 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_passing.csv.gz
-INFO Yazıldı: web/public/data/seasons/2025/ngs_passing.json (605 satır, 69.5 KB)
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_rushing.csv.gz
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_rushing.csv
-INFO OK 6059 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_rushing.csv.gz
-INFO Yazıldı: web/public/data/seasons/2025/ngs_rushing.json (648 satır, 58.4 KB)
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv.gz
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_2025_receiving.csv
-INFO OK 14731 satır <- https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_receiving.csv.gz
-INFO Yazıldı: web/public/data/seasons/2025/ngs_receiving.json (1402 satır, 135.6 KB)
-INFO OK 381642 satır <- https://github.com/nflverse/nflverse-data/releases/download/depth_charts/depth_charts_2026.csv.gz
-INFO OK 2930 satır <- https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv.gz
-INFO Depth chart ham kolonlar: ['dt', 'team', 'player_name', 'espn_id', 'gsis_id', 'pos_grp_id', 'pos_grp', 'pos_id', 'pos_name', 'pos_abb', 'pos_slot', 'pos_rank']
-INFO Yazıldı: web/public/data/depth_charts.json (3176 satır, 450.6 KB)
-INFO Depth chart yazıldı: 2026 sezonu, 3176 satır
-INFO Yazıldı: web/public/data/current_teams.json (3024 satır, 76.1 KB)
-INFO Güncel takım haritası: 3024 oyuncu (2026)
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv.gz
-WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv
-INFO OK 6068 satır <- https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2025.csv.gz
-INFO Yazıldı: web/public/data/injuries.json (6068 satır, 714.1 KB)
-INFO Sakatlık raporları yazıldı: 2025 sezonu, 6068 satır
-INFO Eksik kolonlar (atlandı): ['entry_year', 'draft_club', 'draft_number']
-INFO Yazıldı: web/public/data/players/index.json (4721 satır, 939.5 KB)
-INFO Manifest güncellendi: 8 sezon
-INFO Yazıldı: web/public/data/pos_allowed.json (128 satır, 12.5 KB)
-INFO Yazıldı: web/public/data/next_schedule.json (272 satır, 38.7 KB)
-INFO Insights yazıldı: 58 madde (2025 sezonu, hafta 18'e kadar)
-INFO ML modelleri eğitildi: 12 hedef, 43994 satır
-INFO Projeksiyonlar yazıldı: 247 oyuncu (2026 W1)
-INFO ML modelleri eğitildi: 12 hedef, 39764 satır
-INFO ML modelleri eğitildi: 12 hedef, 40079 satır
-INFO ML modelleri eğitildi: 12 hedef, 40410 satır
-INFO ML modelleri eğitildi: 12 hedef, 40695 satır
-INFO ML modelleri eğitildi: 12 hedef, 41002 satır
-INFO ML modelleri eğitildi: 12 hedef, 41309 satır
-INFO ML modelleri eğitildi: 12 hedef, 41628 satır
-INFO ML modelleri eğitildi: 12 hedef, 41934 satır
-INFO ML modelleri eğitildi: 12 hedef, 42281 satır
-INFO ML modelleri eğitildi: 12 hedef, 42603 satır
-INFO ML modelleri eğitildi: 12 hedef, 42941 satır
-INFO ML modelleri eğitildi: 12 hedef, 43301 satır
-INFO ML modelleri eğitildi: 12 hedef, 43653 satır
-INFO Projeksiyon karnesi yazıldı: 13 hafta, son hafta 2427 oyuncu
-INFO NCAA 2025: 934 maç bulundu
-INFO NCAA 2025: 1 yeni maçın box score'u çekilecek
-INFO Yazıldı: web/public/data/ncaa/seasons/2025/schedule.json (934 satır, 93.9 KB)
-INFO Yazıldı: web/public/data/ncaa/seasons/2025/player_weeks.json (20852 satır, 4293.4 KB)
-INFO Yazıldı: web/public/data/ncaa/seasons/2025/team_weeks.json (1868 satır, 195.6 KB)
-INFO Yazıldı: web/public/data/ncaa/seasons/2025/player_season.json (4260 satır, 710.2 KB)
-INFO Yazıldı: web/public/data/ncaa/seasons/2025/team_season.json (136 satır, 10.1 KB)
-INFO Yazıldı: web/public/data/ncaa/teams.json (249 satır, 27.6 KB)
-INFO NCAA kadrolar: 136 takım çekilecek
-INFO Yazıldı: web/public/data/ncaa/rosters.json (13370 satır, 1687.3 KB)
-INFO NCAA kadrolar yazıldı: 13370 oyuncu
-INFO NCAA 2026: 946 maç bulundu
-INFO Yazıldı: web/public/data/ncaa/teams.json (249 satır, 27.6 KB)
-INFO Yazıldı: web/public/data/ncaa/next_schedule.json (946 satır, 98.9 KB)
-INFO NCAA 2026 fikstürü yazıldı: 946 maç
-INFO NCAA projeksiyon yazıldı: 1298 oyuncu, hedef 2026 W1
-INFO NCAA karne yazıldı: 10 hafta, 9340 oyuncu-hafta satırı
-INFO Yazıldı: web/public/data/ncaa/players/index.json (8918 satır, 1080.2 KB)
-INFO NCAA index: 8918 oyuncu, sezonlar: [2022, 2023, 2024, 2025]
-INFO Pipeline başarıyla tamamlandı: [2025]
+INFO OK 25039 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
+INFO === 2026 sezonu işleniyor ===
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv.gz
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_2026.csv.gz
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_def_2026.csv.gz
+WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_kicking_2026.csv.gz
+ERROR 2026 sezonu işlenemedi
+Traceback (most recent call last):
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 248, in main
+    process_season(season, schedules, master)
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 41, in process_season
+    raw_pw = sources.fetch_player_weeks(season)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/sources.py", line 59, in fetch_player_weeks
+    raise RuntimeError(f"{season} sezonu için oyuncu istatistiği indirilemedi")
+RuntimeError: 2026 sezonu için oyuncu istatistiği indirilemedi
+WARNING Güncellenecek veri yok (sezon başlamamış olabilir): [2026]
