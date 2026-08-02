@@ -64,13 +64,16 @@ function StandingsTable({ rows, seeded }: { rows: Row[]; seeded?: boolean }) {
     <table className="stat-table">
       <thead>
         <tr>
-          {seeded && <th className="seed-col">#</th>}
-          <th>{label("team")}</th><th>{label("wins")}</th>
-          <th>{label("losses")}</th><th>{label("ties")}</th>
-          <th title={t("stand.pctTitle")}>Pct</th>
-          <th title={t("stand.pfTitle")}>{t("stand.pf")}</th>
-          <th title={t("stand.paTitle")}>{t("stand.pa")}</th>
-          <th title={t("stand.diffTitle")}>{t("stand.diff")}</th>
+          {/* sayısal başlıklar da sağa yaslanır — hücreleriyle aynı hizada */}
+          {seeded && <th className="seed-col num">#</th>}
+          <th>{label("team")}</th>
+          <th className="num">{label("wins")}</th>
+          <th className="num">{label("losses")}</th>
+          <th className="num">{label("ties")}</th>
+          <th className="num" title={t("stand.pctTitle")}>Pct</th>
+          <th className="num" title={t("stand.pfTitle")}>{t("stand.pf")}</th>
+          <th className="num" title={t("stand.paTitle")}>{t("stand.pa")}</th>
+          <th className="num" title={t("stand.diffTitle")}>{t("stand.diff")}</th>
         </tr>
       </thead>
       <tbody>
