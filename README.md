@@ -41,3 +41,35 @@ npm run dev      # http://localhost:5173
 | `seasons/{yıl}/schedule.json` | fikstür ve skorlar |
 
 JSON biçimi kolonsaldır: `{"columns": [...], "rows": [[...], ...]}`.
+
+## Kaynaklar, atıf ve lisans
+
+### Veri
+
+- **NFL verisi:** [nflverse-data](https://github.com/nflverse/nflverse-data),
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) altında.
+  Veri bu projede **değiştirilmiştir**: haftalık satırlar toplulaştırılmış,
+  pay/oran kolonları türetilmiş ve kompakt kolonsal JSON'a dönüştürülmüştür.
+  nflverse veriyi "olduğu gibi" sunar, herhangi bir garanti vermez.
+- **NCAA verisi ve logoları, oyuncu görselleri:** ESPN ve NFL'in genel
+  erişime açık uçları üzerinden gösterilir (kopyalanmaz, doğrudan bağlanır).
+- **Fikstür/skorlar:** [nfldata](https://github.com/nflverse/nfldata) aynası.
+
+### Marka ve telif uyarısı
+
+StatGrade **bağımsız ve ticari olmayan** bir projedir. NFL, herhangi bir NFL
+takımı veya NCAA ile **bağlantılı değildir**; onlar tarafından onaylanmamış
+veya desteklenmemiştir. Takım adları, logoları ve oyuncu görselleri ilgili
+sahiplerinin mülkiyetindedir ve burada yalnızca **tanımlama amacıyla**
+kullanılmaktadır.
+
+İstatistiklerin kendisi olgusal veridir; ABD içtihadında spor istatistikleri
+telif korumasına tabi değildir (*NBA v. Motorola*, 2. Daire; *C.B.C.
+Distribution v. MLB Advanced Media*, 8. Daire 2007). Buna karşılık **logolar
+ve görseller** marka/telif kapsamındadır — bu yüzden hiçbiri repoda
+barındırılmaz, yalnızca kaynağından gösterilir.
+
+### Kod lisansı
+
+Bu depodaki **kod** için bkz. [LICENSE](LICENSE). Lisans yalnızca bu projenin
+kendi kodunu kapsar; yukarıdaki üçüncü taraf veri ve görselleri kapsamaz.

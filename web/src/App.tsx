@@ -142,7 +142,19 @@ export default function App() {
           )}
         </Routes>
       </main>
-      <footer>{t("app.footer")}</footer>
+      <footer>
+        <p className="foot-src">
+          {t("app.footer.data")}:{" "}
+          <a href="https://github.com/nflverse/nflverse-data"
+             target="_blank" rel="noopener noreferrer">nflverse</a>{" ("}
+          <a href="https://creativecommons.org/licenses/by/4.0/"
+             target="_blank" rel="noopener noreferrer">CC BY 4.0</a>
+          {"), "}{t("app.footer.modified")} · {t("app.footer.ncaa")}:{" "}
+          <a href="https://www.espn.com" target="_blank"
+             rel="noopener noreferrer">ESPN</a> · {t("app.footer.updated")}
+        </p>
+        <p className="foot-legal">{t("app.footer.disclaimer")}</p>
+      </footer>
     </div>
   );
 }

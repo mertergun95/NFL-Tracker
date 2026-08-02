@@ -6,9 +6,21 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "app.brand": "StatGrade",
   "nfl.dashTitle": ["NFL · {season} Season", "NFL · {season} Sezonu",
                     "NFL · Saison {season}"],
-  "app.footer": ["Data: nflverse + ESPN (NCAA) · updated every Tuesday",
-                 "Veri: nflverse + ESPN (NCAA) · her Salı otomatik güncellenir",
-                 "Daten: nflverse + ESPN (NCAA) · jeden Dienstag aktualisiert"],
+  // Footer parçalı: CC BY 4.0, atfın eser sahibi + lisans adı + lisans
+  // bağlantısı + kaynağa bağlantı + "değiştirildi" beyanını içermesini
+  // şart koşuyor, bu yüzden metin ile bağlantılar ayrı ayrı diziliyor.
+  "app.footer.data": ["Data", "Veri", "Daten"],
+  "app.footer.modified": ["processed and aggregated by StatGrade",
+                          "StatGrade tarafından işlenip toplulaştırıldı",
+                          "von StatGrade aufbereitet und aggregiert"],
+  "app.footer.ncaa": ["NCAA data and logos", "NCAA verisi ve logoları",
+                      "NCAA-Daten und Logos"],
+  "app.footer.updated": ["updated every Tuesday", "her Salı güncellenir",
+                         "jeden Dienstag aktualisiert"],
+  "app.footer.disclaimer": [
+    "StatGrade is an independent, non-commercial project. It is not affiliated with, endorsed by, or sponsored by the NFL, any NFL team, or the NCAA. Team names, logos and player images are the property of their respective owners and are used here for identification purposes only.",
+    "StatGrade bağımsız ve ticari olmayan bir projedir. NFL, herhangi bir NFL takımı veya NCAA ile bağlantılı değildir; onlar tarafından onaylanmamış veya desteklenmemektedir. Takım adları, logoları ve oyuncu görselleri ilgili sahiplerinin mülkiyetindedir ve burada yalnızca tanımlama amacıyla kullanılmaktadır.",
+    "StatGrade ist ein unabhängiges, nicht-kommerzielles Projekt. Es steht in keiner Verbindung zur NFL, zu NFL-Teams oder zur NCAA und wird von diesen weder unterstützt noch gesponsert. Teamnamen, Logos und Spielerbilder sind Eigentum der jeweiligen Rechteinhaber und werden hier ausschließlich zu Identifikationszwecken verwendet."],
   "common.loading": ["Loading…", "Yükleniyor…", "Lädt…"],
   "common.season": ["Season", "Sezon", "Saison"],
   "common.week": ["Week", "Hafta", "Woche"],

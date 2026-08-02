@@ -46,6 +46,13 @@ footer {
   padding: 16px 24px; color: var(--text-dim);
   border-top: 1px solid var(--border); font-size: 0.85rem;
 }
+footer p { margin: 0; }
+footer a { color: inherit; text-decoration: underline; }
+/* Yasal uyarı: okunur ama kaynak satırından bir tık geride */
+.foot-legal {
+  margin-top: 8px; font-size: 0.78rem; line-height: 1.45;
+  opacity: 0.8; max-width: 80ch;
+}
 
 h1 { margin: 8px 0 4px; font-size: 1.5rem; }
 h2 { margin: 28px 0 10px; font-size: 1.15rem; }
