@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PName from "../components/PName";
 import TeamLogo from "../components/TeamLogo";
+import Trend from "../components/Trend";
+import NextSlate from "../components/NextSlate";
 import { ErrorMsg, Loading, SeasonPicker } from "../components/Pickers";
 import {
   loadInsights, loadPlayerSeason, loadPlayerWeeks, loadSchedule,
@@ -126,6 +128,8 @@ export default function Dashboard({ manifest, seasons }:
       {loading && <Loading />}
       {error && <ErrorMsg msg={error} />}
 
+      <NextSlate />
+
       <h2>{t("dash.stars", { week: lastWeek })}</h2>
       <div className="perf-strip">
         {topPerformances.map((r) => (
@@ -181,6 +185,7 @@ export default function Dashboard({ manifest, seasons }:
             {feed.map((it, i) => (
               <div className="feed-item" key={i}>
                 <div className="feed-title">
+                  <Trend kind={it.kind} />
                   {it.player_id
                     ? <Link to={`/player/${it.player_id}`}>
                         {localized(it.title, lang)}

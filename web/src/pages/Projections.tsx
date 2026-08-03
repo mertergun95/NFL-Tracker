@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import StatTable from "../components/StatTable";
 import StatusBadge from "../components/StatusBadge";
+import TeamLogo from "../components/TeamLogo";
 import { Loading } from "../components/Pickers";
 import { loadProjections } from "../lib/data";
 import { useAsync } from "../lib/hooks";
@@ -159,8 +160,13 @@ export default function Projections() {
       {view === "game" && (
         <div className="pill-row">
           {games.map(([key, [a, b]]) => (
-            <button key={key} className={`pill small ${key === activeGame ? "active" : ""}`}
-                    onClick={() => setGameKey(key)}>{a} – {b}</button>
+            <button key={key}
+                    className={`pill small game-pill ${key === activeGame ? "active" : ""}`}
+                    onClick={() => setGameKey(key)}>
+              <TeamLogo abbr={a} size={18} />{a}
+              <span className="gp-at">–</span>
+              <TeamLogo abbr={b} size={18} />{b}
+            </button>
           ))}
         </div>
       )}
@@ -198,9 +204,16 @@ export default function Projections() {
             <StatusBadge status={row.injury_status as string}
                          note={row.injury_note as string} />
           ),
-          team: (row) => <Link to={`/team/${row.team}`}>{String(row.team)}</Link>,
+          team: (row) => (
+            <Link to={`/team/${row.team}`} className="team-cell">
+              <TeamLogo abbr={String(row.team)} size={18} />{String(row.team)}
+            </Link>
+          ),
           opponent: (row) => (
-            <Link to={`/team/${row.opponent}`}>{String(row.opponent)}</Link>
+            <Link to={`/team/${row.opponent}`} className="team-cell">
+              <TeamLogo abbr={String(row.opponent)} size={18} />
+              {String(row.opponent)}
+            </Link>
           ),
           ...Object.fromEntries(
             ALL_STAT_COLS.map((c) => [c, statCellRender(c, data.engine === "ml")])),

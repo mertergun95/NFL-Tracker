@@ -121,8 +121,8 @@ export default function NcaaAccuracy() {
                         {m.bias > 0 ? `+${m.bias}` : m.bias}
                       </td>
                       <td key={`${s}c`} className="num"
-                          style={{ color: (m.corr ?? 0) >= 0.5 ? "#3fb950"
-                                   : (m.corr ?? 0) < 0.3 ? "#f0883e" : undefined }}>
+                          style={{ color: (m.corr ?? 0) >= 0.5 ? "var(--good)"
+                                   : (m.corr ?? 0) < 0.3 ? "var(--neutral-warm)" : undefined }}>
                         {m.corr ?? "—"}
                       </td>
                     </>
@@ -191,7 +191,7 @@ export default function NcaaAccuracy() {
                     <td className="num">{String(p[`proj_${stat}`])}</td>
                     <td className="num">{String(p[`act_${stat}`])}</td>
                     <td className="num" style={{
-                      color: Math.abs(Number(p.diff)) <= 15 ? "#3fb950" : "#f0883e",
+                      color: Math.abs(Number(p.diff)) <= 15 ? "var(--good)" : "var(--neutral-warm)",
                     }}>
                       {Number(p.diff) > 0 ? `+${p.diff}` : String(p.diff)}
                     </td>

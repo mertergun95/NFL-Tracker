@@ -81,12 +81,17 @@ export default function Matchups() {
       <p className="sub">
         {t("match.sub", { season: dataSeason ?? "" })}
       </p>
-      <div className="pill-row">
+      <div className="pill-row game-picker">
         {games.map((g, i) => (
           <button key={String(g.game_id)}
-                  className={`pill small ${i === gameIdx ? "active" : ""}`}
+                  className={`pill small game-pill ${i === gameIdx ? "active" : ""}`}
+                  title={`${teamName(String(g.away_team))} @ ${teamName(String(g.home_team))}`}
                   onClick={() => setGameIdx(i)}>
-            {String(g.away_team)} @ {String(g.home_team)}
+            <TeamLogo abbr={String(g.away_team)} size={18} />
+            {String(g.away_team)}
+            <span className="gp-at">@</span>
+            <TeamLogo abbr={String(g.home_team)} size={18} />
+            {String(g.home_team)}
           </button>
         ))}
       </div>
@@ -104,7 +109,7 @@ export default function Matchups() {
         <span className="sub" style={{ marginLeft: "auto" }}>
           {String(game.gameday)}
           {etBerlin(game.gameday as string, game.gametime as string) &&
-            ` · 🕐 ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
+            ` · ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
           {game.stadium ? ` · ${game.stadium}` : ""}
         </span>
       </div>

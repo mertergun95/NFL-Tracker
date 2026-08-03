@@ -275,7 +275,7 @@ export default function ChartsPage({ seasons }: { seasons: number[] }) {
       )}
       {x && y && (
         <div className="interpret-box">
-          💡 {interpretChart(x, y, mode, view)}
+          {interpretChart(x, y, mode, view)}
         </div>
       )}
       {loading && <Loading />}

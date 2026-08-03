@@ -10,6 +10,7 @@ import {
 import { projLine, PRIMARY_STAT } from "../lib/projText";
 import ProjRanges from "../components/ProjRanges";
 import TeamLogo from "../components/TeamLogo";
+import Trend from "../components/Trend";
 import { fmt as fmtStat, label, pct, presetForPosition } from "../lib/columns";
 import { trendOf, WeeklyBarChart } from "../components/charts";
 import StatusBadge from "../components/StatusBadge";
@@ -268,6 +269,8 @@ export default function PlayerDetail({ seasons }: { seasons: number[] }) {
                 <span className={`trend-chip ${tr.kind}`}
                       title={t("common.trendTitle", { recent: tr.recent.toFixed(1),
                                                       season: tr.season.toFixed(1) })}>
+                  <Trend kind={tr.kind === "hot" ? "up"
+                    : tr.kind === "cold" ? "down" : "flat"} />
                   {txt} · {t("common.trendDetail", { recent: tr.recent.toFixed(1),
                                                     season: tr.season.toFixed(1) })}
                 </span>

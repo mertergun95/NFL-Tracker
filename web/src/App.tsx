@@ -32,7 +32,9 @@ import { loadNcaaManifest } from "./lib/ncaa";
 import { useAsync } from "./lib/hooks";
 import { ErrorMsg, Loading } from "./components/Pickers";
 import Logo from "./components/Logo";
+import ThemeIcon from "./components/ThemeIcon";
 import { LANG_NAMES, LANGS, useI18n } from "./lib/i18n";
+import { useTheme } from "./lib/theme";
 
 const NAV = [
   { to: "/", key: "nav.dashboard" },
@@ -65,6 +67,7 @@ const NCAA_NAV = [
 export default function App() {
   const location = useLocation();
   const { t, lang, setLang } = useI18n();
+  const { theme, toggle } = useTheme();
   const isNcaa = location.pathname.startsWith("/ncaa");
   const { data: manifest, error, loading } = useAsync(() => loadManifest(), []);
   const seasons = manifest ? seasonsFromManifest(manifest) : [];
@@ -94,6 +97,11 @@ export default function App() {
                     onClick={() => setLang(l)}>{LANG_NAMES[l]}</button>
           ))}
         </span>
+        <button className="theme-toggle" onClick={toggle}
+                title={t(theme === "dark" ? "nav.themeLight" : "nav.themeDark")}
+                aria-label={t(theme === "dark" ? "nav.themeLight" : "nav.themeDark")}>
+          <ThemeIcon theme={theme} />
+        </button>
       </header>
       <main>
         {loading && <Loading />}
@@ -142,7 +150,19 @@ export default function App() {
           )}
         </Routes>
       </main>
-      <footer>{t("app.footer")}</footer>
+      <footer>
+        <p className="foot-src">
+          {t("app.footer.data")}:{" "}
+          <a href="https://github.com/nflverse/nflverse-data"
+             target="_blank" rel="noopener noreferrer">nflverse</a>{" ("}
+          <a href="https://creativecommons.org/licenses/by/4.0/"
+             target="_blank" rel="noopener noreferrer">CC BY 4.0</a>
+          {"), "}{t("app.footer.modified")} · {t("app.footer.ncaa")}:{" "}
+          <a href="https://www.espn.com" target="_blank"
+             rel="noopener noreferrer">ESPN</a> · {t("app.footer.updated")}
+        </p>
+        <p className="foot-legal">{t("app.footer.disclaimer")}</p>
+      </footer>
     </div>
   );
 }

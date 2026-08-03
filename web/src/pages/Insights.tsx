@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Loading } from "../components/Pickers";
+import Trend from "../components/Trend";
 import { loadInsights, type Insight } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import { localized, useI18n, useT } from "../lib/i18n";
@@ -19,6 +20,7 @@ function InsightCard({ item }: { item: Insight }) {
   return (
     <div className="insight-card">
       <h3>
+        <Trend kind={item.kind} />
         {item.player_id
           ? <Link to={`/player/${item.player_id}`}>{title}</Link>
           : item.team

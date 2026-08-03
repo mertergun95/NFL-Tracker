@@ -163,7 +163,7 @@ export default function Compare({ seasons }: { seasons: number[] }) {
                       <td>{label(s)}</td>
                       {players.map((p, i) => (
                         <td key={p.id + p.season} className="num"
-                            style={i === best ? { color: "#3fb950", fontWeight: 600 } : undefined}>
+                            style={i === best ? { color: "var(--good)", fontWeight: 600 } : undefined}>
                           {p.season_row ? fmt(s, p.season_row[s] ?? null) : "—"}
                         </td>
                       ))}

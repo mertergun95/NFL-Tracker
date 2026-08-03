@@ -13,9 +13,9 @@ LANGS = ("en", "tr", "de")
 MSG: dict[str, dict[str, str]] = {
     # ---------------------------------------------------------------- form
     "form.title": {
-        "en": "{emoji} {name} ({pos}, {team})",
-        "tr": "{emoji} {name} ({pos}, {team})",
-        "de": "{emoji} {name} ({pos}, {team})",
+        "en": "{name} ({pos}, {team})",
+        "tr": "{name} ({pos}, {team})",
+        "de": "{name} ({pos}, {team})",
     },
     "form.detail": {
         "en": "{recent} PPR/game over the last {n} weeks — season average "
@@ -45,9 +45,9 @@ MSG: dict[str, dict[str, str]] = {
                          "de": "Lauf-Anteil"},
     # ------------------------------------------------------------ matchup
     "match.edgeTitle": {
-        "en": "⚔️ {game}: {off} has the {kind} edge",
-        "tr": "⚔️ {game}: {off} {kind} hücumu avantajlı",
-        "de": "⚔️ {game}: {off} im Vorteil beim {kind}",
+        "en": "{game}: {off} has the {kind} edge",
+        "tr": "{game}: {off} {kind} hücumu avantajlı",
+        "de": "{game}: {off} im Vorteil beim {kind}",
     },
     "match.edgeDetail": {
         "en": "{off}'s {kind} offense ranks #{o} in EPA, {deff}'s {kind} "
@@ -60,9 +60,9 @@ MSG: dict[str, dict[str, str]] = {
     "match.kindPass": {"en": "passing", "tr": "pas", "de": "Passspiel"},
     "match.kindRush": {"en": "rushing", "tr": "koşu", "de": "Laufspiel"},
     "match.generousTitle": {
-        "en": "🎯 {game}: {deff} is generous to {pos}s",
-        "tr": "🎯 {game}: {deff}, {pos} pozisyonuna cömert",
-        "de": "🎯 {game}: {deff} ist großzügig gegen {pos}s",
+        "en": "{game}: {deff} is generous to {pos}s",
+        "tr": "{game}: {deff}, {pos} pozisyonuna cömert",
+        "de": "{game}: {deff} ist großzügig gegen {pos}s",
     },
     "match.generousDetail": {
         "en": "The {deff} defense allowed {stats} per game to {pos}s "
@@ -78,9 +78,9 @@ MSG: dict[str, dict[str, str]] = {
     },
     # ------------------------------------------------------------- scheme
     "scheme.blitzGoodTitle": {
-        "en": "🧠 {name} is productive against the blitz",
-        "tr": "🧠 {name} blitze karşı üretken",
-        "de": "🧠 {name} ist stark gegen den Blitz",
+        "en": "{name} is productive against the blitz",
+        "tr": "{name} blitze karşı üretken",
+        "de": "{name} ist stark gegen den Blitz",
     },
     "scheme.blitzGoodDetail": {
         "en": "{epa} EPA/play on {plays} dropbacks against the blitz "
@@ -91,9 +91,9 @@ MSG: dict[str, dict[str, str]] = {
               "({season}). Vorteil gegen blitzlastige Defenses.",
     },
     "scheme.blitzBadTitle": {
-        "en": "⚠️ {name} struggles against the blitz",
-        "tr": "⚠️ {name} blitze karşı zorlanıyor",
-        "de": "⚠️ {name} tut sich schwer gegen den Blitz",
+        "en": "{name} struggles against the blitz",
+        "tr": "{name} blitze karşı zorlanıyor",
+        "de": "{name} tut sich schwer gegen den Blitz",
     },
     "scheme.blitzBadDetail": {
         "en": "{epa} EPA/play on {plays} dropbacks against the blitz ({season}).",
@@ -101,9 +101,9 @@ MSG: dict[str, dict[str, str]] = {
         "de": "{epa} EPA/Play bei {plays} Dropbacks gegen den Blitz ({season}).",
     },
     "scheme.coverageTitle": {
-        "en": "{emoji} {game}: {deff} plays {rate} {cov}",
-        "tr": "{emoji} {game}: {deff} {rate} {cov} oynuyor",
-        "de": "{emoji} {game}: {deff} spielt zu {rate} {cov}",
+        "en": "{game}: {deff} plays {rate} {cov}",
+        "tr": "{game}: {deff} {rate} {cov} oynuyor",
+        "de": "{game}: {deff} spielt zu {rate} {cov}",
     },
     "scheme.coverageDetail": {
         "en": "{deff} allows {epa} EPA/play in this coverage ({verdict}, {season}).",
@@ -130,9 +130,9 @@ MSG: dict[str, dict[str, str]] = {
         "de": " Auf {off}-Seite beachten: {players}.",
     },
     "scheme.blitzHeavyTitle": {
-        "en": "{emoji} {game}: {deff} is blitz-heavy ({rate})",
-        "tr": "{emoji} {game}: {deff} blitz-ağır ({rate})",
-        "de": "{emoji} {game}: {deff} blitzt viel ({rate})",
+        "en": "{game}: {deff} is blitz-heavy ({rate})",
+        "tr": "{game}: {deff} blitz-ağır ({rate})",
+        "de": "{game}: {deff} blitzt viel ({rate})",
     },
     "scheme.blitzHeavyDetail": {
         "en": "{name} posts {epa} EPA/play against the blitz ({season}) — this "
@@ -146,9 +146,9 @@ MSG: dict[str, dict[str, str]] = {
     "scheme.against": {"en": "against", "tr": "aleyhine", "de": "zu seinen Ungunsten"},
     # --------------------------------------------------------- takım gücü
     "power.title": {
-        "en": "{emoji} {team} — {metric} #{rank} in the league",
-        "tr": "{emoji} {team} — {metric} lig #{rank}",
-        "de": "{emoji} {team} — {metric} #{rank} der Liga",
+        "en": "{team} — {metric} #{rank} in the league",
+        "tr": "{team} — {metric} lig #{rank}",
+        "de": "{team} — {metric} #{rank} der Liga",
     },
     "power.detail": {"en": "{metric}: {value}", "tr": "{metric}: {value}",
                      "de": "{metric}: {value}"},

@@ -129,6 +129,9 @@ export interface Insight {
   team?: string;
   game?: string;
   value?: number;
+  /** Yön: eskiden başlığa gömülü emoji (🔥/🧊) ile taşınıyordu; artık
+   *  yapısal alan, arayüz kendi görsel işaretini seçiyor. */
+  kind?: "up" | "down";
 }
 
 export interface InsightsPayload {

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Trend from "../../components/Trend";
 import { Link, useParams } from "react-router-dom";
 import { ErrorMsg, Loading, SeasonPicker } from "../../components/Pickers";
 import StatTable from "../../components/StatTable";
@@ -175,6 +176,8 @@ export default function NcaaPlayerDetail({ seasons }: { seasons: number[] }) {
                 : tr.kind === "cold" ? "common.trendCold" : "common.trendFlat");
               return (
                 <span className={`trend-chip ${tr.kind}`}>
+                  <Trend kind={tr.kind === "hot" ? "up"
+                    : tr.kind === "cold" ? "down" : "flat"} />
                   {txt} · {t("common.trendDetail", { recent: tr.recent.toFixed(1),
                                                     season: tr.season.toFixed(1) })}
                 </span>
