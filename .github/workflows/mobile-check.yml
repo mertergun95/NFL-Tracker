@@ -1,0 +1,42 @@
+# Mobil uygulamanın tip kontrolü ve paketlenebilirliği.
+# Native derleme (EAS) burada çalışmaz; amaç kırık import / tip hatasının
+# ana dala girmesini engellemek.
+name: Mobile Check
+
+on:
+  push:
+    branches: [main]
+    paths: ["mobile/**", "web/src/lib/**", ".github/workflows/mobile-check.yml"]
+  pull_request:
+    paths: ["mobile/**", "web/src/lib/**", ".github/workflows/mobile-check.yml"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install
+        working-directory: mobile
+        run: npm ci
+
+      # Web ile ortak saf modüller (locales, columns, schedule, projText)
+      # kopya olarak duruyor; biri değişip diğeri unutulmasın.
+      - name: Shared modules in sync
+        working-directory: mobile
+        run: npm run check-shared
+
+      - name: Typecheck
+        working-directory: mobile
+        run: npm run typecheck
+
+      - name: Bundle (Metro)
+        working-directory: mobile
+        run: npx expo export --platform ios --output-dir /tmp/statgrade-export

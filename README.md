@@ -13,6 +13,10 @@ Plan ve fazlar için [ROADMAP.md](ROADMAP.md).
   Actions sekmesinden `Update NFL Stats` workflow'unu `backfill` moduyla çalıştırın.
 - **Arayüz:** `web/` içinde React + Vite. Veriler statik JSON olarak fetch edilir,
   sunucu gerekmez.
+- **Mobil uygulama:** `mobile/` içinde React Native + Expo. Kendi verisini
+  taşımaz; yayındaki `https://statgrade.com/data/` JSON'larını okur, yani Salı
+  güncellemesi mağaza sürümü gerektirmeden uygulamaya da yansır. Ayrıntı:
+  [mobile/README.md](mobile/README.md).
 
 ## Yerelde çalıştırma
 
@@ -20,6 +24,14 @@ Plan ve fazlar için [ROADMAP.md](ROADMAP.md).
 cd web
 npm install
 npm run dev      # http://localhost:5173
+```
+
+Mobil uygulama:
+
+```bash
+cd mobile
+npm install
+npx expo start   # QR kodu Expo Go ile okutun
 ```
 
 ## Yayınlama (GitHub Pages)
@@ -62,6 +74,11 @@ takımı veya NCAA ile **bağlantılı değildir**; onlar tarafından onaylanmam
 veya desteklenmemiştir. Takım adları, logoları ve oyuncu görselleri ilgili
 sahiplerinin mülkiyetindedir ve burada yalnızca **tanımlama amacıyla**
 kullanılmaktadır.
+
+**Mobil uygulamada logo ve oyuncu görseli hiç yoktur.** Web'de bunlar
+kaynağından gösteriliyor; mağazaya çıkan bir pakette marka riski yaratacağı
+için uygulama takımları yalnızca kısaltma + renk rozetiyle (kendi çizimimiz)
+gösterir.
 
 İstatistiklerin kendisi olgusal veridir; ABD içtihadında spor istatistikleri
 telif korumasına tabi değildir (*NBA v. Motorola*, 2. Daire; *C.B.C.
