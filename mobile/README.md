@@ -43,7 +43,17 @@ EXPO_PUBLIC_DATA_BASE_URL=http://<makine-ip>:8090 npx expo start
 Aşağı çekmek (pull-to-refresh) önbelleği atlayıp yeniden indirir.
 Ayarlar → "Önbelleği temizle" diski boşaltır.
 
+## Lig anahtarı: NFL ↔ NCAA
+
+Web'de iki ayrı rota ağacı var (`/` ve `/ncaa`). Telefonda ikinci bir sekme
+takımı taşımak yerine **aynı beş sekme lige göre içerik değiştiriyor**;
+seçim başlıktaki NFL/NCAA anahtarıyla yapılıyor ve kalıcı
+(`src/lib/league.tsx`). Sekme dosyaları ince birer yönlendirici, gerçek
+ekranlar `src/screens/nfl/` ve `src/screens/ncaa/` altında.
+
 ## Ekranlar
+
+### NFL
 
 | Sekme / rota | İçerik |
 |---|---|
@@ -51,10 +61,28 @@ Ayarlar → "Önbelleği temizle" diski boşaltır.
 | Oyuncular (`/players`) | Sezon toplamları; pozisyon sekmeleri, arama, sıralanabilir tablo |
 | Projeksiyon (`/projections`) | Haftalık projeksiyonlar; kart görünümünde taban–tavan bandı, tablo görünümünde tüm kolonlar |
 | Maçlar (`/games`) | Hafta hafta fikstür ve skorlar |
-| Daha (`/more`) | Takımlar, puan durumu, sakatlıklar, öngörüler, derinlik listesi, karne + ayarlar |
+| Daha (`/more`) | Aşağıdaki tüm ekranların girişi + ayarlar |
 | `/player/[id]` | Künye, bu haftanın projeksiyonu, sezon toplamı, maç maç grafik + tablo, red zone, snap, kariyer |
 | `/team/[abbr]` | Kadro, fikstür, "bu savunmaya karşı" loglar, advanced |
 | `/game/[season]/[gameId]` | Skor, takım karşılaştırması, iki takımın box score'u |
+| `/teams`, `/standings`, `/depth`, `/injuries` | Lig geneli |
+| `/matchups` | Yaklaşan haftanın maçları: güç sıralamaları, savunma şeması, pozisyona verilen, öne çıkan projeksiyonlar |
+| `/props` | Prop Finder: çizgiyi artır/azalt, L5/L10/L20 + ev/deplasman tutma oranları, son 20 maç grafiği, alternatif çizgiler |
+| `/compare` | En fazla 3 oyuncu; sezon toplamları (en iyi değer vurgulu) ve çok serili haftalık grafik |
+| `/charts` | Tek statta yatay sıralama çubukları ya da iki statın dağılımı (noktaya dokun → kim olduğu) |
+| `/insights`, `/accuracy` | Haftalık notlar ve projeksiyon karnesi |
+
+### NCAA
+
+| Rota | İçerik |
+|---|---|
+| Özet / Oyuncular / Projeksiyon / Maçlar | Aynı sekmeler, NCAA verisiyle |
+| `/ncaa/player/[id]`, `/ncaa/team/[abbr]`, `/ncaa/game/[season]/[gameId]` | Detaylar |
+| `/ncaa/teams`, `/ncaa/standings`, `/ncaa/rosters`, `/ncaa/accuracy` | Konferans bazlı tablolar, kadrolar, karne |
+
+NCAA tarafında sakatlık raporu, derinlik listesi ve advanced/şema metrikleri
+**yok** — ESPN box score'ları bunları vermiyor. Hafta seçicide bowl/playoff
+maçları numara yerine tek "Bowl/Playoff" kovasında toplanır.
 
 Dil (EN/TR/DE) ve tema (sistem/koyu/açık) Daha → Ayarlar'dan değişir.
 
@@ -79,7 +107,10 @@ logosuz takım rozeti).
 Uygulamada **takım logosu ve oyuncu fotoğrafı yoktur**. Web sürümü bunları
 ESPN/NFL uçlarından gösteriyor; mağazaya çıkan bir pakette bu marka/telif
 riski yaratır. Yerine takımın kısaltması, takım renginden türetilen kendi
-rozetimizle çizilir (`src/components/TeamBadge.tsx`). İkonlar da elle
+rozetimizle çizilir (`src/components/TeamBadge.tsx`). NCAA'da 250+ okulun
+resmî rengi elimizde olmadığı için zemin rengi kısaltmadan deterministik
+olarak türetilir — aynı okul her yerde aynı rengi alır, hiçbir okulun resmî
+rengi iddia edilmez (`src/components/NcaaBadge.tsx`). İkonlar da elle
 üretilir (`scripts/make-icons.py`), sekme ikonları SVG olarak kod içinde
 çizilir — pakette üçüncü taraf görsel yoktur.
 

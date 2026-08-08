@@ -89,6 +89,37 @@ export const MOBILE_STRINGS: Record<string, string | [string, string, string]> =
                "Geçmiş haftaların projeksiyonları ne kadar tuttu.",
                "Wie nah die Prognosen der letzten Wochen lagen."],
 
+  // -------------------------------------------------------------------- NCAA
+  "ncaa.teamCount": ["{n} FBS teams in the dataset", "Veri setinde {n} FBS takımı",
+                     "{n} FBS-Teams im Datensatz"],
+  "ncaa.rosters": ["Rosters", "Kadrolar", "Kader"],
+  "ncaa.noSecond": [
+    "NCAA data has no injury report, depth chart or advanced/scheme metrics — ESPN box scores don't provide them.",
+    "NCAA verisinde sakatlık raporu, derinlik listesi ve advanced/şema metrikleri yok — ESPN box score bunları vermiyor.",
+    "Für NCAA gibt es keinen Verletzungsreport, keine Depth Charts und keine Advanced-/Scheme-Werte — ESPN-Boxscores liefern sie nicht."],
+
+  // --------------------------------------------------- karşılaştır / prop / vb.
+  "compare.sub2": ["Add up to {max} players, compare season totals and week-by-week form.",
+                   "En fazla {max} oyuncu ekleyin; sezon toplamlarını ve haftalık formu karşılaştırın.",
+                   "Bis zu {max} Spieler hinzufügen und Saisonwerte sowie Wochenform vergleichen."],
+  "props.lineLabel": ["Line", "Çizgi", "Linie"],
+  "props.hitRates": ["Hit rates", "Tutma oranları", "Trefferquoten"],
+  "props.pickPlayer2": ["Search and pick a player to see the hit rates.",
+                        "Tutma oranlarını görmek için bir oyuncu arayıp seçin.",
+                        "Für die Trefferquoten einen Spieler suchen und auswählen."],
+  "charts.title2": ["Charts", "Grafikler", "Diagramme"],
+  "charts.sub2": [
+    "Ranking bars for a single stat, or a scatter of two stats — tap a dot to see who it is.",
+    "Tek stat için sıralama çubukları ya da iki statın dağılımı — noktaya dokununca kim olduğu yazar.",
+    "Ranglisten-Balken für einen Wert oder ein Streudiagramm zweier Werte — Punkt antippen zeigt den Namen."],
+  "charts.bars": ["Ranking", "Sıralama", "Rangliste"],
+  "charts.scatter": ["Scatter", "Dağılım", "Streuung"],
+  "charts.xAxis": ["X axis", "X ekseni", "X-Achse"],
+  "charts.yAxis": ["Y axis", "Y ekseni", "Y-Achse"],
+  "match.sub2": ["Opponent strengths and weaknesses for the upcoming slate.",
+                 "Yaklaşan haftanın rakip güçlü/zayıf yönleri.",
+                 "Stärken und Schwächen der Gegner in der kommenden Woche."],
+
   // ------------------------------------------------------------------ ekranlar
   "m.leaders": ["Season leaders", "Sezon liderleri", "Saison-Spitzenreiter"],
   "m.nextGames": ["Next games", "Sıradaki maçlar", "Nächste Spiele"],

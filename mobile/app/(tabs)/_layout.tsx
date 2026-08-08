@@ -1,7 +1,9 @@
 import { Tabs } from "expo-router";
 import type { ColorValue } from "react-native";
 import Icon, { type IconName } from "../../src/components/Icon";
+import LeagueSwitch from "../../src/components/LeagueSwitch";
 import { useT } from "../../src/lib/i18n";
+import { useLeague } from "../../src/lib/league";
 import { font, useTheme } from "../../src/lib/theme";
 
 const tabIcon = (name: IconName) =>
@@ -9,9 +11,14 @@ const tabIcon = (name: IconName) =>
     return <Icon name={name} color={String(color)} filled={focused} />;
   };
 
+const headerRight = () => <LeagueSwitch />;
+
 export default function TabsLayout() {
   const { c } = useTheme();
+  const { league } = useLeague();
   const t = useT();
+  const brand = league === "ncaa" ? "StatGrade · NCAA" : "StatGrade";
+
   return (
     <Tabs
       screenOptions={{
@@ -19,6 +26,7 @@ export default function TabsLayout() {
         headerTintColor: c.text,
         headerTitleStyle: { fontWeight: "700" },
         headerShadowVisible: false,
+        headerRight,
         tabBarActiveTintColor: c.accent,
         tabBarInactiveTintColor: c.textDim,
         tabBarStyle: { backgroundColor: c.bgSoft, borderTopColor: c.border },
@@ -28,7 +36,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: t("tab.home"), headerTitle: "StatGrade",
+        options={{ title: t("tab.home"), headerTitle: brand,
                    tabBarIcon: tabIcon("home") }}
       />
       <Tabs.Screen
