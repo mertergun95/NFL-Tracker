@@ -1,5 +1,6 @@
 /** Ayarlar + hakkında bloğu — NFL ve NCAA "Daha" sekmelerinin ortak alt yarısı. */
 import { useCallback, useEffect, useState } from "react";
+import Constants from "expo-constants";
 import { Linking, Pressable, StyleSheet, Text } from "react-native";
 import { Card, Muted, PillRow, SectionHeader } from "../../components/ui";
 import { cacheSize, clearDisk } from "../../lib/cache";
@@ -94,7 +95,10 @@ export default function Settings() {
           {t("app.footer.data")}: nflverse (CC BY 4.0) — {t("app.footer.modified")}.
           {" "}{t("app.footer.ncaa")}: ESPN.
         </Muted>
-        <Muted style={{ marginTop: space.sm }}>{t("more.version", { v: "1.1.0" })}</Muted>
+        {/* Sürüm elle yazılmaz: app.json ile ayrışmasın diye oradan okunur. */}
+        <Muted style={{ marginTop: space.sm }}>
+          {t("more.version", { v: Constants.expoConfig?.version ?? "—" })}
+        </Muted>
       </Card>
     </>
   );

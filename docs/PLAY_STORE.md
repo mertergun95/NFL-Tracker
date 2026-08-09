@@ -71,6 +71,31 @@ Kontrol listesi:
 
 ---
 
+### EAS olmadan, yerelde APK almak
+
+Sadece kendi telefonunuza kurmak için buluta hiç çıkmadan da derleyebilirsiniz
+(Linux/macOS; JDK 17+ ve Android SDK gerekir):
+
+```bash
+export ANDROID_HOME=$HOME/Android/sdk
+sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+cd mobile
+npx expo prebuild --platform android          # android/ klasörünü üretir (gitignore'da)
+cd android
+./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+# -> app/build/outputs/apk/release/app-release.apk
+```
+
+`-PreactNativeArchitectures=arm64-v8a` olmadan dört mimari birden paketlenir ve
+APK ~100 MB olur; tek mimariyle ~42 MB'a iner. Modern telefonların hepsi
+arm64.
+
+Bu APK, Expo şablonunun **debug anahtarıyla** imzalanır — kendi cihazınıza
+kurmak için sorun değil, ama Play'e yüklenemez. Play sürümü EAS'in ürettiği
+release anahtarını kullanır; imzalar farklı olduğu için mağazadan kurmadan
+önce yerel sürümü kaldırmanız gerekir.
+
 ## 4. Üretim derlemesi (AAB)
 
 Play artık APK değil **AAB** (Android App Bundle) ister:
