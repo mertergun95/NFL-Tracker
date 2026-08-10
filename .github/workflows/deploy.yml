@@ -5,6 +5,13 @@ name: Deploy Web
 on:
   push:
     branches: [main, claude/nfl-stats-tracker-plan-0o2c52]
+  # Veri iş akışları bittiğinde de yayınla. Bu satırlar olmadan Salı
+  # güncellemesi siteye hiç yansımıyordu: GITHUB_TOKEN ile atılan push'lar
+  # başka bir iş akışını tetiklemiyor (GitHub'ın sonsuz döngü koruması),
+  # dolayısıyla "data: ..." commit'leri repoya girip yayında kalıyordu.
+  workflow_run:
+    workflows: ["Update NFL Stats", "Gameday Injuries"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -18,6 +25,11 @@ concurrency:
 
 jobs:
   build:
+    # Tetikleyen iş akışı düştüyse yayınlama; push/dispatch'te koşul geçersiz
+    # olacağı için ilk şart onları serbest bırakıyor.
+    if: >-
+      github.event_name != 'workflow_run'
+      || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
