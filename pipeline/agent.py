@@ -223,10 +223,105 @@ def injury_table(inj: pd.DataFrame) -> dict:
     return out
 
 
+# Oynamayacak sayılan raporlar. Questionable belirsiz, o yüzden burada yok —
+# ceza olarak puanlamaya giriyor, listeden düşürülmüyor.
+SIDELINED = {"out", "doubtful", "injured reserve", "ir", "physically unable to perform"}
+
+
+def depth_table(depth: pd.DataFrame | None, injuries: dict) -> dict:
+    """player_id -> derinlik şemasındaki rol + önündeki/arkasındaki isim.
+
+    İki şey için lazım: (1) oyuncunun 1. sırada mı yoksa yedek mi olduğu,
+    (2) önündeki isim o hafta oynamayacaksa doğan fırsat — yedek bir RB'nin
+    boom adayı olmasının en güçlü sebebi genelde budur.
+    """
+    if depth is None or depth.empty or "depth" not in depth.columns:
+        return {}
+    d = depth.copy()
+    d["depth"] = pd.to_numeric(d["depth"], errors="coerce")
+    d = d.dropna(subset=["depth", "player_id"])
+
+    out = {}
+    for (team, pos), grp in d.groupby(["team", "position"]):
+        grp = grp.sort_values("depth")
+        names = list(grp[["player_id", "player_name", "depth"]].itertuples(index=False))
+        for i, row in enumerate(names):
+            ahead = [n for n in names[:i]]
+            ahead_out = [n.player_name for n in ahead
+                         if str((injuries.get(str(n.player_id)) or {})
+                                .get("status", "")).lower() in SIDELINED]
+            out[str(row.player_id)] = {
+                "team": str(team),
+                "pos": str(pos),
+                "depth": int(row.depth),
+                "ahead": [n.player_name for n in ahead],
+                "ahead_out": ahead_out,
+            }
+    return out
+
+
+def scheme_table(tscheme: pd.DataFrame | None) -> dict:
+    """Savunma takımı -> şema profili (man/zone oranı, blitz, kutu)."""
+    if tscheme is None or tscheme.empty or "team" not in tscheme.columns:
+        return {}
+    df = tscheme.copy()
+    rank_cols = {}
+    for col, asc in (("blitz_rate_ftn", False), ("blitz_rate", False),
+                     ("man_rate", False), ("avg_box", False)):
+        if col in df.columns:
+            rank_cols[col] = pd.to_numeric(df[col], errors="coerce").rank(
+                ascending=asc, method="min")
+    out = {}
+    for i, r in df.iterrows():
+        rec = {c: _num(r[c], 3) for c in
+               ("man_rate", "zone_rate", "blitz_rate", "blitz_rate_ftn",
+                "avg_box", "epa_vs_man", "epa_vs_zone")
+               if c in df.columns}
+        for c, ranks in rank_cols.items():
+            rec[f"{c}_rank"] = None if pd.isna(ranks[i]) else int(ranks[i])
+        out[str(r["team"])] = rec
+    return out
+
+
+def power_table(payload: dict | None) -> dict:
+    """Takım -> güç sıralaması satırı (hücum/savunma ayrı)."""
+    if not payload or "rows" not in payload:
+        return {}
+    idx = {c: i for i, c in enumerate(payload["columns"])}
+    out = {}
+    for row in payload["rows"]:
+        out[str(row[idx["team"]])] = {
+            k: row[idx[k]] for k in
+            ("off_rating", "off_rank", "def_rating", "def_rank",
+             "overall_rank", "ppg", "papg")
+            if k in idx
+        }
+    return out
+
+
+def sos_table(payload: dict | None) -> dict:
+    """(takım, pozisyon) -> {season, season_rank, week}."""
+    if not payload or "rows" not in payload:
+        return {}
+    idx = {c: i for i, c in enumerate(payload["columns"])}
+    out = {}
+    for row in payload["rows"]:
+        out[(str(row[idx["team"]]), str(row[idx["position"]]))] = {
+            "season": row[idx["season_sos"]],
+            "season_rank": row[idx["season_rank"]],
+            "weeks": {w: row[idx[f"w{w}"]] for w in range(1, 18)
+                      if f"w{w}" in idx and row[idx[f"w{w}"]] is not None},
+        }
+    return out
+
+
 # -------------------------------------------------------------- adaylar
 
 def build_candidates(proj: pd.DataFrame, form: pd.DataFrame,
-                     matchups: dict, injuries: dict) -> pd.DataFrame:
+                     matchups: dict, injuries: dict, *,
+                     depth: dict | None = None, scheme: dict | None = None,
+                     power: dict | None = None, sos: dict | None = None,
+                     week: int | None = None) -> pd.DataFrame:
     """Projeksiyon satırlarını sinyallerle zenginleştirir."""
     if proj.empty or form.empty:
         return pd.DataFrame()
@@ -244,12 +339,45 @@ def build_candidates(proj: pd.DataFrame, form: pd.DataFrame,
     if df.empty:
         return df
 
-    # Sakatlık: "Out" listeye hiç girmez, Doubtful/Questionable ceza alır
+    # Sakatlık: oynamayacağı raporlananlar listeye hiç girmez, Questionable
+    # ceza alır. Böylece "o hafta sahada olmayacak" isimler elenmiş oluyor.
     df["injury"] = df["player_id"].map(lambda p: injuries.get(str(p)))
-    status = df["injury"].map(lambda i: (i or {}).get("status", ""))
-    df = df[~status.str.lower().isin(["out", "injured reserve", "ir"])]
-    df["injury_pen"] = status.str.lower().map(
-        {"doubtful": 1.0, "questionable": 0.5}).fillna(0.0)
+    status = df["injury"].map(lambda i: (i or {}).get("status", "")).str.lower()
+    df = df[~status.isin(SIDELINED)]
+    df["injury_pen"] = status.map({"questionable": 0.5}).fillna(0.0)
+
+    # Derinlik şeması: rol + önündeki ismin oynamayacak olması
+    depth = depth or {}
+    df["depth_info"] = df["player_id"].map(lambda p: depth.get(str(p)))
+    df["depth_slot"] = df["depth_info"].map(lambda d: (d or {}).get("depth"))
+    df["ahead_out"] = df["depth_info"].map(lambda d: (d or {}).get("ahead_out") or [])
+    # Önündeki oyuncu(lar) yoksa yedeğin hacmi sıçrar — en güçlü boom sebebi
+    df["promotion"] = df["ahead_out"].map(len).clip(upper=2).astype(float)
+    df.loc[df["depth_slot"].fillna(9) <= 1, "promotion"] = 0.0
+
+    # Rakip savunmanın şeması ve güç sıralaması
+    df["scheme"] = df["opponent"].map(lambda t: (scheme or {}).get(str(t)))
+    df["opp_power"] = df["opponent"].map(lambda t: (power or {}).get(str(t)))
+    df["own_power"] = df["team"].map(lambda t: (power or {}).get(str(t)))
+    df["opp_def_rank"] = df["opp_power"].map(lambda p: (p or {}).get("def_rank"))
+    # 1 = en iyi savunma -> zor maç. +1 kolay, -1 zor olacak şekilde ölçekle
+    df["power_matchup"] = ((pd.to_numeric(df["opp_def_rank"], errors="coerce") - 16.5)
+                           / 15.5).fillna(0.0)
+
+    # PFF fikstür zorluğu (0-10, yüksek = kolay); pozisyon bazlı, o haftaya ait
+    def sos_of(row):
+        rec = (sos or {}).get((str(row["team"]), str(row["position"])))
+        if not rec:
+            return None
+        wk = rec["weeks"].get(week) if week else None
+        return wk if wk is not None else rec.get("season")
+
+    df["sos"] = df.apply(sos_of, axis=1)
+    df["sos_rank"] = df.apply(
+        lambda r: ((sos or {}).get((str(r["team"]), str(r["position"]))) or {})
+        .get("season_rank"), axis=1)
+    # 0-10 -> -1..+1
+    df["sos_score"] = ((pd.to_numeric(df["sos"], errors="coerce") - 5.0) / 5.0).fillna(0.0)
 
     def look(row, key):
         m = matchups.get((str(row["opponent"]), str(row["position"])))
@@ -273,21 +401,30 @@ def build_candidates(proj: pd.DataFrame, form: pd.DataFrame,
     df["proj_gap"] = ((df["proj_ppr"] - df["ppr_recent"])
                       / df["ppr_recent"].clip(lower=1.0)).fillna(0.0)
 
+    # Matchup üç kaynaktan geliyor: pozisyona verilen PPR (geçmiş), güç
+    # sıralaması (rakibin genel savunma gücü) ve PFF SOS (fikstür zorluğu).
+    # Üçü de aynı şeyi ölçüyor, o yüzden ayrı ayrı ağırlıklandırmak yerine
+    # harmanlanıp tek bir matchup terimi olarak giriyor.
+    df["matchup_blend"] = (0.45 * df["matchup"]
+                           + 0.30 * df["power_matchup"]
+                           + 0.25 * df["sos_score"])
+
     df["boom_score"] = (
-        0.30 * _z(df["skew"])
-        + 0.22 * df["matchup"]
-        + 0.20 * _z(df["form_diff"])
-        + 0.15 * _z(df["opp_diff"])
-        + 0.08 * _z(df["ppr_cv"])
+        0.26 * _z(df["skew"])
+        + 0.22 * df["matchup_blend"]
+        + 0.18 * _z(df["form_diff"])
+        + 0.13 * _z(df["opp_diff"])
+        + 0.14 * df["promotion"]          # önündeki isim oynamıyor
+        + 0.07 * _z(df["ppr_cv"])
         + 0.05 * _z(df["snap_diff"])
         - 0.60 * df["injury_pen"]
     )
     df["bust_score"] = (
-        -0.28 * _z(df["skew"])
-        - 0.22 * df["matchup"]
-        - 0.18 * _z(df["form_diff"])
-        - 0.15 * _z(df["opp_diff"])
-        + 0.17 * _z(df["proj_gap"])
+        -0.26 * _z(df["skew"])
+        - 0.22 * df["matchup_blend"]
+        - 0.17 * _z(df["form_diff"])
+        - 0.14 * _z(df["opp_diff"])
+        + 0.16 * _z(df["proj_gap"])
         - 0.05 * _z(df["snap_diff"])
         + 0.60 * df["injury_pen"]
     )
@@ -372,6 +509,64 @@ def _signals(row: pd.Series) -> list[dict]:
                       f"({round(row['snap_diff'] * 100):+} points)"),
         })
 
+    ahead_out = row.get("ahead_out") or []
+    if len(ahead_out) > 0:
+        out.append({
+            "key": "depth", "label": "Depth chart", "tone": "up",
+            "value": (f"listed {_ord(int(row['depth_slot']))} on the {row['position']} "
+                      f"depth chart, but {', '.join(ahead_out)} "
+                      f"{'is' if len(ahead_out) == 1 else 'are'} not expected to play"),
+        })
+    elif pd.notna(row.get("depth_slot")) and int(row["depth_slot"]) > 1:
+        out.append({
+            "key": "depth", "label": "Depth chart", "tone": "down",
+            "value": (f"listed {_ord(int(row['depth_slot']))} at {row['position']} "
+                      f"behind {', '.join((row.get('depth_info') or {}).get('ahead') or [])}"),
+        })
+
+    opp_power = row.get("opp_power")
+    if isinstance(opp_power, dict) and opp_power.get("def_rank"):
+        rank = int(opp_power["def_rank"])
+        out.append({
+            "key": "power", "label": "Opponent defense", "tone":
+                "up" if rank >= 21 else "down" if rank <= 12 else "neutral",
+            "value": (f"{row['opponent']} ranks {_ord(rank)} of 32 in defensive "
+                      f"power rating ({_num(opp_power.get('def_rating'))} pts/game "
+                      f"vs average), allowing {_num(opp_power.get('papg'))} points/game"),
+        })
+
+    if pd.notna(row.get("sos")):
+        rank = row.get("sos_rank")
+        out.append({
+            "key": "sos", "label": "Schedule (PFF)", "tone":
+                "up" if row["sos"] >= 6.5 else "down" if row["sos"] <= 3.5 else "neutral",
+            "value": (f"matchup difficulty {_num(row['sos'])}/10 for {row['position']}s "
+                      f"(10 = easiest)"
+                      + (f"; {row['team']} has the {_ord(int(rank))}-easiest "
+                         f"{row['position']} schedule this season" if rank else "")),
+        })
+
+    sch = row.get("scheme")
+    if isinstance(sch, dict):
+        bits = []
+        blitz = sch.get("blitz_rate_ftn") or sch.get("blitz_rate")
+        brank = sch.get("blitz_rate_ftn_rank") or sch.get("blitz_rate_rank")
+        if blitz is not None and brank:
+            # 32. sıraya "32nd-most" demek kafa karıştırıyordu — alt yarıda
+            # sıralama baştan sayılıp "least" deniyor
+            r = int(brank)
+            side = f"{_ord(r)}-most" if r <= 16 else f"{_ord(33 - r)}-least"
+            bits.append(f"blitzes on {_num(blitz * 100, 0)}% of dropbacks ({side})")
+        if sch.get("man_rate") is not None:
+            bits.append(f"{_num(sch['man_rate'] * 100, 0)}% man coverage")
+        if sch.get("avg_box") is not None:
+            bits.append(f"{_num(sch['avg_box'])} defenders in the box on average")
+        if bits:
+            out.append({
+                "key": "scheme", "label": "Opponent scheme", "tone": "neutral",
+                "value": f"{row['opponent']} " + ", ".join(bits),
+            })
+
     if pd.notna(row.get("ppr_std")):
         out.append({
             "key": "volatility", "label": "Volatility", "tone": "neutral",
@@ -426,6 +621,10 @@ def select_picks(cands: pd.DataFrame) -> list[dict]:
                 "proj_floor_ppr": _num(row["proj_floor_ppr"]),
                 "proj_ceiling_ppr": _num(row["proj_ceiling_ppr"]),
                 "recent_games": row.get("recent_games") or [],
+                # Arayüzün rozet basabilmesi için ham değerler de gidiyor
+                "opp_def_rank": (None if pd.isna(row.get("opp_def_rank"))
+                                 else int(row["opp_def_rank"])),
+                "sos": _num(row.get("sos")),
                 "signals": _signals(row),
             })
     return picks
@@ -750,10 +949,17 @@ def build_and_write() -> None:
     last_week = int(pd.to_numeric(reg["week"], errors="coerce").max())
 
     form = player_form(pw, _read_season(season, "snap_counts"), last_week)
+    injuries = injury_table(_frame(_read_payload("injuries")))
     cands = build_candidates(
         _frame(proj_payload), form,
         matchup_table(_frame(_read_payload("pos_allowed"))),
-        injury_table(_frame(_read_payload("injuries"))))
+        injuries,
+        depth=depth_table(transform.read_json(config.DATA_DIR / "depth_charts.json"),
+                          injuries),
+        scheme=scheme_table(_read_season(season, "team_scheme")),
+        power=power_table(_read_payload("power")),
+        sos=sos_table(_read_payload("sos")),
+        week=tgt_week)
     picks = select_picks(cands)
     if not picks:
         log.warning("Agent aday bulamadı, agent.json yazılmadı")
