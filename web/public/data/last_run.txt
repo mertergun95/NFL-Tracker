@@ -1,5 +1,5 @@
 INFO OK 7548 satır <- http://www.habitatring.com/games.csv
-INFO OK 25035 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
+INFO OK 25041 satır <- https://github.com/nflverse/nflverse-data/releases/download/players/players.csv.gz
 INFO === 2026 sezonu işleniyor ===
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv.gz
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv
