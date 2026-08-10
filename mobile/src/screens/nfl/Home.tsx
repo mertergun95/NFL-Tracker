@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import Screen from "../../components/Screen";
 import PName from "../../components/PName";
 import TeamBadge from "../../components/TeamBadge";
+import PlayerAvatar from "../../components/PlayerAvatar";
 import {
   Card, Empty, ErrorBox, Loading, Muted, PillRow, SectionHeader, Title, Trend,
 } from "../../components/ui";
@@ -180,6 +181,8 @@ export default function Home() {
               style={styles.starRow}
               onPress={() => router.push(`/player/${r.player_id}`)}
             >
+              <PlayerAvatar url={r.headshot_url as string}
+                            name={String(r.player_name)} size={42} />
               <View style={{ flex: 1, gap: 3 }}>
                 <PName name={String(r.player_name)} pos={String(r.position ?? "")}
                        size={font.md} />

@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import Screen from "../../components/Screen";
 import PName from "../../components/PName";
 import NcaaBadge from "../../components/NcaaBadge";
+import PlayerAvatar from "../../components/PlayerAvatar";
 import {
   Card, Empty, ErrorBox, Loading, Muted, SectionHeader, Title,
 } from "../../components/ui";
@@ -159,7 +160,8 @@ export default function NcaaHome() {
               onPress={() => router.push(`/ncaa/player/${row.player_id}`)}
             >
               <View style={styles.starRow}>
-                <NcaaBadge abbr={String(row.team)} size={26} />
+                <PlayerAvatar url={row.headshot as string}
+                              name={String(row.player_name)} size={38} />
                 <View style={{ flex: 1 }}>
                   <PName name={String(row.player_name)} pos={String(row.position ?? "")}
                          size={font.md} />

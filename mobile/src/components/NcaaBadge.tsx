@@ -1,16 +1,19 @@
-/** NCAA takım rozeti.
+/** NCAA takım işareti.
  *
- *  `teams.json` bir `logo` alanı taşıyor (ESPN CDN) ama uygulama onu
- *  kullanmıyor — NFL tarafındaki kararla aynı: pakette üçüncü taraf marka
- *  görseli yok. NFL'de 32 takımın rengi elle tanımlıydı; 250+ okul için
- *  bu mümkün değil, o yüzden zemin rengi kısaltmadan deterministik olarak
- *  türetiliyor. Aynı okul her yerde aynı rengi alır, hiçbir okulun resmî
- *  rengi iddia edilmez.
+ *  NFL'deki TeamBadge ile aynı mantık: Ayarlar'daki "Görseller" açıkken
+ *  teams.json'daki ESPN logosu gösterilir, kapalıyken rozet çizilir.
+ *
+ *  Rozet zemini: NFL'de 32 takımın rengi elle tanımlıydı, 250+ okul için
+ *  bu mümkün değil — renk kısaltmadan deterministik türetiliyor. Aynı okul
+ *  her yerde aynı rengi alır, hiçbir okulun resmî rengi iddia edilmez.
  */
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { font, radius, useColors } from "../lib/theme";
 import { readableOn } from "../lib/teams";
+import { ncaaLogoUrl } from "../lib/ncaa";
+import { useShowImages } from "../lib/prefs";
 
 /** FNV-1a benzeri basit karma — kısaltmadan sabit bir ton üretir. */
 function hueOf(abbr: string): number {
@@ -46,13 +49,26 @@ interface Props {
 export default function NcaaBadge({ abbr, size = 26, link }: Props) {
   const router = useRouter();
   const c = useColors();
+  const showImages = useShowImages();
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [abbr]);
+
   if (!abbr || abbr === "null") return <View style={{ width: size, height: size }} />;
 
   const bg = ncaaColor(abbr);
   const fg = readableOn(bg);
   const short = abbr.length > 4 ? abbr.slice(0, 4) : abbr;
+  const logo = showImages && !broken ? ncaaLogoUrl(abbr) : null;
 
-  const badge = (
+  const badge = logo ? (
+    <Image
+      source={{ uri: logo }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      onError={() => setBroken(true)}
+      accessibilityLabel={abbr}
+    />
+  ) : (
     <View
       style={[
         styles.badge,

@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import Screen from "../../../src/components/Screen";
 import StatTable from "../../../src/components/StatTable";
 import NcaaBadge from "../../../src/components/NcaaBadge";
+import PlayerAvatar from "../../../src/components/PlayerAvatar";
 import { WeekBars } from "../../../src/components/charts";
 import {
   Card, Empty, Loading, Muted, PillRow, SectionHeader, StatTile, Title,
@@ -104,13 +105,20 @@ export default function NcaaPlayerDetail() {
       <Screen refreshing={refreshing} onRefresh={onRefresh}
               freshnessKey="ncaa/players/index.json">
         <View style={styles.header}>
-          <NcaaBadge abbr={team} size={44} link />
+          <PlayerAvatar
+            url={(player?.headshot ?? weeksQ.data?.[0]?.headshot) as string}
+            name={title}
+            size={56}
+          />
           <View style={{ flex: 1 }}>
             <Title>{title}</Title>
-            <Muted style={{ marginTop: -space.sm }}>
-              {pos || "?"} · {tmap.get(team)?.school ?? team}
-              {player ? ` · ${player.first_season}–${player.last_season}` : ""}
-            </Muted>
+            <View style={styles.subline}>
+              <NcaaBadge abbr={team} size={20} link />
+              <Muted>
+                {pos || "?"} · {tmap.get(team)?.school ?? team}
+                {player ? ` · ${player.first_season}–${player.last_season}` : ""}
+              </Muted>
+            </View>
           </View>
         </View>
 
@@ -202,4 +210,7 @@ export default function NcaaPlayerDetail() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
+  subline: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginTop: -space.sm,
+  },
 });

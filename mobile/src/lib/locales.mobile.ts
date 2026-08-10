@@ -62,6 +62,15 @@ export const MOBILE_STRINGS: Record<string, string | [string, string, string]> =
     "Die Statistiken werden live von statgrade.com gelesen, das die Pipeline jeden Dienstag aktualisiert."],
   "more.openSite": ["Open statgrade.com", "statgrade.com'u aç", "statgrade.com öffnen"],
   "more.version": ["Version {v}", "Sürüm {v}", "Version {v}"],
+  "more.images": ["Logos & photos", "Logolar ve fotoğraflar", "Logos & Fotos"],
+  "more.imagesSub": [
+    "Show team logos and player photos. They are loaded from the league's public image hosts, never bundled with the app.",
+    "Takım logolarını ve oyuncu fotoğraflarını göster. Görseller uygulamaya gömülmez, ligin herkese açık görsel sunucularından yüklenir.",
+    "Team-Logos und Spielerfotos anzeigen. Die Bilder werden von den öffentlichen Bild-Servern der Liga geladen, nicht mitgeliefert."],
+  "more.imagesOnNote": [
+    "Logos and photos are on. They are shown from their source and never redistributed. If you ever publish this app to a store, turn this off: team marks in a distributed package are a trademark risk.",
+    "Logolar ve fotoğraflar açık. Görseller kaynağından gösteriliyor, hiçbir şekilde yeniden dağıtılmıyor. Bu uygulamayı bir mağazada yayınlarsan bunu kapat: dağıtılan bir pakette takım markaları risk yaratır.",
+    "Logos und Fotos sind aktiv. Sie werden von der Quelle geladen und nicht weiterverbreitet. Vor einer Store-Veröffentlichung ausschalten: Teammarken in einem verteilten Paket sind ein Markenrisiko."],
   "more.noImages": [
     "This app deliberately shows no team logos or player photos: those are trademarked/copyrighted. Team names appear only to identify factual statistics.",
     "Bu uygulama bilerek takım logosu ve oyuncu fotoğrafı göstermez: bunlar marka/telif kapsamındadır. Takım adları yalnızca olgusal istatistiği tanımlamak için geçer.",

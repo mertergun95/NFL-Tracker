@@ -98,6 +98,10 @@ release anahtarını kullanır; imzalar farklı olduğu için mağazadan kurmada
 
 ## 4. Üretim derlemesi (AAB)
 
+> ⚠️ **Önce görselleri kapatın.** `src/lib/prefs.tsx` içindeki
+> `DEFAULT_SHOW_IMAGES` sabitini `false` yapın. Kişisel derlemede takım
+> logoları ve oyuncu fotoğrafları açık; mağazaya giden pakette olmamalı.
+
 Play artık APK değil **AAB** (Android App Bundle) ister:
 
 ```bash
@@ -278,6 +282,6 @@ desteklenmemiştir. Takım adları yalnızca tanımlama amacıyla kullanılır.
 | Gizlilik politikası açılmıyor / eksik | URL'i tarayıcıda test edin, iletişim adresi gerçek olsun |
 | Data safety formu ile uygulamanın davranışı uyuşmuyor | Reklam/analitik SDK'sı eklerseniz formu güncelleyin |
 | Kumar içeriği şüphesi | Açıklamada "bahis değil, geçmiş istatistik analizi" vurgusu; bahis sitesine link vermeyin |
-| Marka ihlali (logo/görsel) | Uygulamada logo ve oyuncu fotoğrafı yok — bu hâlde kalsın |
+| Marka ihlali (logo/görsel) | **Göndermeden önce Ayarlar → Görseller'i kapatın** (ya da `src/lib/prefs.tsx` içindeki `DEFAULT_SHOW_IMAGES` sabitini `false` yapın). Kapalıyken takımlar kısaltma + renk rozetiyle çizilir, pakette üçüncü taraf markası kalmaz |
 | Hedef API seviyesi düşük | Expo SDK 57 API 36 hedefliyor; SDK'yı güncel tutun |
 | Yetersiz test etkileşimi | Testçiler uygulamayı gerçekten kullanmalı |

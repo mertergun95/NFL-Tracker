@@ -99,18 +99,25 @@ export interface NcaaTeamInfo {
   conference: string | null;
 }
 
-/** abbr -> takım kimliği haritası.
- *  Not: teams.json'daki `logo` alanı bilerek okunmuyor — uygulamada
- *  hiçbir logo gösterilmiyor (bkz. components/NcaaBadge.tsx). */
+/** abbr -> logo URL. teams.json her yerde yüklü olmadığı için (ör. rozet
+ *  derin bir ekranda tek başına çiziliyor) harita modül seviyesinde
+ *  tutuluyor; teamMapOf her çağrıldığında güncellenir. */
+const LOGOS = new Map<string, string>();
+export const ncaaLogoUrl = (abbr: string | null | undefined): string | null =>
+  (abbr && LOGOS.get(abbr)) || null;
+
+/** abbr -> takım kimliği haritası. */
 export function teamMapOf(rows: StatRow[] | null): Map<string, NcaaTeamInfo> {
   const m = new Map<string, NcaaTeamInfo>();
   for (const r of rows ?? []) {
-    m.set(String(r.team), {
+    const abbr = String(r.team);
+    m.set(abbr, {
       school: String(r.school ?? r.team),
       name: String(r.name ?? r.team),
       conference: r.conference === null || r.conference === undefined
         ? null : String(r.conference),
     });
+    if (r.logo) LOGOS.set(abbr, String(r.logo));
   }
   return m;
 }

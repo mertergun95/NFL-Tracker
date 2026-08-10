@@ -104,15 +104,29 @@ logosuz takım rozeti).
 
 ## Görsel varlıklar ve lisans
 
-Uygulamada **takım logosu ve oyuncu fotoğrafı yoktur**. Web sürümü bunları
-ESPN/NFL uçlarından gösteriyor; mağazaya çıkan bir pakette bu marka/telif
-riski yaratır. Yerine takımın kısaltması, takım renginden türetilen kendi
-rozetimizle çizilir (`src/components/TeamBadge.tsx`). NCAA'da 250+ okulun
-resmî rengi elimizde olmadığı için zemin rengi kısaltmadan deterministik
-olarak türetilir — aynı okul her yerde aynı rengi alır, hiçbir okulun resmî
-rengi iddia edilmez (`src/components/NcaaBadge.tsx`). İkonlar da elle
-üretilir (`scripts/make-icons.py`), sekme ikonları SVG olarak kod içinde
-çizilir — pakette üçüncü taraf görsel yoktur.
+Takım logoları ve oyuncu fotoğrafları **Ayarlar → Görseller** anahtarına bağlı
+(`src/lib/prefs.tsx`). İki senaryo var:
+
+| Anahtar | Görünüm | Ne zaman |
+|---|---|---|
+| **Açık** (varsayılan) | ESPN/NFL uçlarından takım logosu ve oyuncu fotoğrafı. Görsel pakete gömülmez, kaynağından çekilir — web sürümüyle aynı davranış. | Kişisel kullanım |
+| **Kapalı** | Takım = kısaltma + renk rozeti, oyuncu = baş harf dairesi. Pakette hiçbir üçüncü taraf markası yok. | Mağaza dağıtımı |
+
+Mağazaya çıkarken kapatın: dağıtılan bir pakette takım markaları marka/telif
+riski yaratır. Varsayılanı kalıcı olarak değiştirmek için `prefs.tsx`
+içindeki `DEFAULT_SHOW_IMAGES` sabitini kullanın.
+
+Görsel yüklenemezse (ağ yok, ESPN kodu tutmayan kısaltma) otomatik olarak
+rozete/baş harflere düşülür — hiçbir durumda kırık görsel ya da boşluk
+kalmaz. Fotoğraflar bilerek yalnızca kart ve künye ekranlarında kullanılır;
+100 satırlık bir tabloda 100 uzak görsel kaydırmayı bozar.
+
+NCAA'da 250+ okulun resmî rengi elimizde olmadığı için rozet zemini
+kısaltmadan deterministik türetilir — aynı okul her yerde aynı rengi alır,
+hiçbir okulun resmî rengi iddia edilmez (`src/components/NcaaBadge.tsx`).
+
+Uygulama ikonu elle üretilir (`scripts/make-icons.py`), sekme ikonları kod
+içinde SVG olarak çizilir — bunlar her iki modda da tamamen bize aittir.
 
 İstatistikler olgusal veridir ve nflverse'ten gelir (CC BY 4.0, atıf her
 ekranın altında). Takım adları yalnızca veriyi tanımlamak için geçer.

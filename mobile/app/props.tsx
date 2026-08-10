@@ -10,6 +10,7 @@ import { Stack } from "expo-router";
 import Screen from "../src/components/Screen";
 import TeamBadge, { TeamStrip } from "../src/components/TeamBadge";
 import PName from "../src/components/PName";
+import PlayerAvatar from "../src/components/PlayerAvatar";
 import { PropBars } from "../src/components/charts";
 import {
   Card, Empty, Loading, Muted, PillRow, SearchBar, SectionHeader, Title, Trend,
@@ -257,8 +258,10 @@ export default function PropFinder() {
             ) : null}
             {player ? (
               <Card style={[styles.subject, { marginTop: space.sm }]}>
+                <PlayerAvatar url={player.headshot_url as string}
+                              name={String(player.player_name)} size={44} />
                 <TeamBadge abbr={String(player.current_team ?? player.team ?? "")}
-                           size={34} link />
+                           size={24} link />
                 <View style={{ flex: 1 }}>
                   <PName name={String(player.player_name)}
                          pos={String(player.position ?? "")}

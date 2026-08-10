@@ -4,6 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import ErrorBoundary from "../src/components/ErrorBoundary";
 import { I18nProvider } from "../src/lib/i18n";
 import { LeagueProvider } from "../src/lib/league";
+import { PrefsProvider } from "../src/lib/prefs";
 import { ThemeProvider, useTheme } from "../src/lib/theme";
 
 /** Stack başlıkları da tema token'larını kullansın diye ayrı bileşen:
@@ -55,9 +56,11 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <I18nProvider>
-            <LeagueProvider>
-              <Navigator />
-            </LeagueProvider>
+            <PrefsProvider>
+              <LeagueProvider>
+                <Navigator />
+              </LeagueProvider>
+            </PrefsProvider>
           </I18nProvider>
         </ThemeProvider>
       </SafeAreaProvider>

@@ -1,12 +1,13 @@
 /** Ayarlar + hakkında bloğu — NFL ve NCAA "Daha" sekmelerinin ortak alt yarısı. */
 import { useCallback, useEffect, useState } from "react";
 import Constants from "expo-constants";
-import { Linking, Pressable, StyleSheet, Text } from "react-native";
+import { Linking, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Card, Muted, PillRow, SectionHeader } from "../../components/ui";
 import { cacheSize, clearDisk } from "../../lib/cache";
 import { SITE_URL } from "../../lib/config";
 import { LANGS, LANG_FULL, useI18n } from "../../lib/i18n";
 import { font, radius, space, useTheme, type ThemePref } from "../../lib/theme";
+import { usePrefs } from "../../lib/prefs";
 
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -17,6 +18,7 @@ function fmtBytes(n: number): string {
 export default function Settings() {
   const { t, lang, setLang } = useI18n();
   const { pref, setPref, c } = useTheme();
+  const { showImages, setShowImages } = usePrefs();
   const [size, setSize] = useState(0);
   const [cleared, setCleared] = useState(false);
 
@@ -49,6 +51,23 @@ export default function Settings() {
           onChange={setPref}
           compact
         />
+      </Card>
+
+      <Card style={{ marginBottom: space.sm }}>
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: c.text, marginBottom: 2 }]}>
+              {t("more.images")}
+            </Text>
+            <Muted>{t("more.imagesSub")}</Muted>
+          </View>
+          <Switch
+            value={showImages}
+            onValueChange={setShowImages}
+            trackColor={{ true: c.accent, false: c.border }}
+            thumbColor={c.bg}
+          />
+        </View>
       </Card>
 
       <Card style={{ marginBottom: space.sm }}>
@@ -86,7 +105,7 @@ export default function Settings() {
       </Card>
 
       <Card style={{ marginBottom: space.sm }}>
-        <Muted>{t("more.noImages")}</Muted>
+        <Muted>{t(showImages ? "more.imagesOnNote" : "more.noImages")}</Muted>
       </Card>
 
       <Card style={{ marginBottom: space.sm }}>
@@ -106,6 +125,7 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   label: { fontSize: font.sm, fontWeight: "700", marginBottom: space.sm },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: space.md },
   button: {
     marginTop: space.md, alignSelf: "flex-start",
     paddingHorizontal: space.lg, paddingVertical: space.sm,

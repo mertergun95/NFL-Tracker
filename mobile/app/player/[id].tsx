@@ -1,7 +1,7 @@
 /** Oyuncu künyesi.
  *
- *  Web'deki PlayerDetail'in telefona uyarlanmış hâli: fotoğraf yok
- *  (telif), grafikler SVG, geniş tablolar yana kaydırmalı. Bölümler
+ *  Web'deki PlayerDetail'in telefona uyarlanmış hâli: grafikler SVG,
+ *  geniş tablolar yana kaydırmalı. Bölümler
  *  telefonda okunma sırasına göre: bu haftanın projeksiyonu → sezon
  *  toplamı → maç maç → red zone / snap → kariyer.
  */
@@ -11,6 +11,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import Screen from "../../src/components/Screen";
 import StatTable from "../../src/components/StatTable";
 import TeamBadge from "../../src/components/TeamBadge";
+import PlayerAvatar from "../../src/components/PlayerAvatar";
 import { RangeBar, WeekBars } from "../../src/components/charts";
 import {
   Card, Empty, Loading, Muted, PillRow, SectionHeader, StatTile, StatusBadge, Title,
@@ -149,13 +150,20 @@ export default function PlayerDetail() {
       <Stack.Screen options={{ title }} />
       <Screen refreshing={refreshing} onRefresh={onRefresh} freshnessKey="players/index.json">
         <View style={styles.header}>
-          <TeamBadge abbr={player?.team as string} size={44} link />
+          <PlayerAvatar
+            url={(player?.headshot_url ?? seasonRowQ.data?.headshot_url) as string}
+            name={title}
+            size={56}
+          />
           <View style={{ flex: 1 }}>
             <Title>{title}</Title>
-            <Muted style={{ marginTop: -space.sm }}>
-              {pos || "?"} · {teamName(player?.team as string)}
-              {player ? ` · ${player.first_season}–${player.last_season}` : ""}
-            </Muted>
+            <View style={styles.subline}>
+              <TeamBadge abbr={player?.team as string} size={20} link />
+              <Muted>
+                {pos || "?"} · {teamName(player?.team as string)}
+                {player ? ` · ${player.first_season}–${player.last_season}` : ""}
+              </Muted>
+            </View>
           </View>
         </View>
 
@@ -309,5 +317,8 @@ export default function PlayerDetail() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
+  subline: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginTop: -space.sm,
+  },
   projRow: { flexDirection: "row", alignItems: "center", marginBottom: space.xs },
 });

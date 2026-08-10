@@ -60,6 +60,18 @@ export const teamColor = (abbr: string | null | undefined): string =>
 export const conferenceOf = (abbr: string): "AFC" | "NFC" =>
   TEAMS[abbr]?.division.startsWith("AFC") ? "AFC" : "NFC";
 
+// ESPN CDN logo kodları (bizim kısaltmalardan farklı olanlar)
+const ESPN_CODES: Record<string, string> = { WAS: "wsh", LA: "lar", LAR: "lar" };
+
+/** Takım logosu URL'i (ESPN CDN).
+ *
+ *  Görsel pakete gömülmez, kaynağından gösterilir — web sürümüyle aynı
+ *  davranış. Ayarlardan kapatılabilir; kapalıyken rozet çizilir. */
+export const teamLogoUrl = (abbr: string | null | undefined): string | null =>
+  abbr
+    ? `https://a.espncdn.com/i/teamlogos/nfl/500/${(ESPN_CODES[abbr] ?? abbr).toLowerCase()}.png`
+    : null;
+
 /** Rozet zemini koyuysa yazı beyaz, açıksa siyah olsun. */
 export function readableOn(hex: string): string {
   const h = hex.replace("#", "");

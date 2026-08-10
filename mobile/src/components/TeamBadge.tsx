@@ -1,15 +1,19 @@
-/** Takım rozeti — logo YERİNE geçen kendi çizimimiz.
+/** Takım işareti.
  *
- *  Web sürümü ESPN CDN'inden logo çekiyor; mağazaya çıkan bir uygulamada
- *  bunu yapmak marka riski demek. Burada yalnızca takımın kısaltması,
- *  takım renginden türetilmiş bir zemin üzerinde yazılıyor: telif/marka
- *  içermeyen, tamamen bize ait bir görsel öğe.
+ *  İki mod var, Ayarlar'daki "Görseller" anahtarı belirler:
+ *   - Açık (kişisel kullanım): ESPN CDN'inden takım logosu gösterilir.
+ *     Görsel pakete gömülmez, kaynağından çekilir — web sürümüyle aynı.
+ *   - Kapalı (mağaza dağıtımı): takımın kısaltması, takım renginden
+ *     türetilmiş zemin üzerinde yazılır. Tamamen bize ait, marka içermez.
+ *
+ *  Logo yüklenemezse de rozete düşülür, yani hiçbir durumda boşluk kalmaz.
  */
-import { useCallback, useEffect, useRef } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { font, radius, space, useColors } from "../lib/theme";
-import { readableOn, teamColor, teamName, TEAM_ABBRS } from "../lib/teams";
+import { readableOn, teamColor, teamLogoUrl, teamName, TEAM_ABBRS } from "../lib/teams";
+import { useShowImages } from "../lib/prefs";
 
 interface Props {
   abbr: string | null | undefined;
@@ -21,12 +25,27 @@ interface Props {
 export default function TeamBadge({ abbr, size = 26, link }: Props) {
   const router = useRouter();
   const c = useColors();
+  const showImages = useShowImages();
+  // Logo yüklenemezse (ESPN kodu tutmayan kısaltma, ağ yok) rozete düşülür.
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [abbr]);
+
   if (!abbr || abbr === "null") {
     return <View style={{ width: size, height: size }} />;
   }
   const bg = teamColor(abbr);
   const fg = readableOn(bg);
-  const badge = (
+  const logo = showImages && !broken ? teamLogoUrl(abbr) : null;
+
+  const badge = logo ? (
+    <Image
+      source={{ uri: logo }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      onError={() => setBroken(true)}
+      accessibilityLabel={teamName(abbr)}
+    />
+  ) : (
     <View
       style={[
         styles.badge,
