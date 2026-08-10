@@ -218,13 +218,20 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     ap = argparse.ArgumentParser()
     ap.add_argument("mode", choices=["backfill", "update", "gameday",
-                                     "ncaa-backfill"])
+                                     "ncaa-backfill", "agent"])
     ap.add_argument("--seasons", default=None,
                     help="backfill için aralık, ör. 2021-2025")
     args = ap.parse_args()
 
     if args.mode == "gameday":
         return gameday_update()
+
+    if args.mode == "agent":
+        # Yalnızca haftalık köşe yazısını yeniden üret. Sezon dışında
+        # "update" erken çıkıyor (nflverse'te yeni sezon dosyası yok), o
+        # yüzden ajanı elle çalıştırmanın ayrı bir yolu gerekiyor.
+        agent.build_and_write()
+        return 0
 
     if args.mode == "ncaa-backfill":
         if args.seasons:

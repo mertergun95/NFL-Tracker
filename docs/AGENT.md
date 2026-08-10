@@ -83,6 +83,24 @@ metne düşülür. Haftada tek çağrı yapılır (~5k girdi / ~3k çıktı toke
 Maç günü koşusu (`run.py gameday`) ajanı **çalıştırmaz**: o cron Pazar günü
 altı kez tetikleniyor ve bu haftalık bir köşe yazısı.
 
+## Elle çalıştırma (`agent` modu)
+
+Salı koşusu (`run.py update`), nflverse'te yeni sezonun dosyası yoksa
+"güncellenecek veri yok" deyip erken çıkar — sezon dışında ajana sıra gelmez.
+Köşe yazısını istediğin an tek başına üretmek için:
+
+**Actions → Update NFL Stats → Run workflow → mode: `agent`**
+
+ya da yerelde:
+
+```bash
+cd pipeline
+ANTHROPIC_API_KEY=sk-ant-... python run.py agent
+```
+
+Bu mod sezon verisine dokunmaz; yalnızca mevcut `projections.json` +
+`seasons/` içeriğini okuyup `agent.json`'ı yeniden yazar.
+
 ## Kurulum
 
 GitHub → **Settings → Secrets and variables → Actions → New repository secret**
