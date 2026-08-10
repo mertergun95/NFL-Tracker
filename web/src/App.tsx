@@ -8,6 +8,7 @@ import Games from "./pages/Games";
 import Compare from "./pages/Compare";
 import ChartsPage from "./pages/ChartsPage";
 import Insights from "./pages/Insights";
+import Agent from "./pages/Agent";
 import Projections from "./pages/Projections";
 import GameDetail from "./pages/GameDetail";
 import DepthCharts from "./pages/DepthCharts";
@@ -51,6 +52,7 @@ const NAV = [
   { to: "/injuries", key: "nav.injuries" },
   { to: "/accuracy", key: "nav.accuracy" },
   { to: "/insights", key: "nav.insights" },
+  { to: "/agent", key: "nav.agent" },
 ];
 
 const NCAA_NAV = [
@@ -130,6 +132,7 @@ export default function App() {
               <Route path="/injuries" element={<Injuries />} />
               <Route path="/accuracy" element={<Accuracy />} />
               <Route path="/insights" element={<Insights />} />
+              <Route path="/agent" element={<Agent />} />
               <Route path="/game/:season/:gameId" element={<GameDetail />} />
             </>
           )}

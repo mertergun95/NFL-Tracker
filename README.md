@@ -11,8 +11,15 @@ Plan ve fazlar için [ROADMAP.md](ROADMAP.md).
 - **Otomasyon:** `.github/workflows/update-stats.yml` her **Salı 10:00 UTC**
   mevcut sezonu günceller ve değişiklikleri commit'ler. Geçmiş sezonlar için
   Actions sekmesinden `Update NFL Stats` workflow'unu `backfill` moduyla çalıştırın.
+- **NFL Agent:** `pipeline/agent.py` her Salı, projeksiyonlar üretildikten
+  sonra çalışır; gelecek hafta için boom/bust adaylarını ve haftalık bülteni
+  `agent.json`'a yazar. Ayrıntı: [docs/AGENT.md](docs/AGENT.md).
 - **Arayüz:** `web/` içinde React + Vite. Veriler statik JSON olarak fetch edilir,
   sunucu gerekmez.
+- **Mobil uygulama:** `mobile/` içinde React Native + Expo. Kendi verisini
+  taşımaz; yayındaki `https://statgrade.com/data/` JSON'larını okur, yani Salı
+  güncellemesi mağaza sürümü gerektirmeden uygulamaya da yansır. Ayrıntı:
+  [mobile/README.md](mobile/README.md).
 
 ## Yerelde çalıştırma
 
@@ -20,6 +27,14 @@ Plan ve fazlar için [ROADMAP.md](ROADMAP.md).
 cd web
 npm install
 npm run dev      # http://localhost:5173
+```
+
+Mobil uygulama:
+
+```bash
+cd mobile
+npm install
+npx expo start   # QR kodu Expo Go ile okutun
 ```
 
 ## Yayınlama (GitHub Pages)
@@ -62,6 +77,12 @@ takımı veya NCAA ile **bağlantılı değildir**; onlar tarafından onaylanmam
 veya desteklenmemiştir. Takım adları, logoları ve oyuncu görselleri ilgili
 sahiplerinin mülkiyetindedir ve burada yalnızca **tanımlama amacıyla**
 kullanılmaktadır.
+
+**Mobil uygulamada görseller bir anahtara bağlıdır.** Ayarlar → "Görseller"
+kapalıyken takımlar yalnızca kısaltma + renk rozetiyle (kendi çizimimiz)
+gösterilir, hiçbir marka görseli yüklenmez. Mağazaya çıkan pakette bu anahtar
+kapalı olmalıdır — bkz. [docs/PLAY_STORE.md](docs/PLAY_STORE.md). Görseller
+hiçbir zaman pakete gömülmez; açıkken de web'deki gibi kaynağından çekilir.
 
 İstatistiklerin kendisi olgusal veridir; ABD içtihadında spor istatistikleri
 telif korumasına tabi değildir (*NBA v. Motorola*, 2. Daire; *C.B.C.
