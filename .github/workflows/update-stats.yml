@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "backfill (geçmiş sezonlar) veya update (mevcut sezon)"
+        description: "update (mevcut sezon), backfill (geçmiş sezonlar), agent (yalnız köşe yazısı)"
         type: choice
-        options: [update, backfill]
+        options: [update, backfill, agent]
         default: update
       seasons:
         description: "backfill için sezon aralığı, ör. 2021-2025"
@@ -58,6 +58,9 @@ jobs:
           fi
           if [ "$MODE" = "backfill" ]; then
             python run.py backfill --seasons "${SEASONS_OVERRIDE:-${{ github.event.inputs.seasons || '2021-2025' }}}" 2>&1 | tee ../web/public/data/last_run.txt
+          elif [ "$MODE" = "agent" ]; then
+            # Sadece köşe yazısı; last_run.txt pipeline'ın logu olarak kalsın
+            python run.py agent
           else
             python run.py update 2>&1 | tee ../web/public/data/last_run.txt
           fi
