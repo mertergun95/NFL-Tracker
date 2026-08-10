@@ -37,6 +37,66 @@ export interface InsightsPayload {
   sections: Record<string, Insight[]>;
 }
 
+/* ------------------------------------------------------------ NFL agent */
+
+export interface AgentSignal {
+  key: string;
+  label: string;
+  value: string;
+  tone: "up" | "down" | "neutral";
+}
+
+export interface AgentPick {
+  player_id: string;
+  player_name: string;
+  position: string;
+  team: string;
+  opponent: string;
+  kind: "boom" | "bust";
+  score: number;
+  confidence: "high" | "medium" | "low";
+  angle: string;
+  note: string;
+  written_by: "model" | "rules";
+  proj_ppr: number | null;
+  proj_floor_ppr: number | null;
+  proj_ceiling_ppr: number | null;
+  recent_games: { week: number; opponent: string | null; ppr: number | null }[];
+  signals: AgentSignal[];
+}
+
+export interface AgentGraded {
+  player_id: string;
+  player_name: string;
+  position: string;
+  team: string;
+  kind: "boom" | "bust";
+  proj_ppr: number | null;
+  actual_ppr?: number;
+  bar?: number;
+  hit?: boolean;
+}
+
+export interface AgentPayload {
+  generated_at: string;
+  data_season: number;
+  through_week: number;
+  target: { season: number; week: number };
+  /** Anlatıyı yazan model, ya da API anahtarı yoksa "rules". */
+  engine: string;
+  language: string;
+  headline: string;
+  overview: string;
+  sections: { title: string; body: string }[];
+  picks: AgentPick[];
+  record: {
+    weeks?: number;
+    boom?: { hits: number; n: number; rate: number | null };
+    bust?: { hits: number; n: number; rate: number | null };
+  };
+  history: { season: number; week: number; picks: AgentGraded[] }[];
+}
+
 export interface ProjectionsPayload {
   generated_at: string;
   data_season: number;

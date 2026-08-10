@@ -44,6 +44,10 @@ jobs:
 
       - name: Run pipeline
         working-directory: pipeline
+        env:
+          # NFL agent'ın haftalık bülteni. Secret tanımlı değilse agent
+          # kural tabanlı metne düşer, pipeline kırılmaz.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           MODE="${{ github.event.inputs.mode || 'update' }}"
           SEASONS_OVERRIDE=""

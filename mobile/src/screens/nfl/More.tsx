@@ -19,6 +19,7 @@ const LEAGUE: Entry[] = [
 
 /** Analiz araçları */
 const TOOLS: Entry[] = [
+  { href: "/agent", titleKey: "agent.title", descKey: "agent.sub2" },
   { href: "/matchups", titleKey: "nav.matchups", descKey: "match.sub2" },
   { href: "/props", titleKey: "props.title", descKey: "props.sub" },
   { href: "/compare", titleKey: "compare.title", descKey: "compare.sub2" },

@@ -13,8 +13,8 @@ import {
   Card, Empty, ErrorBox, Loading, Muted, PillRow, SectionHeader, Title, Trend,
 } from "../../components/ui";
 import {
-  loadInsights, loadManifest, loadNextSchedule, loadPlayerSeason, loadPlayerWeeks,
-  loadProjections, loadSchedule, seasonsFromManifest,
+  loadAgent, loadInsights, loadManifest, loadNextSchedule, loadPlayerSeason,
+  loadPlayerWeeks, loadProjections, loadSchedule, seasonsFromManifest,
 } from "../../lib/data";
 import { useAsync, useRefresh } from "../../lib/hooks";
 import { fmt } from "../../lib/columns";
@@ -66,10 +66,11 @@ export default function Home() {
   const insightsQ = useAsync((o) => loadInsights(o), []);
   const nextQ = useAsync((o) => loadNextSchedule(o), []);
   const projQ = useAsync((o) => loadProjections(o), []);
+  const agentQ = useAsync((o) => loadAgent(o), []);
 
   const { refreshing, onRefresh } = useRefresh([
     manifestQ.reload, seasonQ.reload, weeksQ.reload, schedQ.reload,
-    insightsQ.reload, nextQ.reload, projQ.reload,
+    insightsQ.reload, nextQ.reload, projQ.reload, agentQ.reload,
   ]);
 
   const info = active && manifestQ.data ? manifestQ.data.seasons[String(active)] : null;
@@ -131,6 +132,28 @@ export default function Home() {
         value={active ?? 0}
         onChange={setSeason}
       />
+
+      {agentQ.data ? (
+        <Card
+          style={{ marginBottom: space.md, borderLeftWidth: 3, borderLeftColor: c.accent }}
+          onPress={() => router.push("/agent")}
+        >
+          <Text style={{ color: c.textDim, fontSize: font.xs, fontWeight: "700",
+                         letterSpacing: 0.5 }}>
+            {t("agent.title").toUpperCase()}
+          </Text>
+          <Text style={{ color: c.text, fontSize: font.md, fontWeight: "700",
+                         marginTop: 2 }}>
+            {agentQ.data.headline}
+          </Text>
+          <Muted style={{ marginTop: 4 }} >
+            {t("agent.teaser", {
+              boom: agentQ.data.picks.filter((p) => p.kind === "boom").length,
+              bust: agentQ.data.picks.filter((p) => p.kind === "bust").length,
+            })}
+          </Muted>
+        </Card>
+      ) : null}
 
       {nextGames.length > 0 ? (
         <>

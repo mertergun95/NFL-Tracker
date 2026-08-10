@@ -12,6 +12,7 @@ from datetime import date
 import pandas as pd
 
 import advanced
+import agent
 import config
 import insights
 import ncaa
@@ -188,6 +189,8 @@ def gameday_update() -> int:
         return 0
     update_injuries()
     insights.build_and_write(schedules, run_eval=False)
+    # Agent bilerek çalıştırılmıyor: haftalık bir köşe yazısı ve maç günü
+    # cron'u Pazar günü altı kez tetikleniyor. Salı koşusunda üretilir.
     return 0
 
 
@@ -268,6 +271,7 @@ def main() -> int:
     _optional("güncel kadro/depth chart", do_roster)
     rebuild_index_and_manifest(master, current_roster)
     _optional("insights", lambda: insights.build_and_write(schedules))
+    _optional("nfl agent", agent.build_and_write)
     if args.mode == "update":
         _optional("ncaa güncellemesi",
                   lambda: ncaa.update_current(current_season()))

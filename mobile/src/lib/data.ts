@@ -3,8 +3,8 @@
  *  seçeneği (aşağı çekerek yenileme için). */
 import { getJson, type LoadOptions } from "./cache";
 import type {
-  ColumnarData, InsightsPayload, Manifest, ProjectionsPayload, ProjEvalPayload,
-  StatRow,
+  AgentPayload, ColumnarData, InsightsPayload, Manifest, ProjectionsPayload,
+  ProjEvalPayload, StatRow,
 } from "./types";
 
 const rowCache = new Map<string, StatRow[]>();
@@ -84,6 +84,14 @@ export async function loadProjections(o?: LoadOptions): Promise<ProjectionsPaylo
 export async function loadInsights(o?: LoadOptions): Promise<InsightsPayload | null> {
   try {
     return await getJson<InsightsPayload>("insights.json", o);
+  } catch {
+    return null;
+  }
+}
+
+export async function loadAgent(o?: LoadOptions): Promise<AgentPayload | null> {
+  try {
+    return await getJson<AgentPayload>("agent.json", o);
   } catch {
     return null;
   }

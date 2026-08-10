@@ -104,6 +104,20 @@ export const MOBILE_STRINGS: Record<string, string | [string, string, string]> =
   "acc.sub2": ["How close last weeks' projections landed.",
                "Geçmiş haftaların projeksiyonları ne kadar tuttu.",
                "Wie nah die Prognosen der letzten Wochen lagen."],
+  "agent.sub2": ["Weekly boom and bust calls, written in English.",
+                 "Haftalık boom/bust çağrıları, İngilizce yazılır.",
+                 "Wöchentliche Boom-/Bust-Tipps, auf Englisch verfasst."],
+  "agent.teaser": ["{boom} boom and {bust} bust calls for the coming week — tap to read.",
+                   "Önümüzdeki hafta için {boom} boom, {bust} bust çağrısı — okumak için dokunun.",
+                   "{boom} Boom- und {bust} Bust-Tipps für die kommende Woche — zum Lesen tippen."],
+  "agent.noBulletin": [
+    "No bulletin this week — it is written by the language model, and this edition came from the rule-based fallback.",
+    "Bu hafta bülten yok — bülteni dil modeli yazıyor, bu sayı kural tabanlı yedekten çıktı.",
+    "Diese Woche kein Bulletin — es wird vom Sprachmodell verfasst, diese Ausgabe kam vom regelbasierten Fallback."],
+  "agent.noRecord": [
+    "No call has been graded yet — the record fills in once these weeks are played.",
+    "Henüz notlanmış çağrı yok — bu haftalar oynandıkça karne dolar.",
+    "Noch keine Tipps bewertet — die Bilanz füllt sich, sobald diese Wochen gespielt sind."],
 
   // -------------------------------------------------------------------- NCAA
   "ncaa.teamCount": ["{n} FBS teams in the dataset", "Veri setinde {n} FBS takımı",

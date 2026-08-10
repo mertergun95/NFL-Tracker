@@ -722,6 +722,86 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
   background: var(--border);
 }
 
+/* ---- NFL agent ---- */
+.ag-lead {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 14px 18px; margin: 0 0 24px;
+}
+.ag-lead h2 { margin: 0 0 6px; font-size: 1.1rem; }
+.ag-lead p { margin: 0; color: var(--text-dim); line-height: 1.5; }
+
+.ag-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  margin: 8px 0 24px;
+}
+.ag-card {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px;
+}
+.ag-card.ag-boom { border-left: 3px solid var(--good-border); }
+.ag-card.ag-bust { border-left: 3px solid var(--bad-border); }
+.ag-card header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.ag-tag {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+}
+.ag-tag-boom { background: var(--good-bg); color: var(--good); }
+.ag-tag-bust { background: var(--bad-bg); color: var(--bad); }
+.ag-conf { font-size: 0.7rem; color: var(--text-dim); }
+.ag-conf-high { color: var(--text); font-weight: 600; }
+.ag-card h3 {
+  margin: 0 0 4px; font-size: 0.98rem;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.ag-vs { color: var(--text-dim); font-size: 0.8rem; font-weight: 400; }
+.ag-angle { margin: 0 0 4px; font-size: 0.88rem; font-weight: 600; }
+.ag-note {
+  margin: 0 0 8px; color: var(--text-dim);
+  font-size: 0.85rem; line-height: 1.5;
+}
+
+.ag-strip {
+  display: flex; align-items: flex-end; gap: 8px;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.ag-strip-title {
+  font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.05em; margin-right: 2px; padding-bottom: 1px;
+}
+.ag-strip-col {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 0.62rem; color: var(--text-dim);
+}
+.ag-strip-val { font-variant-numeric: tabular-nums; color: var(--text); }
+.ag-strip-bar {
+  width: 18px; border-radius: 2px 2px 0 0; background: var(--link);
+}
+
+.ag-signals { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ag-signal {
+  font-size: 0.76rem; line-height: 1.4; color: var(--text-dim);
+  padding-left: 8px; border-left: 2px solid var(--border);
+}
+.ag-signal.ag-up { border-left-color: var(--good-border); }
+.ag-signal.ag-down { border-left-color: var(--bad-border); }
+.ag-signal-label {
+  color: var(--text); font-weight: 600; margin-right: 5px;
+}
+.ag-history { margin-bottom: 18px; overflow-x: auto; }
+.ag-history h3 { margin: 0 0 6px; font-size: 0.9rem; color: var(--text-dim); }
+.ag-hit { color: var(--good); font-weight: 600; }
+.ag-miss { color: var(--text-dim); }
+.ag-foot {
+  color: var(--text-dim); font-size: 0.76rem; line-height: 1.5;
+  border-top: 1px solid var(--border); padding-top: 12px; margin-top: 24px;
+}
+
 /* ---- tablet ---- */
 @media (max-width: 900px) {
   main { padding: 18px 16px 40px; }
@@ -762,7 +842,7 @@ h2 { margin: 28px 0 10px; font-size: 1.15rem; }
   .perf-card { min-width: 78vw; }
 
   .leader-grid, .insight-grid, .standings-grid, .matchup-cols,
-  .game-grid, .depth-grid, .prop-cards {
+  .game-grid, .depth-grid, .prop-cards, .ag-grid {
     grid-template-columns: 1fr;
   }
 
