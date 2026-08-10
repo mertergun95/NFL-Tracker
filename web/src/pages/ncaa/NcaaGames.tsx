@@ -75,6 +75,9 @@ export default function NcaaGames({ seasons }: { seasons: number[] }) {
                 {kickoffBerlin(g.kickoff as string) &&
                   ` · ${kickoffBerlin(g.kickoff as string)} (DE)`}
                 {Boolean(g.conference_game) && t("game.conference")}
+                {g.broadcast ? ` · ${String(g.broadcast)}` : ""}
+                {/* Almanya'dan izlenebilirlik: ESPN ailesi DAZN'de görünüyor */}
+                {g.dazn ? <span className="dazn-tag" title={t("ncaa.daznHint")}>DAZN</span> : null}
               </div>
               <div className="game-line">
                 <Link to={`/ncaa/team/${g.away_team}`} className="team-cell"

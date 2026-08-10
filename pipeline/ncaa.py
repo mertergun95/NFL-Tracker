@@ -23,6 +23,31 @@ import transform
 log = logging.getLogger("pipeline.ncaa")
 
 SITE = "https://site.api.espn.com/apis/site/v2/sports/football/college-football"
+
+# DAZN Almanya'da hangi ABD yayıncılarının maçları görünüyor.
+#
+# Maç başına Almanya yayın hakkını veren açık bir uç yok (DAZN'in program
+# verisi giriş ve Almanya IP'si istiyor), o yüzden ESPN'in verdiği ABD
+# yayıncısından türetiliyor: DAZN'in NCAA yayını ESPN'in uluslararası
+# akışından geliyor. Rights değişirse burayı düzenlemek yeterli.
+#
+# Tek tartışmalı kalem ABC: maçları ESPN üretiyor ama yurt dışı dağıtımı her
+# zaman ESPN akışından gitmiyor. Şimdilik dışarıda; DAZN'de ABC maçı
+# gördüysen listeye "ABC" ekle.
+DAZN_NETWORKS = {
+    "ESPN", "ESPN2", "ESPNU", "ESPNEWS", "ESPN+", "SECN", "SEC Network",
+    "ACCN", "ACC Network", "ESPN3",
+}
+
+
+def _broadcasts(comp: dict) -> list[str]:
+    """Maçın ABD yayıncıları (ESPN scoreboard 'broadcasts' alanı)."""
+    names = []
+    for b in comp.get("broadcasts") or []:
+        for n in b.get("names") or []:
+            if n and n not in names:
+                names.append(n)
+    return names
 CORE = "https://sports.core.api.espn.com/v2/sports/football/leagues/college-football"
 NCAA_DIR = config.DATA_DIR / "ncaa"
 NCAA_SEASONS = [2022, 2023, 2024, 2025]  # son 4 yıl
@@ -122,6 +147,9 @@ def parse_schedule(events: list[dict], season: int):
             "away_score": away["score"] if done else None,
             "neutral_site": bool(c.get("neutralSite")),
             "conference_game": bool(c.get("conferenceCompetition")),
+            "broadcast": ", ".join(_broadcasts(c)) or None,
+            # Almanya'da izlenebilir mi (yukarıdaki eşlemeye göre)
+            "dazn": any(n in DAZN_NETWORKS for n in _broadcasts(c)),
             "completed": c["status"]["type"]["name"] == "STATUS_FINAL",
         })
     return pd.DataFrame(rows), teams, conf_of
