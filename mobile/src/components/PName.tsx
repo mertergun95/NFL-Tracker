@@ -13,15 +13,18 @@ export function PosTag({ pos }: { pos?: string | null }) {
   );
 }
 
-export default function PName({ name, pos, id, size = font.sm }:
-  { name?: string | null; pos?: string | null; id?: string | null; size?: number }) {
+export default function PName({ name, pos, id, size = font.sm, lines = 1 }:
+  { name?: string | null; pos?: string | null; id?: string | null; size?: number;
+    /** Dar kolonlarda uzun isimler kesilmesin diye 2 yapılabilir. */
+    lines?: number }) {
   const c = useColors();
   const router = useRouter();
   const body = (
     <View style={styles.row}>
       <Text
-        numberOfLines={1}
-        style={{ color: id ? c.link : c.text, fontSize: size, flexShrink: 1 }}
+        numberOfLines={lines}
+        style={{ color: id ? c.link : c.text, fontSize: size, flexShrink: 1,
+                 lineHeight: size + 3 }}
       >
         {name ?? "—"}
       </Text>

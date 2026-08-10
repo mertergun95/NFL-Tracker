@@ -10,7 +10,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import Screen from "../../src/components/Screen";
 import StatTable from "../../src/components/StatTable";
-import TeamBadge from "../../src/components/TeamBadge";
+import TeamBadge, { TeamCell } from "../../src/components/TeamBadge";
 import PlayerAvatar from "../../src/components/PlayerAvatar";
 import { RangeBar, WeekBars } from "../../src/components/charts";
 import {
@@ -128,8 +128,10 @@ export default function PlayerDetail() {
       label: weekLabel(Number(r.week), r.game_type as string),
       value: Number(r[chartStat] ?? 0),
       highlight: r.season_type !== "REG",
+      sub: `${t("common.weekShort")}${weekLabel(Number(r.week), r.game_type as string)}`
+        + (r.opponent_team ? ` · vs ${String(r.opponent_team)}` : ""),
     })),
-    [weeksQ.data, chartStat],
+    [weeksQ.data, chartStat, t],
   );
 
   const average = useMemo(() => {
@@ -247,7 +249,7 @@ export default function PlayerDetail() {
         />
         {bars.length > 0 ? (
           <Card style={{ marginTop: space.sm }}>
-            <WeekBars data={bars} />
+            <WeekBars data={bars} statLabel={label(chartStat)} />
             {average !== null ? (
               <Muted style={{ marginTop: space.sm }}>
                 {label(chartStat)} · {t("common.week")} Ø {average.toFixed(1)}
@@ -263,7 +265,18 @@ export default function PlayerDetail() {
               rows={weeksQ.data}
               columns={["week", "opponent_team", ...preset]}
               defaultSort="week"
-              firstWidth={64}
+              frozen={2}
+              widths={{ week: 58, opponent_team: 82 }}
+              render={{
+                week: (row) => (
+                  <Text style={{ color: c.text, fontSize: font.sm }}>
+                    {weekLabel(Number(row.week), row.game_type as string)}
+                  </Text>
+                ),
+                opponent_team: (row) => (
+                  <TeamCell abbr={row.opponent_team as string} size={18} />
+                ),
+              }}
             />
           </View>
         ) : null}
@@ -289,8 +302,10 @@ export default function PlayerDetail() {
                 data={snapsQ.data.map((r) => ({
                   label: String(r.week),
                   value: Math.round(Number(r[snapStat] ?? 0) * 100),
+                  sub: `${t("common.weekShort")}${r.week}`,
                 }))}
-                height={120}
+                height={140}
+                statLabel={label(snapStat)}
                 valueFormat={(v) => `${Math.round(v)}%`}
               />
               <Muted style={{ marginTop: space.sm }}>{label(snapStat)}</Muted>

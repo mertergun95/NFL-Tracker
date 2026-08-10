@@ -133,6 +133,7 @@ export default function Projections() {
   const router = useRouter();
   const [pos, setPos] = useState("WR");
   const [view, setView] = useState<"cards" | "table">("cards");
+  const [game, setGame] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const query = useDebounced(search);
 
@@ -141,11 +142,29 @@ export default function Projections() {
   const data = projQ.data;
 
   const match = useMemo(() => matcher(query), [query]);
+
+  /** Haftanın maçları: takım–rakip çiftinden tekilleştirilir. */
+  const games = useMemo(() => {
+    const m = new Map<string, [string, string]>();
+    for (const p of data?.rows ?? []) {
+      const a = String(p.team), b = String(p.opponent);
+      const key = [a, b].sort().join("@");
+      if (!m.has(key)) m.set(key, [a, b]);
+    }
+    return [...m.entries()].sort((x, y) => x[0].localeCompare(y[0]));
+  }, [data]);
+
+  const gameTeams = useMemo(
+    () => games.find(([k]) => k === game)?.[1] ?? null,
+    [games, game],
+  );
+
   const rows = useMemo(
     () => (data?.rows ?? [])
       .filter(pos === ALL ? () => true : (POS_FILTER[pos] ?? (() => true)))
+      .filter((p) => !gameTeams || gameTeams.includes(String(p.team)))
       .filter(match),
-    [data, pos, match],
+    [data, pos, match, gameTeams],
   );
 
   const cardRows = useMemo(() => {
@@ -163,9 +182,11 @@ export default function Projections() {
     );
 
   const isMl = data.engine === "ml";
+  /* Takım ayrı bir kolon değil: dar ekranda iki kimlik kolonu stat yerini
+     yiyordu. Oyuncunun takımı isim hücresindeki rozette duruyor. */
   const tableCols = pos === ALL
-    ? ["player_name", "team", "opponent", ...ALL_COLS]
-    : ["player_name", "team", "opponent", ...(POS_COLS[pos] ?? [])];
+    ? ["player_name", "opponent", ...ALL_COLS]
+    : ["player_name", "opponent", ...(POS_COLS[pos] ?? [])];
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}
@@ -196,7 +217,20 @@ export default function Projections() {
       <SearchBar value={search} onChange={setSearch}
                  placeholder={t("common.searchPlayerTeam")} />
 
-      <Muted style={{ marginTop: space.md }}>
+      <Text style={{ color: c.textDim, fontSize: font.xs, marginTop: space.md }}>
+        {t("m.byGame")}
+      </Text>
+      <PillRow
+        options={[
+          { value: "", label: t("common.all") },
+          ...games.map(([key, [a, b]]) => ({ value: key, label: `${a}–${b}` })),
+        ]}
+        value={game ?? ""}
+        onChange={(v) => setGame(v === "" ? null : String(v))}
+        compact
+      />
+
+      <Muted style={{ marginTop: space.sm }}>
         {t("proj.count", { n: rows.length, total: data.rows.length })}
       </Muted>
 
@@ -219,17 +253,20 @@ export default function Projections() {
             columns={tableCols}
             defaultSort={pos === ALL ? "proj_ppr" : POS_SORT[pos]}
             onRowPress={(row) => router.push(`/player/${row.player_id}`)}
+            firstWidth={140}
+            colWidth={76}
             render={{
               player_name: (row) => (
-                <PName name={String(row.player_name)} pos={String(row.position ?? "")}
-                       id={String(row.player_id)} />
+                <View style={styles.nameCell}>
+                  <TeamBadge abbr={row.team as string} size={18} />
+                  <View style={{ flex: 1 }}>
+                    <PName name={String(row.player_name)} pos={String(row.position ?? "")}
+                           id={String(row.player_id)} lines={2} />
+                  </View>
+                </View>
               ),
-              team: (row) => <TeamCell abbr={row.team as string} size={18} showAbbr={false} />,
-              opponent: (row) => (
-                <TeamCell abbr={row.opponent as string} size={18} showAbbr={false} />
-              ),
+              opponent: (row) => <TeamCell abbr={row.opponent as string} size={18} />,
             }}
-            colWidth={72}
           />
         </View>
       )}
@@ -247,5 +284,6 @@ export default function Projections() {
 const styles = StyleSheet.create({
   inline: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
   cardHead: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
+  nameCell: { flexDirection: "row", alignItems: "center", gap: 6 },
   statRow: { flexDirection: "row", gap: space.md, marginTop: space.md },
 });

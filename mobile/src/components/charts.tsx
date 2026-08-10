@@ -5,7 +5,7 @@
  *  serisi ve taban–tavan bandı. İkisi de doğrudan react-native-svg ile
  *  çiziliyor, ek bağımlılık yok.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from "react-native-svg";
 import { font, radius, space, useColors } from "../lib/theme";
@@ -15,13 +15,26 @@ export interface BarPoint {
   value: number;
   /** Vurgulanacak çubuk (ör. playoff haftası). */
   highlight?: boolean;
+  /** Okumada gösterilecek ek bağlam (ör. rakip). */
+  sub?: string;
 }
 
-/** Hafta hafta çubuk grafiği (maç logu görselleştirmesi). */
-export function WeekBars({ data, height = 150, valueFormat }:
-  { data: BarPoint[]; height?: number; valueFormat?: (v: number) => string }) {
+/** Hafta hafta çubuk grafiği (maç logu görselleştirmesi).
+ *
+ *  Çubuğa dokununca o haftanın değeri üstteki okuma satırında yazılır.
+ *  Çubuk tepelerini birleştiren çizgi, haftalar arası iniş/çıkışı
+ *  çubukların tek başına veremediği kadar net gösterir.
+ */
+export function WeekBars({ data, height = 170, valueFormat, statLabel }: {
+  data: BarPoint[];
+  height?: number;
+  valueFormat?: (v: number) => string;
+  /** Okuma satırında değerin yanına yazılır ("Rec Yds" gibi). */
+  statLabel?: string;
+}) {
   const c = useColors();
   const [width, setWidth] = useState(0);
+  const [picked, setPicked] = useState<number | null>(null);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
   const max = useMemo(
@@ -29,54 +42,109 @@ export function WeekBars({ data, height = 150, valueFormat }:
     [data],
   );
 
+  // Seri değişince (başka stat seçildi) seçim sıfırlanmalı.
+  useEffect(() => { setPicked(null); }, [data]);
+
   if (data.length === 0) return null;
 
+  const fmtV = valueFormat ?? ((v: number) =>
+    Number.isInteger(v) ? String(v) : v.toFixed(1));
+
+  const readTop = 22;
   const padBottom = 18;
   const padTop = 14;
-  const plot = height - padBottom - padTop;
+  const plot = height - padBottom - padTop - readTop;
   const slot = width / data.length;
   const barW = Math.max(3, Math.min(26, slot * 0.62));
+  const yOf = (v: number) => readTop + padTop + plot - (Math.abs(v) / max) * plot;
+  const xOf = (i: number) => i * slot + slot / 2;
+
+  const sel = picked !== null ? data[picked] : null;
 
   return (
-    <View onLayout={onLayout} style={{ height }}>
-      {width > 0 ? (
-        <Svg width={width} height={height}>
-          {/* taban çizgisi */}
-          <Line
-            x1={0} y1={padTop + plot} x2={width} y2={padTop + plot}
-            stroke={c.border} strokeWidth={1}
-          />
-          {data.map((d, i) => {
-            const h = (Math.abs(d.value) / max) * plot;
-            const x = i * slot + (slot - barW) / 2;
-            const y = padTop + plot - h;
-            return (
-              <Rect
-                key={i}
-                x={x} y={y} width={barW} height={Math.max(1, h)}
-                rx={2}
-                fill={d.highlight ? c.accent : c.link}
-                opacity={d.highlight ? 1 : 0.85}
+    <View onLayout={onLayout}>
+      {/* okuma satırı: seçili çubuk yoksa en yüksek değeri özetler */}
+      <View style={styles.readout}>
+        {sel ? (
+          <>
+            <Text style={{ color: c.text, fontSize: font.md, fontWeight: "800" }}>
+              {fmtV(sel.value)}
+            </Text>
+            <Text style={{ color: c.textDim, fontSize: font.xs }}>
+              {statLabel ? `${statLabel} · ` : ""}{sel.sub ?? sel.label}
+            </Text>
+          </>
+        ) : (
+          <Text style={{ color: c.textDim, fontSize: font.xs }}>
+            {statLabel ? `${statLabel} — ` : ""}max {fmtV(max)}
+          </Text>
+        )}
+      </View>
+
+      <View
+        style={{ height: height - readTop }}
+        onStartShouldSetResponder={() => true}
+        onResponderRelease={(e) => {
+          const i = Math.floor(e.nativeEvent.locationX / slot);
+          setPicked(i >= 0 && i < data.length && i !== picked ? i : null);
+        }}
+      >
+        {width > 0 ? (
+          <Svg width={width} height={height - readTop}>
+            <Line
+              x1={0} y1={padTop + plot} x2={width} y2={padTop + plot}
+              stroke={c.border} strokeWidth={1}
+            />
+            {data.map((d, i) => {
+              const h = (Math.abs(d.value) / max) * plot;
+              const x = i * slot + (slot - barW) / 2;
+              const isSel = i === picked;
+              return (
+                <Rect
+                  key={i}
+                  x={x} y={padTop + plot - h} width={barW} height={Math.max(1, h)}
+                  rx={2}
+                  fill={isSel ? c.accent : d.highlight ? c.accent : c.link}
+                  opacity={picked === null ? (d.highlight ? 1 : 0.85) : isSel ? 1 : 0.35}
+                />
+              );
+            })}
+            {/* haftalar arası bağlantı çizgisi */}
+            {data.length > 1 ? (
+              <Polyline
+                points={data.map((d, i) => `${xOf(i)},${yOf(d.value) - readTop}`).join(" ")}
+                fill="none"
+                stroke={c.text}
+                strokeWidth={1.4}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                opacity={0.55}
               />
-            );
-          })}
-          {data.map((d, i) => (
-            <SvgText
-              key={`l${i}`}
-              x={i * slot + slot / 2}
-              y={height - 5}
-              fontSize={9}
-              fill={c.textDim}
-              textAnchor="middle"
-            >
-              {d.label}
-            </SvgText>
-          ))}
-          <SvgText x={2} y={10} fontSize={9} fill={c.textDim}>
-            {valueFormat ? valueFormat(max) : String(Math.round(max))}
-          </SvgText>
-        </Svg>
-      ) : null}
+            ) : null}
+            {data.map((d, i) => (
+              <Circle
+                key={`p${i}`}
+                cx={xOf(i)} cy={yOf(d.value) - readTop} r={i === picked ? 4 : 2}
+                fill={i === picked ? c.accent : c.text}
+                opacity={i === picked ? 1 : 0.55}
+              />
+            ))}
+            {data.map((d, i) => (
+              <SvgText
+                key={`l${i}`}
+                x={xOf(i)}
+                y={height - readTop - 5}
+                fontSize={9}
+                fill={i === picked ? c.text : c.textDim}
+                fontWeight={i === picked ? "bold" : "normal"}
+                textAnchor="middle"
+              >
+                {d.label}
+              </SvgText>
+            ))}
+          </Svg>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -413,6 +481,7 @@ export function ScatterChart({ points, xLabel, yLabel, height = 260, onSelect }:
 export const SERIES_COLORS = ["#58a6ff", "#f0883e", "#3fb950"];
 
 const styles = StyleSheet.create({
+  readout: { height: 22, flexDirection: "row", alignItems: "baseline", gap: 6 },
   legend: {
     flexDirection: "row", flexWrap: "wrap", gap: space.md, marginTop: space.xs,
   },

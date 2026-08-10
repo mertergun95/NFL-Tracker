@@ -37,15 +37,9 @@ export default function TeamBadge({ abbr, size = 26, link }: Props) {
   const fg = readableOn(bg);
   const logo = showImages && !broken ? teamLogoUrl(abbr) : null;
 
-  const badge = logo ? (
-    <Image
-      source={{ uri: logo }}
-      style={{ width: size, height: size }}
-      resizeMode="contain"
-      onError={() => setBroken(true)}
-      accessibilityLabel={teamName(abbr)}
-    />
-  ) : (
+  /* Rozet her zaman çizilir, logo varsa üstüne bindirilir: logo yüklenene
+     kadar (ya da hiç yüklenmezse) yerinde delik kalmaz. */
+  const badge = (
     <View
       style={[
         styles.badge,
@@ -69,6 +63,15 @@ export default function TeamBadge({ abbr, size = 26, link }: Props) {
       >
         {abbr}
       </Text>
+      {logo ? (
+        <Image
+          source={{ uri: logo }}
+          style={[StyleSheet.absoluteFill, { width: size, height: size }]}
+          resizeMode="contain"
+          onError={() => setBroken(true)}
+          accessibilityLabel={teamName(abbr)}
+        />
+      ) : null}
     </View>
   );
   if (!link) return badge;

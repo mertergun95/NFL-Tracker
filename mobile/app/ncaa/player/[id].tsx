@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import Screen from "../../../src/components/Screen";
 import StatTable from "../../../src/components/StatTable";
-import NcaaBadge from "../../../src/components/NcaaBadge";
+import NcaaBadge, { NcaaTeamCell } from "../../../src/components/NcaaBadge";
 import PlayerAvatar from "../../../src/components/PlayerAvatar";
 import { WeekBars } from "../../../src/components/charts";
 import {
@@ -91,8 +91,10 @@ export default function NcaaPlayerDetail() {
       label: ncaaOrd(r) >= 100 ? "B" : String(r.week),
       value: Number(r[chartStat] ?? 0),
       highlight: String(r.season_type) === "POST",
+      sub: (ncaaOrd(r) >= 100 ? t("ncaa.bowl") : `${t("common.weekShort")}${r.week}`)
+        + (r.opponent ? ` · vs ${String(r.opponent)}` : ""),
     })),
-    [weeksQ.data, chartStat],
+    [weeksQ.data, chartStat, t],
   );
 
   if (indexQ.loading && !indexQ.data) return <Screen><Loading /></Screen>;
@@ -170,7 +172,7 @@ export default function NcaaPlayerDetail() {
         />
         {bars.length > 0 ? (
           <Card style={{ marginTop: space.sm }}>
-            <WeekBars data={bars} />
+            <WeekBars data={bars} statLabel={label(chartStat)} />
             <Muted style={{ marginTop: space.sm }}>
               {label(chartStat)} · {bars.length} {t("team.games").toLowerCase()}
             </Muted>
@@ -183,7 +185,13 @@ export default function NcaaPlayerDetail() {
               rows={weeksQ.data}
               columns={["week", "opponent", ...preset]}
               defaultSort="week"
-              firstWidth={64}
+              frozen={2}
+              widths={{ week: 58, opponent: 88 }}
+              render={{
+                opponent: (row) => (
+                  <NcaaTeamCell abbr={row.opponent as string} size={18} />
+                ),
+              }}
             />
           </View>
         ) : null}

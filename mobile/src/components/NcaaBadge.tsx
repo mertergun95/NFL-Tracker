@@ -60,15 +60,8 @@ export default function NcaaBadge({ abbr, size = 26, link }: Props) {
   const short = abbr.length > 4 ? abbr.slice(0, 4) : abbr;
   const logo = showImages && !broken ? ncaaLogoUrl(abbr) : null;
 
-  const badge = logo ? (
-    <Image
-      source={{ uri: logo }}
-      style={{ width: size, height: size }}
-      resizeMode="contain"
-      onError={() => setBroken(true)}
-      accessibilityLabel={abbr}
-    />
-  ) : (
+  /* Rozet her zaman altta; logo yüklenene kadar delik kalmasın. */
+  const badge = (
     <View
       style={[
         styles.badge,
@@ -88,6 +81,15 @@ export default function NcaaBadge({ abbr, size = 26, link }: Props) {
       >
         {short}
       </Text>
+      {logo ? (
+        <Image
+          source={{ uri: logo }}
+          style={[StyleSheet.absoluteFill, { width: size, height: size }]}
+          resizeMode="contain"
+          onError={() => setBroken(true)}
+          accessibilityLabel={abbr}
+        />
+      ) : null}
     </View>
   );
 
