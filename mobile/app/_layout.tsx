@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import ErrorBoundary from "../src/components/ErrorBoundary";
 import { I18nProvider } from "../src/lib/i18n";
 import { LeagueProvider } from "../src/lib/league";
 import { ThemeProvider, useTheme } from "../src/lib/theme";
@@ -49,14 +50,17 @@ function Navigator() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <I18nProvider>
-          <LeagueProvider>
-            <Navigator />
-          </LeagueProvider>
-        </I18nProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    // Hata sınırı en dışta: sağlayıcılardan biri patlarsa da mesaj görünsün.
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <I18nProvider>
+            <LeagueProvider>
+              <Navigator />
+            </LeagueProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

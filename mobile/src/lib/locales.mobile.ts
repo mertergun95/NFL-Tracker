@@ -10,6 +10,13 @@ export const MOBILE_STRINGS: Record<string, string | [string, string, string]> =
   "tab.games": ["Games", "Maçlar", "Spiele"],
   "tab.more": ["More", "Daha", "Mehr"],
 
+  // ------------------------------------------------------------------ zaman
+  // Intl.RelativeTimeFormat Hermes'te her zaman yok; bağıl zaman buradan kurulur.
+  "time.justNow": ["just now", "az önce", "gerade eben"],
+  "time.minutesAgo": ["{n} min ago", "{n} dk önce", "vor {n} Min."],
+  "time.hoursAgo": ["{n} h ago", "{n} saat önce", "vor {n} Std."],
+  "time.daysAgo": ["{n} d ago", "{n} gün önce", "vor {n} Tg."],
+
   // ------------------------------------------------------------------ genel
   "m.pullToRefresh": ["Pull down to refresh", "Yenilemek için aşağı çekin",
                       "Zum Aktualisieren nach unten ziehen"],
