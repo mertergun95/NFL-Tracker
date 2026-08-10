@@ -8,9 +8,9 @@ WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/pl
 WARNING HTTP 404: https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_kicking_2026.csv.gz
 ERROR 2026 sezonu işlenemedi
 Traceback (most recent call last):
-  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 248, in main
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 251, in main
     process_season(season, schedules, master)
-  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 41, in process_season
+  File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/run.py", line 42, in process_season
     raw_pw = sources.fetch_player_weeks(season)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/runner/work/NFL-Tracker/NFL-Tracker/pipeline/sources.py", line 59, in fetch_player_weeks
