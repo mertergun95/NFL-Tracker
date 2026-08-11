@@ -166,11 +166,23 @@ export default function NcaaGames() {
                 <NcaaBadge abbr={home} size={28} />
               </View>
             </View>
-            <Muted style={{ marginTop: space.sm, textAlign: "center" }}>
-              {String(g.gameday)}
-              {kickoffLocal(g.kickoff) ? ` · ${kickoffLocal(g.kickoff)}` : ""}
-              {g.neutral_site ? t("game.neutral") : ""}
-            </Muted>
+            <View style={styles.metaRow}>
+              <Muted>
+                {String(g.gameday)}
+                {kickoffLocal(g.kickoff) ? ` · ${kickoffLocal(g.kickoff)}` : ""}
+                {g.neutral_site ? t("game.neutral") : ""}
+                {g.broadcast ? ` · ${String(g.broadcast)}` : ""}
+              </Muted>
+              {/* Almanya'dan izlenebilirlik: ESPN ailesi DAZN'de görünüyor */}
+              {g.dazn ? (
+                <View style={[styles.dazn, { backgroundColor: c.accent }]}>
+                  <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800",
+                                 letterSpacing: 0.4 }}>
+                    DAZN
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </Card>
         );
       })}
@@ -183,6 +195,11 @@ export default function NcaaGames() {
 }
 
 const styles = StyleSheet.create({
+  metaRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, marginTop: space.sm, flexWrap: "wrap",
+  },
+  dazn: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 3 },
   row: { flexDirection: "row", alignItems: "center", gap: space.sm },
   side: { flexDirection: "row", alignItems: "center", gap: space.sm, flex: 1 },
 });

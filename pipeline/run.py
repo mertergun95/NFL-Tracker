@@ -16,7 +16,9 @@ import agent
 import config
 import insights
 import ncaa
+import power
 import scheme
+import sos
 import sources
 import transform
 
@@ -227,6 +229,8 @@ def main() -> int:
         return gameday_update()
 
     if args.mode == "agent":
+        _optional("güç sıralaması", power.build_nfl)
+        _optional("fikstür zorluğu (SOS)", lambda: sos.build_and_write(current_season() + 1))
         # Yalnızca haftalık köşe yazısını yeniden üret. Sezon dışında
         # "update" erken çıkıyor (nflverse'te yeni sezon dosyası yok), o
         # yüzden ajanı elle çalıştırmanın ayrı bir yolu gerekiyor.
@@ -278,6 +282,10 @@ def main() -> int:
     _optional("güncel kadro/depth chart", do_roster)
     rebuild_index_and_manifest(master, current_roster)
     _optional("insights", lambda: insights.build_and_write(schedules))
+    # Sıra önemli: güç sıralaması ve SOS, ajanın kanıt paketine giriyor
+    _optional("güç sıralaması", lambda: (power.build_nfl(current_season(), schedules),
+                          power.build_ncaa()))
+    _optional("fikstür zorluğu (SOS)", lambda: sos.build_and_write(current_season() + 1))
     _optional("nfl agent", agent.build_and_write)
     if args.mode == "update":
         _optional("ncaa güncellemesi",
