@@ -981,6 +981,21 @@ def build_and_write() -> None:
         narrative = narrate(picks, games, record, tgt_season, tgt_week)
     except Exception:
         log.exception("Claude anlatısı alınamadı, kural tabanlı metne dönülüyor")
+
+    # Aynı hafta için elde zaten model yazımı bir köşe yazısı varsa, kural
+    # tabanlı metinle ÜSTÜNE YAZMA. Bu bir kez başımıza geldi: yerelde
+    # anahtarsız yapılan bir test koşusu, workflow'un ürettiği Opus
+    # sürümünü ezdi. Anahtar geçici olarak düşerse de aynısı olurdu.
+    if narrative is None:
+        prev = _read_payload("agent") or {}
+        prev_target = prev.get("target") or {}
+        if (prev.get("engine") not in (None, "rules")
+                and prev_target.get("season") == tgt_season
+                and prev_target.get("week") == tgt_week):
+            log.warning("Bu hafta için %s yazımı bir sürüm zaten var — kural "
+                        "tabanlı metinle üstüne yazılmıyor", prev["engine"])
+            return
+
     apply_narrative(picks, narrative)
 
     payload = {

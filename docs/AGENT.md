@@ -78,7 +78,11 @@ client.messages.stream(
 ```
 
 `stop_reason` `refusal` ya da `max_tokens` ise anlatı atılır ve kural tabanlı
-metne düşülür. Haftada tek çağrı yapılır (~5k girdi / ~3k çıktı token).
+metne düşülür — **ama aynı hafta için elde zaten model yazımı bir sürüm
+varsa üstüne yazılmaz.** Bu bir kez yaşandı: anahtarsız yapılan yerel bir
+test koşusu, workflow'un ürettiği Opus sürümünü ezip siteye kural tabanlı
+metni gönderdi. Artık `build_and_write` böyle bir durumda dosyaya
+dokunmadan çıkıyor. Haftada tek çağrı yapılır (~5k girdi / ~3k çıktı token).
 
 Maç günü koşusu (`run.py gameday`) ajanı **çalıştırmaz**: o cron Pazar günü
 altı kez tetikleniyor ve bu haftalık bir köşe yazısı.
