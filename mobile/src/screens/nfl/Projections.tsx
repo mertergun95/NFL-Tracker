@@ -11,11 +11,12 @@ import Screen from "../../components/Screen";
 import StatTable from "../../components/StatTable";
 import PName from "../../components/PName";
 import TeamBadge, { TeamCell } from "../../components/TeamBadge";
+import RankBadge from "../../components/RankBadge";
 import { RangeBar } from "../../components/charts";
 import {
   Card, Empty, Loading, Muted, PillRow, SearchBar, SectionHeader, StatusBadge, Title,
 } from "../../components/ui";
-import { loadProjections } from "../../lib/data";
+import { loadProjections, loadPower, loadSos, powerMap, sosMap } from "../../lib/data";
 import { useAsync, useDebounced, useRefresh } from "../../lib/hooks";
 import { fmt, label } from "../../lib/columns";
 import { POS_PROJ_STATS, rangeOf } from "../../lib/projText";
@@ -68,7 +69,10 @@ function matcher(q: string): (p: StatRow) => boolean {
       .some((v) => String(v ?? "").toLowerCase().includes(needle));
 }
 
-function ProjectionCard({ row, showRange }: { row: StatRow; showRange: boolean }) {
+function ProjectionCard({ row, showRange, defRank, sos }: {
+  row: StatRow; showRange: boolean;
+  defRank?: number | null; sos?: number | null;
+}) {
   const c = useColors();
   const router = useRouter();
   const t = useT();
@@ -90,6 +94,9 @@ function ProjectionCard({ row, showRange }: { row: StatRow; showRange: boolean }
             <Muted>
               {String(row.team)} vs {String(row.opponent)}
             </Muted>
+            {/* rakibin savunma sırası + o haftanın PFF fikstür zorluğu */}
+            <RankBadge rank={defRank ?? null} invert />
+            <RankBadge score={sos ?? null} />
             <StatusBadge status={row.injury_status as string} />
           </View>
         </View>
@@ -138,8 +145,13 @@ export default function Projections() {
   const query = useDebounced(search);
 
   const projQ = useAsync((o) => loadProjections(o), []);
-  const { refreshing, onRefresh } = useRefresh([projQ.reload]);
+  const powerQ = useAsync((o) => loadPower(o), []);
+  const sosQ = useAsync((o) => loadSos(o), []);
+  const { refreshing, onRefresh } = useRefresh([projQ.reload, powerQ.reload, sosQ.reload]);
   const data = projQ.data;
+  const power = useMemo(() => powerMap(powerQ.data), [powerQ.data]);
+  const sos = useMemo(
+    () => sosMap(sosQ.data, data?.target.week ?? 1), [sosQ.data, data]);
 
   const match = useMemo(() => matcher(query), [query]);
 
@@ -237,7 +249,9 @@ export default function Projections() {
       {view === "cards" ? (
         <View style={{ marginTop: space.md }}>
           {cardRows.slice(0, 60).map((row) => (
-            <ProjectionCard key={String(row.player_id)} row={row} showRange={isMl} />
+            <ProjectionCard key={String(row.player_id)} row={row} showRange={isMl}
+                             defRank={power.get(String(row.opponent))?.def_rank ?? null}
+                             sos={sos.get(`${row.team}|${row.position}`) ?? null} />
           ))}
           {cardRows.length === 0 ? <Empty text={t("table.empty")} /> : null}
           {cardRows.length > 60 ? (
@@ -265,7 +279,15 @@ export default function Projections() {
                   </View>
                 </View>
               ),
-              opponent: (row) => <TeamCell abbr={row.opponent as string} size={18} />,
+              // Rakip + savunma sırası + o haftanın PFF fikstür zorluğu
+              opponent: (row) => (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <TeamCell abbr={row.opponent as string} size={18} />
+                  <RankBadge rank={power.get(String(row.opponent))?.def_rank ?? null}
+                             invert />
+                  <RankBadge score={sos.get(`${row.team}|${row.position}`) ?? null} />
+                </View>
+              ),
             }}
           />
         </View>

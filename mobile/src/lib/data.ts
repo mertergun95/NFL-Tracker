@@ -89,6 +89,32 @@ export async function loadInsights(o?: LoadOptions): Promise<InsightsPayload | n
   }
 }
 
+export const loadPower = (o?: LoadOptions) => loadOptional("power.json", o);
+export const loadNcaaPower = (o?: LoadOptions) => loadOptional("ncaa/power.json", o);
+export const loadSos = (o?: LoadOptions) => loadOptional("sos.json", o);
+
+/** Takım -> {off_rank, def_rank}; tablolarda rozet basmak için. */
+export function powerMap(rows: StatRow[] | null | undefined) {
+  const m = new Map<string, { off_rank: number | null; def_rank: number | null }>();
+  for (const r of rows ?? []) {
+    m.set(String(r.team), {
+      off_rank: r.off_rank as number | null,
+      def_rank: r.def_rank as number | null,
+    });
+  }
+  return m;
+}
+
+/** (takım|pozisyon) -> o haftanın SOS değeri (0-10, yüksek = kolay). */
+export function sosMap(rows: StatRow[] | null | undefined, week: number) {
+  const m = new Map<string, number>();
+  for (const r of rows ?? []) {
+    const v = r[`w${week}`];
+    if (typeof v === "number") m.set(`${r.team}|${r.position}`, v);
+  }
+  return m;
+}
+
 export async function loadAgent(o?: LoadOptions): Promise<AgentPayload | null> {
   try {
     return await getJson<AgentPayload>("agent.json", o);

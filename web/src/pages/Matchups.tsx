@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import TeamLogo from "../components/TeamLogo";
 import { Loading } from "../components/Pickers";
 import {
-  loadOptional, loadProjections, loadTeamAdvanced, loadTeamScheme,
+  loadOptional, loadPower, loadProjections, loadTeamAdvanced, loadTeamScheme,
+  powerMap,
 } from "../lib/data";
 import { fmt, label } from "../lib/columns";
 import { useAsync } from "../lib/hooks";
@@ -54,6 +55,8 @@ export default function Matchups() {
   const { data: scheme } = useAsync(
     async () => (dataSeason ? loadTeamScheme(dataSeason) : null), [dataSeason]);
   const { data: allowed } = useAsync(() => loadOptional("pos_allowed.json"), []);
+  const { data: powerRows } = useAsync(() => loadPower(), []);
+  const power = useMemo(() => powerMap(powerRows), [powerRows]);
 
   const week = projections?.target.week ?? 1;
   const games = useMemo(
@@ -112,6 +115,40 @@ export default function Matchups() {
             ` · ${etBerlin(game.gameday as string, game.gametime as string)} (DE)`}
           {game.stadium ? ` · ${game.stadium}` : ""}
         </span>
+      </div>
+
+      <h2>{t("power.title")}</h2>
+      <div className="table-wrap" style={{ marginBottom: 18 }}>
+        <table className="stat-table">
+          <thead>
+            <tr>
+              <th>{t("common.team")}</th>
+              <th className="num">{t("power.off")}</th>
+              <th className="num">{t("power.def")}</th>
+              <th className="num">{t("power.rating")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[away, home].map((tm) => {
+              const p = power.get(tm);
+              const total = (p?.off_rating ?? 0) + (p?.def_rating ?? 0);
+              return (
+                <tr key={tm}>
+                  <td>
+                    <Link to={`/team/${tm}`} className="team-cell">
+                      <TeamLogo abbr={tm} size={18} />{" "}{teamName(tm)}
+                    </Link>
+                  </td>
+                  <td className="num"><RankChip rank={p?.off_rank ?? 0} /></td>
+                  <td className="num"><RankChip rank={p?.def_rank ?? 0} /></td>
+                  <td className="num">
+                    {p ? `${total > 0 ? "+" : ""}${total.toFixed(1)}` : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <h2>{t("match.power")}</h2>

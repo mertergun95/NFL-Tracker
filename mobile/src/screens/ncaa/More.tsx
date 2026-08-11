@@ -12,6 +12,7 @@ const PAGES: { href: string; titleKey: string; descKey: string }[] = [
   { href: "/ncaa/teams", titleKey: "ncaa.teamsTitle", descKey: "teams.sub" },
   { href: "/ncaa/standings", titleKey: "ncaa.standingsTitle", descKey: "ncaa.standingsSub" },
   { href: "/ncaa/rosters", titleKey: "ncaa.rostersTitle", descKey: "ncaa.rostersSub" },
+  { href: "/power", titleKey: "power.title", descKey: "power.sub2" },
   { href: "/ncaa/accuracy", titleKey: "acc.title", descKey: "acc.sub2" },
 ];
 

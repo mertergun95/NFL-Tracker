@@ -9,6 +9,8 @@ import Compare from "./pages/Compare";
 import ChartsPage from "./pages/ChartsPage";
 import Insights from "./pages/Insights";
 import Agent from "./pages/Agent";
+import Power from "./pages/Power";
+import Sos from "./pages/Sos";
 import Projections from "./pages/Projections";
 import GameDetail from "./pages/GameDetail";
 import DepthCharts from "./pages/DepthCharts";
@@ -51,6 +53,8 @@ const NAV = [
   { to: "/projections", key: "nav.projections" },
   { to: "/injuries", key: "nav.injuries" },
   { to: "/accuracy", key: "nav.accuracy" },
+  { to: "/power", key: "nav.power" },
+  { to: "/sos", key: "nav.sos" },
   { to: "/insights", key: "nav.insights" },
   { to: "/agent", key: "nav.agent" },
 ];
@@ -62,6 +66,7 @@ const NCAA_NAV = [
   { to: "/ncaa/standings", key: "nav.standings" },
   { to: "/ncaa/rosters", key: "nav.rosters" },
   { to: "/ncaa/games", key: "nav.games" },
+  { to: "/ncaa/power", key: "nav.power" },
   { to: "/ncaa/projections", key: "nav.projections" },
   { to: "/ncaa/accuracy", key: "nav.accuracy" },
 ];
@@ -133,6 +138,8 @@ export default function App() {
               <Route path="/accuracy" element={<Accuracy />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/agent" element={<Agent />} />
+              <Route path="/power" element={<Power />} />
+              <Route path="/sos" element={<Sos />} />
               <Route path="/game/:season/:gameId" element={<GameDetail />} />
             </>
           )}
@@ -147,6 +154,7 @@ export default function App() {
               <Route path="/ncaa/game/:season/:gameId" element={<NcaaGameDetail />} />
               <Route path="/ncaa/standings" element={<NcaaStandings seasons={ncaaSeasons} />} />
               <Route path="/ncaa/rosters" element={<NcaaRosters />} />
+              <Route path="/ncaa/power" element={<Power league="ncaa" />} />
               <Route path="/ncaa/projections" element={<NcaaProjections />} />
               <Route path="/ncaa/accuracy" element={<NcaaAccuracy />} />
             </>
