@@ -152,6 +152,44 @@ export async function loadInsights(): Promise<InsightsPayload | null> {
   }
 }
 
+/* -------------------------------------------- güç sıralaması ve fikstür */
+
+/** power.json / ncaa/power.json — satırlar StatRow olarak döner. */
+export const loadPower = () => loadOptional("power.json");
+export const loadSos = () => loadOptional("sos.json");
+
+export interface PowerRow {
+  off_rank: number | null;
+  def_rank: number | null;
+  off_rating: number | null;
+  def_rating: number | null;
+}
+
+/** Takım -> güç sıralaması; tabloda rozet basmak için hızlı erişim. */
+export function powerMap(rows: StatRow[] | null | undefined): Map<string, PowerRow> {
+  const m = new Map<string, PowerRow>();
+  for (const r of rows ?? []) {
+    m.set(String(r.team), {
+      off_rank: r.off_rank as number | null,
+      def_rank: r.def_rank as number | null,
+      off_rating: r.off_rating as number | null,
+      def_rating: r.def_rating as number | null,
+    });
+  }
+  return m;
+}
+
+/** (takım, pozisyon) -> o haftanın SOS değeri (0-10, yüksek = kolay). */
+export function sosMap(rows: StatRow[] | null | undefined, week: number):
+    Map<string, number> {
+  const m = new Map<string, number>();
+  for (const r of rows ?? []) {
+    const v = r[`w${week}`];
+    if (typeof v === "number") m.set(`${r.team}|${r.position}`, v);
+  }
+  return m;
+}
+
 /* ------------------------------------------------------------ NFL agent */
 
 export interface AgentSignal {

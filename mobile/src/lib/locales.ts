@@ -106,6 +106,8 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "nav.accuracy": ["Report Card", "Karne", "Trefferbilanz"],
   "nav.insights": "Insights",
   "nav.agent": "Agent",
+  "nav.power": ["Power Rankings", "Güç Sıralaması", "Power Rankings"],
+  "nav.sos": ["Schedule", "Fikstür", "Spielplan"],
   "nav.language": ["Language", "Dil", "Sprache"],
   "nav.themeLight": ["Switch to light mode", "Açık temaya geç",
                      "Zum hellen Modus wechseln"],
@@ -328,6 +330,55 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "insights.teamPower": ["Team Power Profile", "Takım Güç Profili", "Team-Stärkeprofil"],
   "insights.teamPowerSub": ["League leaders by EPA/play.", "EPA/play bazlı lig liderleri.",
                             "Liga-Spitze nach EPA/Play."],
+
+  // ------------------------------------------------------- güç sıralaması
+  "power.title": ["Power Rankings", "Güç Sıralaması", "Power Rankings"],
+  "power.sub": [
+    "Opponent-adjusted rating in points per game above league average, offense and defense separately. Recent games count more.",
+    "Rakibe göre düzeltilmiş reyting: lig ortalamasına göre maç başına puan, hücum ve savunma ayrı. Son maçlar daha ağır basar.",
+    "Gegnerbereinigte Bewertung in Punkten pro Spiel über dem Ligadurchschnitt, Angriff und Abwehr getrennt. Neuere Spiele zählen mehr."],
+  "power.overall": ["Overall", "Genel", "Gesamt"],
+  "power.off": ["Offense", "Hücum", "Angriff"],
+  "power.def": ["Defense", "Savunma", "Abwehr"],
+  "power.rating": ["Rating", "Reyting", "Wert"],
+  "power.trend": ["Trend", "Trend", "Trend"],
+  "power.offRank": ["Off #", "Hücum #", "Ang. #"],
+  "power.defRank": ["Def #", "Savunma #", "Abw. #"],
+  "power.ppg": ["PF/G", "Attığı", "PF/S"],
+  "power.papg": ["PA/G", "Yediği", "PA/S"],
+  "power.defRankHint": [
+    "{team} defensive power ranking (1 = best defense, so a low number is a hard matchup)",
+    "{team} savunma güç sıralaması (1 = en iyi savunma, yani küçük sayı zor maç)",
+    "{team} Abwehr-Ranking (1 = beste Abwehr, kleine Zahl heißt schweres Matchup)"],
+  "power.notReady": [
+    "Power rankings have not been generated yet — wait for Tuesday's pipeline.",
+    "Güç sıralaması henüz üretilmedi — Salı pipeline'ını bekleyin.",
+    "Power Rankings wurden noch nicht erzeugt — warte auf die Dienstags-Pipeline."],
+  "power.method": [
+    "Ratings come from a simple rating system iterated to a fixed point: a team's offense is credited for scoring against good defenses, and its defense for holding good offenses. Games are weighted with a 4-week half-life, so form matters more than September. For the NFL, EPA per play and the recent output and availability of depth-chart starters are folded in as a correction.",
+    "Reytingler sabit noktaya kadar yinelenen basit bir sıralama sisteminden geliyor: bir takımın hücumu iyi savunmalara karşı attığı puanla, savunması iyi hücumları durdurmasıyla ödüllendiriliyor. Maçlar 4 haftalık yarılanma ömrüyle ağırlıklandırılıyor, yani form Eylül'den daha çok konuşuyor. NFL'de EPA/play ile derinlik şemasındaki ilk sıra oyuncuların son dönem üretimi ve sakatlık durumu düzeltme olarak ekleniyor.",
+    "Die Bewertungen stammen aus einem einfachen, bis zum Fixpunkt iterierten Rating-System: Der Angriff wird für Punkte gegen starke Abwehrreihen belohnt, die Abwehr für das Stoppen starker Angriffe. Spiele werden mit einer Halbwertszeit von 4 Wochen gewichtet. In der NFL fließen EPA pro Spielzug sowie Produktion und Verfügbarkeit der Stammspieler als Korrektur ein."],
+
+  // -------------------------------------------------------------- fikstür
+  "sos.title": ["Strength of Schedule", "Fikstür Zorluğu", "Spielplan-Schwierigkeit"],
+  "sos.sub": [
+    "PFF fantasy matchup difficulty by position, 0-10 where higher means an easier week. Green is easy, red is hard.",
+    "PFF fantezi maç zorluğu, pozisyon bazlı. 0-10 ölçeğinde yüksek değer kolay hafta demek. Yeşil kolay, kırmızı zor.",
+    "PFF-Matchup-Schwierigkeit nach Position, 0-10 — höher heißt leichtere Woche. Grün leicht, rot schwer."],
+  "sos.season": ["Season", "Sezon", "Saison"],
+  "sos.bye": ["bye", "bay", "frei"],
+  "sos.cellHint": [
+    "PFF schedule difficulty for this position this week, 0-10 (higher = easier)",
+    "Bu hafta bu pozisyon için PFF fikstür zorluğu, 0-10 (yüksek = kolay)",
+    "PFF-Spielplan-Schwierigkeit für diese Position, 0-10 (höher = leichter)"],
+  "sos.notReady": [
+    "Schedule difficulty data has not been loaded yet.",
+    "Fikstür zorluğu verisi henüz yüklenmedi.",
+    "Spielplan-Daten wurden noch nicht geladen."],
+  "sos.method": [
+    "Source: PFF fantasy strength of schedule, refreshed manually before the season. The direction of the scale was measured rather than assumed: weekly values correlate -0.48 (n=512) with the defensive power rating of that week's opponent, so a high number really does mean an easier matchup.",
+    "Kaynak: PFF fantezi fikstür zorluğu, sezon öncesi elle güncelleniyor. Ölçeğin yönü varsayılmadı, ölçüldü: haftalık değerlerle o hafta karşılaşılacak rakibin savunma reytingi arasındaki korelasyon -0.48 (n=512). Yani yüksek değer gerçekten kolay maç demek.",
+    "Quelle: PFF Fantasy Strength of Schedule, vor der Saison manuell aktualisiert. Die Richtung der Skala wurde gemessen, nicht angenommen: Die Wochenwerte korrelieren mit -0,48 (n=512) mit der Abwehrbewertung des jeweiligen Gegners."],
 
   // ---------------------------------------------------------------- nfl agent
   // Ajanın kendi metni (başlık, not, bülten) her zaman İngilizce üretilir;

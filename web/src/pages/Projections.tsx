@@ -2,10 +2,11 @@ import PName from "../components/PName";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import StatTable from "../components/StatTable";
+import RankBadge from "../components/RankBadge";
 import StatusBadge from "../components/StatusBadge";
 import TeamLogo from "../components/TeamLogo";
 import { Loading } from "../components/Pickers";
-import { loadProjections } from "../lib/data";
+import { loadProjections , loadPower, loadSos, powerMap, sosMap } from "../lib/data";
 import { useAsync } from "../lib/hooks";
 import type { StatRow } from "../lib/types";
 import { fmt, fmtRange } from "../lib/columns";
@@ -88,6 +89,11 @@ export default function Projections() {
   const [gameKey, setGameKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const { data, loading } = useAsync(() => loadProjections(), []);
+  const { data: powerRows } = useAsync(() => loadPower(), []);
+  const { data: sosRows } = useAsync(() => loadSos(), []);
+  const power = useMemo(() => powerMap(powerRows), [powerRows]);
+  const sos = useMemo(
+    () => sosMap(sosRows, data?.target.week ?? 1), [sosRows, data]);
 
   const match = useMemo(() => makeMatcher(search), [search]);
   const rows = useMemo(
@@ -210,10 +216,18 @@ export default function Projections() {
             </Link>
           ),
           opponent: (row) => (
-            <Link to={`/team/${row.opponent}`} className="team-cell">
-              <TeamLogo abbr={String(row.opponent)} size={18} />
-              {String(row.opponent)}
-            </Link>
+            <span className="team-cell">
+              <Link to={`/team/${row.opponent}`} className="team-cell">
+                <TeamLogo abbr={String(row.opponent)} size={18} />
+                {String(row.opponent)}
+              </Link>
+              {/* rakibin savunma sırası ve o haftanın PFF fikstür zorluğu */}
+              <RankBadge rank={power.get(String(row.opponent))?.def_rank ?? null}
+                         total={32} invert
+                         title={t("power.defRankHint", { team: String(row.opponent) })} />
+              <RankBadge score={sos.get(`${row.team}|${row.position}`) ?? null}
+                         title={t("sos.cellHint")} />
+            </span>
           ),
           ...Object.fromEntries(
             ALL_STAT_COLS.map((c) => [c, statCellRender(c, data.engine === "ml")])),
