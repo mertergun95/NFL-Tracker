@@ -291,7 +291,16 @@ export function Chips<T extends string | number>({
   );
 }
 
-/** A field that opens a sheet to pick from a long list (bookmakers, leagues). */
+/**
+ * A field that opens a sheet to pick from a long list (sports, bookmakers,
+ * leagues).
+ *
+ * The options are rendered straight into the sheet rather than into a
+ * ScrollView of their own: the sheet already scrolls, and a scroll view inside
+ * a scroll view leaves the inner list unable to move on a touch device. Lists
+ * past a dozen entries also get a filter, because forty sports is a lot of
+ * flicking.
+ */
 export function Picker<T extends string>({
   value,
   options,
@@ -307,7 +316,18 @@ export function Picker<T extends string>({
 }) {
   const c = useColors();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const selected = options.find((o) => o.value === value);
+
+  const searchable = options.length > 12;
+  const shown = query.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  function close() {
+    setOpen(false);
+    setQuery('');
+  }
 
   return (
     <>
@@ -317,33 +337,43 @@ export function Picker<T extends string>({
         </Text>
       </Pressable>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title={title}>
-        <ScrollView style={{ maxHeight: 420 }}>
-          {options.map((o) => (
-            <Pressable
-              key={o.value}
-              onPress={() => {
-                onChange(o.value);
-                setOpen(false);
-              }}
+      <Sheet open={open} onClose={close} title={title}>
+        {searchable ? (
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={placeholder ?? '…'}
+            placeholderTextColor={c.textDim}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[inputStyle(c), { marginBottom: space.sm }]}
+          />
+        ) : null}
+
+        {shown.map((o) => (
+          <Pressable
+            key={o.value}
+            onPress={() => {
+              onChange(o.value);
+              close();
+            }}
+            style={{
+              paddingVertical: 14,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: c.border,
+            }}
+          >
+            <Text
               style={{
-                paddingVertical: 14,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: c.border,
+                color: o.value === value ? c.accent : c.text,
+                fontSize: font.md,
+                fontWeight: o.value === value ? '700' : '400',
               }}
             >
-              <Text
-                style={{
-                  color: o.value === value ? c.accent : c.text,
-                  fontSize: font.md,
-                  fontWeight: o.value === value ? '700' : '400',
-                }}
-              >
-                {o.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+              {o.label}
+            </Text>
+          </Pressable>
+        ))}
       </Sheet>
     </>
   );
@@ -420,32 +450,54 @@ export function Button({
   );
 }
 
-/** Bottom sheet used by the pickers, the bet form and the confirm dialog. */
+/**
+ * Bottom sheet used by the pickers, the bet form and the confirm dialog.
+ *
+ * The body scrolls and the sheet is capped at 85% of the screen. Without the
+ * cap a long list simply grew past the bottom edge and the entries below it
+ * could not be reached at all — no amount of dragging helped, because nothing
+ * in the tree was scrollable.
+ */
 export function Sheet({
   open,
   onClose,
   title,
   children,
+  scroll = true,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Off for sheets whose own content scrolls (a nested list would not move). */
+  scroll?: boolean;
 }) {
   const c = useColors();
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: c.bgSoft, borderColor: c.border }]}>
-        <View style={styles.panelHead}>
-          <Text style={{ color: c.text, fontSize: font.lg, fontWeight: '700', flex: 1 }}>
-            {title ?? ''}
-          </Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={{ color: c.textDim, fontSize: font.lg }}>✕</Text>
-          </Pressable>
+      <View style={styles.sheetWrap}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View style={[styles.sheet, { backgroundColor: c.bgSoft, borderColor: c.border }]}>
+          <View style={styles.panelHead}>
+            <Text style={{ color: c.text, fontSize: font.lg, fontWeight: '700', flex: 1 }}>
+              {title ?? ''}
+            </Text>
+            <Pressable onPress={onClose} hitSlop={12}>
+              <Text style={{ color: c.textDim, fontSize: font.lg }}>✕</Text>
+            </Pressable>
+          </View>
+          {scroll ? (
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+              contentContainerStyle={{ paddingBottom: space.lg }}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            children
+          )}
         </View>
-        {children}
       </View>
     </Modal>
   );
@@ -483,6 +535,19 @@ export function Confirm({
  * Read-out
  * ------------------------------------------------------------------ */
 
+/**
+ * Two-column grid for the stat tiles.
+ *
+ * They used to be laid out with `flexWrap` and `flex: 1`, which let each
+ * wrapped row divide the width among however many tiles happened to land in
+ * it. A row of two and a row of one produced different tile widths, and tiles
+ * with a sub-label were taller than those without, so the block never lined
+ * up. Fixed half-width columns and a shared minimum height fix both.
+ */
+export function StatGrid({ children }: { children: ReactNode }) {
+  return <View style={styles.statGrid}>{children}</View>;
+}
+
 export function Stat({
   label,
   value,
@@ -503,18 +568,20 @@ export function Stat({
       style={[
         styles.stat,
         { backgroundColor: c.bgRaised, borderColor: c.border },
-        width ? { width } : { flex: 1, minWidth: 132 },
+        width ? { width } : null,
       ]}
     >
       <Text numberOfLines={1} style={{ color: c.textDim, fontSize: font.xs }}>
         {label}
       </Text>
-      <Text style={{ color, fontSize: font.xl, fontWeight: '700' }}>{value}</Text>
-      {sub ? (
-        <Text numberOfLines={1} style={{ color: c.textDim, fontSize: font.xs }}>
-          {sub}
-        </Text>
-      ) : null}
+      <Text numberOfLines={1} adjustsFontSizeToFit
+            style={{ color, fontSize: font.xl, fontWeight: '700' }}>
+        {value}
+      </Text>
+      {/* Alt satır her zaman var: olmadığında kutu kısalıyor ve ızgara kayıyor. */}
+      <Text numberOfLines={1} style={{ color: c.textDim, fontSize: font.xs }}>
+        {sub ?? ' '}
+      </Text>
     </View>
   );
 }
@@ -549,15 +616,25 @@ const styles = StyleSheet.create({
     gap: space.sm,
     marginBottom: space.sm,
   },
+  statGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: space.sm,
+  },
   stat: {
+    // Yarım genişlik: iki sütun, satırdaki kutu sayısından bağımsız.
+    width: '48.5%',
+    minHeight: 74,
     borderWidth: 1,
     borderRadius: radius.md,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     gap: 2,
   },
-  backdrop: { flex: 1, backgroundColor: '#0008' },
+  sheetWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#0008' },
   sheet: {
+    maxHeight: '85%',
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,

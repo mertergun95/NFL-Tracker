@@ -8,7 +8,7 @@ import { applyFilter } from '../core/store';
 import { settleBet } from '../core/settlement';
 import type { Bet, BetStatus, SelectionStatus } from '../core/types';
 import { useApp } from '../state/AppContext';
-import { BankrollSwitcher, BetRow } from '../components';
+import { BankrollSwitcher, BetCard } from '../components';
 import { Button, Chips, Confirm, Dim, Row, Sheet } from '../ui';
 
 const STATUS_FILTERS: BetStatus[] = ['pending', 'won', 'lost', 'void', 'partial'];
@@ -101,15 +101,14 @@ export default function Bets() {
           </Dim>
         ) : (
           rows.map((bet) => (
-            <BetRow
+            <BetCard
               key={bet.id}
               bet={bet}
               oddsFormat={settings.oddsFormat}
               selected={selected.includes(bet.id)}
               onToggleSelect={() => toggle(bet.id)}
-              onPress={() =>
-                selected.length > 0 ? toggle(bet.id) : router.push(`/bets/bet/${bet.id}` as never)
-              }
+              onEdit={() => router.push(`/bets/bet/${bet.id}` as never)}
+              onDelete={() => setDeleting([bet.id])}
             />
           ))
         )}

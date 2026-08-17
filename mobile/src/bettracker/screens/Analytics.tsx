@@ -14,7 +14,7 @@ import {
 import type { Bet } from '../core/types';
 import { useApp } from '../state/AppContext';
 import { BankrollSwitcher } from '../components';
-import { Chips, Dim, Panel, Row, Stat } from '../ui';
+import { Chips, Dim, Panel, Row, Stat, StatGrid } from '../ui';
 
 type Dimension =
   | 'sport'
@@ -56,7 +56,7 @@ export default function Analytics() {
       <BankrollSwitcher />
 
       <Panel title={t('analytics.overview')}>
-        <Row gap={space.sm} style={{ flexWrap: 'wrap' }}>
+        <StatGrid>
           <Stat
             label={t('stat.profit')}
             value={formatMoney(stats.profit, currency, { sign: true })}
@@ -90,13 +90,13 @@ export default function Analytics() {
           />
           <Stat label={t('stat.longestWinStreak')} value={String(stats.longestWinStreak)} />
           <Stat label={t('stat.longestLossStreak')} value={String(stats.longestLossStreak)} />
-        </Row>
+        </StatGrid>
       </Panel>
 
       {stats.clvBetCount > 0 ? (
         <Panel title={t('clv.title')}>
           <Dim style={{ marginBottom: space.sm }}>{t('clv.explain')}</Dim>
-          <Row gap={space.sm} style={{ flexWrap: 'wrap' }}>
+          <StatGrid>
             <Stat
               label={t('clv.avgClv')}
               value={formatPercent(stats.avgClv)}
@@ -110,7 +110,7 @@ export default function Analytics() {
               value={formatMoney(stats.luck, currency, { sign: true })}
               tone={stats.luck > 0 ? 'good' : stats.luck < 0 ? 'bad' : undefined}
             />
-          </Row>
+          </StatGrid>
         </Panel>
       ) : null}
 

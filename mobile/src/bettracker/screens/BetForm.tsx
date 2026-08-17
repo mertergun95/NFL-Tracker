@@ -5,13 +5,15 @@ import { font, space, useColors } from '../../lib/theme';
 import { useI18n } from '../i18n';
 import { newId } from '../core/ids';
 import { formatOdds, parseOdds } from '../core/odds';
-import { SPORTS, sportIcon } from '../core/reference';
-import { combinedOdds, settleBet } from '../core/settlement';
+import { COMMON_MARKETS, SPORTS, sportIcon } from '../core/reference';
+import { combinedOdds, potentialReturn, settleBet } from '../core/settlement';
 import { SYSTEM_PRESETS, systemLabel } from '../core/systems';
 import {
+  findLeague,
   fixturesForLeague,
   leaguesForSports,
   type ResolvedFixture,
+  type Team,
 } from '../core/sportsData';
 import type {
   Bet,
@@ -40,6 +42,9 @@ import {
 
 const STRUCTURES: BetStructure[] = ['single', 'accumulator', 'system'];
 const LEG_STATUSES: SelectionStatus[] = ['pending', 'won', 'lost', 'void', 'half_won', 'half_lost'];
+
+/** Bir müsabakanın girilme yolu. */
+type MatchMode = 'fixture' | 'teams' | 'manual';
 
 /**
  * Create and edit a bet.
@@ -392,10 +397,20 @@ export default function BetForm({ betId }: { betId: string }) {
         {bet.selections.some((s) => s.side === 'lay') ? (
           <SummaryRow label={t('bet.liability')} value={formatMoney(settlement.risk, currency)} />
         ) : null}
+        {!settlement.settled ? (
+          <SummaryRow
+            label={t('bet.potentialReturn')}
+            value={formatMoney(potentialReturn(bet), currency)}
+          />
+        ) : null}
         <SummaryRow
           label={settlement.settled ? t('bet.profit') : t('bet.potentialProfit')}
           value={formatMoney(
-            settlement.settled ? settlement.profit : settlement.returned - settlement.totalStake,
+            settlement.settled
+              ? settlement.profit
+              // Bekleyen bahiste settleBet 0 döndürür; stake'i ondan çıkarmak
+              // henüz alınmamış bir zararı ekrana yazıyordu.
+              : potentialReturn(bet) - settlement.totalStake,
             currency,
             { sign: true },
           )}
@@ -467,11 +482,40 @@ function SelectionCard({
 }) {
   const { t } = useI18n();
   const c = useColors();
+  const { catalog, fixtures } = useSportsData();
   const [fixturesOpen, setFixturesOpen] = useState(false);
+
+  // A saved leg reopens on whichever tab it was entered with, so editing never
+  // rewrites the event behind the user's back.
+  const [mode, setMode] = useState<MatchMode>(() => {
+    if (selection.fixtureId) return 'fixture';
+    if (selection.homeTeam) return 'teams';
+    return selection.event ? 'manual' : 'fixture';
+  });
 
   const sports = allowedSports.length > 0
     ? SPORTS.filter((s) => allowedSports.includes(s.key))
     : SPORTS;
+
+  const leagues = useMemo(
+    () => leaguesForSports(catalog, selection.sport ? [selection.sport] : []),
+    [catalog, selection.sport],
+  );
+
+  const league = selection.leagueId ? findLeague(catalog, selection.leagueId) : undefined;
+
+  /** Picking a team by hand detaches the leg from any scheduled fixture. */
+  function selectTeam(which: 'home' | 'away', team: Team) {
+    const home = which === 'home' ? team.name : (selection.homeTeam ?? '');
+    const away = which === 'away' ? team.name : (selection.awayTeam ?? '');
+    onChange({
+      homeTeam: home || undefined,
+      awayTeam: away || undefined,
+      fixtureId: undefined,
+      competition: league?.name ?? selection.competition,
+      event: home && away ? `${home} - ${away}` : home || away,
+    });
+  }
 
   return (
     <Panel
@@ -498,25 +542,118 @@ function SelectionCard({
         />
       </Field>
 
+      {/* Üç yol: takvimden maç, katalogdan iki takım, ya da serbest metin.
+          Web'de üçü de vardı; telefonda yalnızca ilki vardı ve takvimde
+          olmayan bir müsabaka girmenin yolu kalmıyordu. */}
       <Field label={t('bet.event')}>
-        <Input value={selection.event} onChange={(v) => onChange({ event: v })} />
+        <Chips
+          compact
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'fixture' as MatchMode, label: t('bet.fixture') },
+            { value: 'teams' as MatchMode, label: t('bet.teams') },
+            { value: 'manual' as MatchMode, label: t('bet.manual') },
+          ]}
+        />
       </Field>
 
-      <Button
-        label={t('bet.selectMatch')}
-        tone="ghost"
-        onPress={() => setFixturesOpen(true)}
-        style={{ marginTop: space.sm }}
-      />
+      {mode === 'fixture' ? (
+        <>
+          <Field label={t('bet.selectMatch')}>
+            <Pressable onPress={() => setFixturesOpen(true)}>
+              <View pointerEvents="none">
+                <Input
+                  value={selection.event}
+                  onChange={() => {}}
+                  placeholder={t('bet.selectMatch')}
+                />
+              </View>
+            </Pressable>
+          </Field>
+          <Button
+            label={t('bet.selectMatch')}
+            tone="ghost"
+            onPress={() => setFixturesOpen(true)}
+            style={{ marginTop: space.sm }}
+          />
+        </>
+      ) : null}
 
-      <Field label={t('bet.competition')} hint={t('common.optional')}>
-        <Input value={selection.competition} onChange={(v) => onChange({ competition: v })} />
-      </Field>
+      {mode === 'teams' ? (
+        <>
+          <Field label={t('bet.competition')} hint={t('bet.leaguePlaceholder')}>
+            <Picker
+              value={selection.leagueId ?? ''}
+              options={leagues.map((l) => ({ value: l.id, label: l.name }))}
+              onChange={(id) => {
+                const next = findLeague(catalog, id);
+                onChange({
+                  leagueId: id,
+                  competition: next?.name ?? '',
+                  // Eski lig ile gelen takımlar yeni ligde yok.
+                  homeTeam: undefined,
+                  awayTeam: undefined,
+                  fixtureId: undefined,
+                  event: '',
+                });
+              }}
+              placeholder={t('bet.leaguePlaceholder')}
+              title={t('bet.competition')}
+            />
+          </Field>
+
+          {league ? (
+            <>
+              <Field label={t('bet.homeTeam')}>
+                <Picker
+                  value={selection.homeTeam ?? ''}
+                  options={league.teams.map((x) => ({ value: x.name, label: x.name }))}
+                  onChange={(name) => {
+                    const team = league.teams.find((x) => x.name === name);
+                    if (team) selectTeam('home', team);
+                  }}
+                  placeholder={t('bet.homeTeam')}
+                  title={t('bet.homeTeam')}
+                />
+              </Field>
+              <Field label={t('bet.awayTeam')}>
+                <Picker
+                  value={selection.awayTeam ?? ''}
+                  options={league.teams.map((x) => ({ value: x.name, label: x.name }))}
+                  onChange={(name) => {
+                    const team = league.teams.find((x) => x.name === name);
+                    if (team) selectTeam('away', team);
+                  }}
+                  placeholder={t('bet.awayTeam')}
+                  title={t('bet.awayTeam')}
+                />
+              </Field>
+            </>
+          ) : (
+            <Dim style={{ marginTop: space.sm }}>{t('bet.pickLeagueFirst')}</Dim>
+          )}
+        </>
+      ) : null}
+
+      {mode === 'manual' ? (
+        <>
+          <Field label={t('bet.event')}>
+            <Input value={selection.event} onChange={(v) => onChange({ event: v })} />
+          </Field>
+          <Field label={t('bet.competition')} hint={t('common.optional')}>
+            <Input value={selection.competition} onChange={(v) => onChange({ competition: v })} />
+          </Field>
+        </>
+      ) : null}
 
       <Divider />
 
       {selection.picks.map((pick, i) => (
         <View key={pick.id}>
+          {/* Market hem serbest yazılabiliyor hem hazır listeden seçilebiliyor:
+              web'de bir datalist vardı, telefonda karşılığı yoktu ve kullanıcı
+              her marketi elle yazmak zorunda kalıyordu. */}
           <Field label={`${t('bet.market')} ${selection.picks.length > 1 ? i + 1 : ''}`.trim()}>
             <Input
               value={pick.market}
@@ -526,6 +663,19 @@ function SelectionCard({
                 })
               }
             />
+            <View style={{ marginTop: space.sm }}>
+              <Picker
+                value=""
+                options={COMMON_MARKETS.map((m) => ({ value: m, label: m }))}
+                onChange={(m) =>
+                  onChange({
+                    picks: selection.picks.map((p) => (p.id === pick.id ? { ...p, market: m } : p)),
+                  })
+                }
+                placeholder={t('action.select')}
+                title={t('bet.market')}
+              />
+            </View>
           </Field>
           <Field label={t('bet.pick')}>
             <Row gap={space.sm}>
@@ -685,7 +835,7 @@ function FixtureSheet({
   );
 
   const rows = useMemo(
-    () => (leagueId ? fixturesForLeague(catalog, fixtures, leagueId).slice(0, 60) : []),
+    () => (leagueId ? fixturesForLeague(catalog, fixtures, leagueId) : []),
     [catalog, fixtures, leagueId],
   );
 
@@ -705,7 +855,7 @@ function FixtureSheet({
             onChange={setLeagueId}
             options={leagues.map((l) => ({ value: l.id, label: l.name }))}
           />
-          <View style={{ marginTop: space.md, maxHeight: 360 }}>
+          <View style={{ marginTop: space.md }}>
             {!leagueId ? (
               <Dim>{t('bet.pickLeagueFirst')}</Dim>
             ) : rows.length === 0 ? (

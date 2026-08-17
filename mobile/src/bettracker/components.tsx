@@ -1,19 +1,19 @@
 /**
  * Pieces shared by more than one bet tracker screen: the bankroll scope
- * switcher, the bet row, and the equity curve.
+ * switcher, the bookmaker mark, the saved-bet card, and the equity curve.
  */
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Line as SvgLine } from 'react-native-svg';
 import { font, radius, space, useColors } from '../lib/theme';
 import { useI18n } from './i18n';
 import { formatOdds } from './core/odds';
-import { combinedOdds, settleBet } from './core/settlement';
+import { combinedOdds, potentialReturn, settleBet } from './core/settlement';
 import { sportIcon } from './core/reference';
 import type { CurvePoint } from './core/stats';
-import type { Bet, BetStatus, OddsFormat } from './core/types';
+import type { Bet, BetStatus, OddsFormat, Selection, SelectionStatus } from './core/types';
 import { useApp } from './state/AppContext';
-import { Badge, Dim, Row } from './ui';
+import { Badge, Dim, Row, Sheet } from './ui';
 
 /* ------------------------------------------------------------------ *
  * Bankroll scope
@@ -66,7 +66,60 @@ export function BankrollSwitcher() {
 }
 
 /* ------------------------------------------------------------------ *
- * Bet row
+ * Bookmaker mark
+ * ------------------------------------------------------------------ */
+
+/**
+ * Colour for a bookmaker's mark, derived from its name.
+ *
+ * Deliberately not the real brand colours, and deliberately initials rather
+ * than logos: this app already draws teams as an abbreviation on a generated
+ * colour when images are off, precisely so nothing in the bundle carries a
+ * third party's marks. A bookmaker mark plays by the same rule. The hash keeps
+ * a given book the same colour everywhere, which is what makes it scannable in
+ * a list.
+ */
+function bookmakerColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 52%, 42%)`;
+}
+
+/** Up to two letters: "Bet365" → "B3", "Nesine" → "NE". */
+function bookmakerInitials(name: string): string {
+  const words = name.trim().split(/[\s./-]+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  if (words.length > 1) {
+    return (words[0]![0]! + words[1]![0]!).toUpperCase();
+  }
+  const word = words[0]!;
+  const digit = word.match(/\d/);
+  return (word[0]! + (digit ? digit[0] : (word[1] ?? ''))).toUpperCase();
+}
+
+export function BookmakerBadge({ name, size = 22 }: { name: string; size?: number }) {
+  if (!name.trim()) return null;
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 4,
+        backgroundColor: bookmakerColor(name),
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ color: '#fff', fontSize: size * 0.42, fontWeight: '800' }}>
+        {bookmakerInitials(name)}
+      </Text>
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Status colours
  * ------------------------------------------------------------------ */
 
 const STATUS_TONE: Record<BetStatus, 'good' | 'bad' | 'warn' | 'dim'> = {
@@ -85,81 +138,287 @@ export function statusLabel(status: BetStatus, t: (k: never) => string): string 
   return t(key as never);
 }
 
-export function BetRow({
+/** Every leg outcome offered inline, including the Asian half-lines. */
+const LEG_STATUSES: SelectionStatus[] = ['pending', 'won', 'lost', 'void', 'half_won', 'half_lost'];
+
+function legTone(status: SelectionStatus): 'good' | 'bad' | 'warn' | 'dim' {
+  if (status === 'won' || status === 'half_won') return 'good';
+  if (status === 'lost' || status === 'half_lost') return 'bad';
+  if (status === 'pending') return 'warn';
+  return 'dim';
+}
+
+/* ------------------------------------------------------------------ *
+ * Saved bet card
+ * ------------------------------------------------------------------ */
+
+/**
+ * A saved bet in a list.
+ *
+ * Tapping the card opens its legs in place, and each leg's outcome is set from
+ * the card itself. Settling a bet is the thing this app does most often, and
+ * routing that through the full edit form — nine fields, a save button, a
+ * screen transition — made the common case the slowest one. The edit form is
+ * still there behind the ⋮ menu for everything else.
+ *
+ * The status also drives a colour bar down the left edge, so a list of bets
+ * can be read at a glance without stopping to read each chip.
+ */
+export function BetCard({
   bet,
   oddsFormat,
-  onPress,
+  onEdit,
+  onDelete,
   selected,
   onToggleSelect,
+  /** Collapsed cards only; the dashboard shows summaries, not controls. */
+  expandable = true,
 }: {
   bet: Bet;
   oddsFormat: OddsFormat;
-  onPress?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   selected?: boolean;
   onToggleSelect?: () => void;
+  expandable?: boolean;
 }) {
   const c = useColors();
   const { t, formatMoney, formatDate } = useI18n();
-  const { currency } = useApp();
+  const { currency, updateBets } = useApp();
+
+  const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
+
   const settlement = useMemo(() => settleBet(bet), [bet]);
+  const tone = STATUS_TONE[settlement.status];
+  const barColor =
+    tone === 'good' ? c.good : tone === 'bad' ? c.bad : tone === 'warn' ? c.warn : c.border;
 
   const first = bet.selections[0];
   const extra = bet.selections.length - 1;
-  const picks = first?.picks.map((p) => p.pick).filter(Boolean).join(' + ');
+
+  // An open bet shows what it would return, not a zeroed-out profit: until it
+  // settles, `settleBet` reports 0 returned, and subtracting the stake from
+  // that reads as a loss the user has not taken.
+  const amount = settlement.settled
+    ? settlement.profit
+    : potentialReturn(bet) - settlement.totalStake;
+
+  const amountColor = !settlement.settled
+    ? c.textDim
+    : settlement.profit > 0
+      ? c.good
+      : settlement.profit < 0
+        ? c.bad
+        : c.textDim;
+
+  function setLeg(selection: Selection, status: SelectionStatus) {
+    void updateBets([bet.id], {
+      selections: bet.selections.map((s) => (s.id === selection.id ? { ...s, status } : s)),
+    });
+  }
 
   return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onToggleSelect}
-      style={({ pressed }) => ({
+    <View
+      style={{
+        flexDirection: 'row',
         borderWidth: 1,
         borderColor: selected ? c.accent : c.border,
         backgroundColor: c.bgSoft,
         borderRadius: radius.md,
-        padding: space.md,
         marginBottom: space.sm,
-        opacity: pressed ? 0.75 : 1,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Durum çubuğu: listeyi okumadan tarayabilmek için. */}
+      <View style={{ width: 4, backgroundColor: barColor }} />
+
+      <View style={{ flex: 1, padding: space.md }}>
+        <Pressable
+          onPress={() => (expandable ? setOpen((v) => !v) : onEdit?.())}
+          onLongPress={onToggleSelect}
+        >
+          <Row gap={space.sm}>
+            <Text style={{ fontSize: font.md }}>{sportIcon(first?.sport ?? '')}</Text>
+            <Text numberOfLines={1} style={{ color: c.text, fontSize: font.md,
+                                             fontWeight: '600', flex: 1 }}>
+              {first?.event || t('bet.bet')}
+              {extra > 0 ? ` +${extra}` : ''}
+            </Text>
+            <Badge label={statusLabel(settlement.status, t)} tone={tone} />
+            {onEdit || onDelete ? (
+              <Pressable onPress={() => setMenu(true)} hitSlop={12}
+                         style={{ paddingHorizontal: 4 }}>
+                <Text style={{ color: c.textDim, fontSize: font.lg, fontWeight: '700' }}>⋮</Text>
+              </Pressable>
+            ) : null}
+          </Row>
+
+          <Row gap={space.md} style={{ marginTop: space.sm, flexWrap: 'wrap' }}>
+            <BookmakerBadge name={bet.bookmaker} size={20} />
+            <Dim style={{ fontSize: font.xs }}>{formatDate(bet.placedAt)}</Dim>
+            <Dim style={{ fontSize: font.xs }}>
+              {formatOdds(combinedOdds(bet), oddsFormat)}
+            </Dim>
+            <Dim style={{ fontSize: font.xs }}>
+              {formatMoney(settlement.totalStake, currency)}
+            </Dim>
+            <View style={{ flex: 1 }} />
+            <Text style={{ color: amountColor, fontSize: font.md, fontWeight: '700' }}>
+              {settlement.settled
+                ? formatMoney(amount, currency, { sign: true })
+                : `→ ${formatMoney(amount, currency, { sign: true })}`}
+            </Text>
+          </Row>
+
+          {expandable ? (
+            <Text style={{ color: c.textDim, fontSize: font.xs, marginTop: space.xs,
+                           textAlign: 'center' }}>
+              {open ? '▲' : `▼  ${bet.selections.length} ${t('bet.selections')}`}
+            </Text>
+          ) : null}
+        </Pressable>
+
+        {open ? (
+          <View style={{ marginTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth,
+                         borderTopColor: c.border, paddingTop: space.sm }}>
+            {bet.selections.map((selection) => (
+              <LegRow
+                key={selection.id}
+                selection={selection}
+                oddsFormat={oddsFormat}
+                onSetStatus={(status) => setLeg(selection, status)}
+              />
+            ))}
+          </View>
+        ) : null}
+      </View>
+
+      <Sheet open={menu} onClose={() => setMenu(false)} title={first?.event || t('bet.bet')}>
+        {onEdit ? (
+          <MenuItem
+            label={t('action.edit')}
+            glyph="✎"
+            onPress={() => {
+              setMenu(false);
+              onEdit();
+            }}
+          />
+        ) : null}
+        {onDelete ? (
+          <MenuItem
+            label={t('action.delete')}
+            glyph="🗑"
+            danger
+            onPress={() => {
+              setMenu(false);
+              onDelete();
+            }}
+          />
+        ) : null}
+      </Sheet>
+    </View>
+  );
+}
+
+function MenuItem({
+  label,
+  glyph,
+  onPress,
+  danger,
+}: {
+  label: string;
+  glyph: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  const c = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space.md,
+        paddingVertical: 14,
+        opacity: pressed ? 0.6 : 1,
       })}
     >
+      <Text style={{ fontSize: font.lg }}>{glyph}</Text>
+      <Text style={{ color: danger ? c.bad : c.text, fontSize: font.md, fontWeight: '600' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** One leg inside an expanded card, with its outcome buttons. */
+function LegRow({
+  selection,
+  oddsFormat,
+  onSetStatus,
+}: {
+  selection: Selection;
+  oddsFormat: OddsFormat;
+  onSetStatus: (status: SelectionStatus) => void;
+}) {
+  const c = useColors();
+  const { t } = useI18n();
+
+  const picks = selection.picks.map((p) => p.pick).filter(Boolean).join(' + ');
+  const markets = selection.picks.map((p) => p.market).filter(Boolean).join(' + ');
+
+  return (
+    <View style={{ marginBottom: space.md }}>
       <Row gap={space.sm}>
-        <Text style={{ fontSize: font.md }}>{sportIcon(first?.sport ?? '')}</Text>
-        <Text numberOfLines={1} style={{ color: c.text, fontSize: font.md,
+        <Text numberOfLines={1} style={{ color: c.text, fontSize: font.sm,
                                          fontWeight: '600', flex: 1 }}>
-          {first?.event || t('bet.bet')}
-          {extra > 0 ? ` +${extra}` : ''}
+          {selection.event || '—'}
         </Text>
-        <Badge label={statusLabel(settlement.status, t)} tone={STATUS_TONE[settlement.status]} />
+        <Text style={{ color: c.textDim, fontSize: font.sm }}>
+          {formatOdds(selection.odds, oddsFormat)}
+        </Text>
       </Row>
 
       {picks ? (
-        <Dim style={{ marginTop: 2 }} >{picks}</Dim>
+        <Text style={{ color: c.textDim, fontSize: font.xs, marginTop: 2 }}>
+          {markets ? `${markets} · ` : ''}{picks}
+        </Text>
       ) : null}
 
-      <Row gap={space.md} style={{ marginTop: space.sm, flexWrap: 'wrap' }}>
-        <Dim style={{ fontSize: font.xs }}>{formatDate(bet.placedAt)}</Dim>
-        <Dim style={{ fontSize: font.xs }}>
-          {formatOdds(combinedOdds(bet), oddsFormat)}
-        </Dim>
-        <Dim style={{ fontSize: font.xs }}>
-          {formatMoney(settlement.totalStake, currency)}
-        </Dim>
-        <View style={{ flex: 1 }} />
-        <Text
-          style={{
-            color: !settlement.settled ? c.textDim
-              : settlement.profit > 0 ? c.good
-              : settlement.profit < 0 ? c.bad
-              : c.textDim,
-            fontSize: font.md,
-            fontWeight: '700',
-          }}
-        >
-          {settlement.settled
-            ? formatMoney(settlement.profit, currency, { sign: true })
-            : `→ ${formatMoney(settlement.returned || bet.unitStake * combinedOdds(bet), currency)}`}
-        </Text>
+      <Row gap={6} style={{ marginTop: space.sm, flexWrap: 'wrap' }}>
+        {LEG_STATUSES.map((status) => {
+          const active = selection.status === status;
+          const tone = legTone(status);
+          const fg = tone === 'good' ? c.good : tone === 'bad' ? c.bad
+            : tone === 'warn' ? c.warn : c.textDim;
+          const label =
+            status === 'half_won' ? `½ ${t('status.won')}`
+            : status === 'half_lost' ? `½ ${t('status.lost')}`
+            : t(`status.${status}` as never);
+
+          return (
+            <Pressable
+              key={status}
+              onPress={() => onSetStatus(status)}
+              style={{
+                paddingHorizontal: space.md,
+                paddingVertical: 6,
+                borderRadius: radius.pill,
+                borderWidth: 1,
+                borderColor: active ? fg : c.border,
+                backgroundColor: active ? fg : 'transparent',
+              }}
+            >
+              <Text style={{ color: active ? c.bg : fg, fontSize: font.xs,
+                             fontWeight: active ? '800' : '600' }}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </Row>
-    </Pressable>
+    </View>
   );
 }
 
