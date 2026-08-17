@@ -15,6 +15,13 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
+
+    /* Bahis takip modülünün iç import'ları — vite.config.ts'teki alias ile eş.
+       Yollar bu dosyanın bulunduğu dizine görelidir (baseUrl'siz). */
+    "paths": {
+      "@bt/*": ["./src/bettracker/*"]
+    },
 
     /* Linting */
     "noUnusedLocals": true,

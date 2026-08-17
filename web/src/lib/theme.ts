@@ -38,6 +38,15 @@ export function initTheme(): void {
   applyTheme(resolveTheme());
 }
 
+/** Tema tercihi: "system" seçilirse kayıt silinir ve işletim sistemi izlenir.
+ *  BetTracker bölümünün kendi tema ayarı buraya bağlanır, böylece iki ayrı
+ *  tema durumu birbiriyle çakışmaz. */
+export function applyThemeMode(mode: Theme | "system"): void {
+  if (mode === "system") window.localStorage.removeItem(STORAGE_KEY);
+  else window.localStorage.setItem(STORAGE_KEY, mode);
+  applyTheme(resolveTheme());
+}
+
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(resolveTheme);
 

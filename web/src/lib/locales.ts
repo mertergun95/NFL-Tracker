@@ -108,6 +108,8 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "nav.agent": "Agent",
   "nav.power": ["Power Rankings", "Güç Sıralaması", "Power Rankings"],
   "nav.sos": ["Schedule", "Fikstür", "Spielplan"],
+  "nav.bets": ["Bet Tracker", "Bahis Takip", "Wett-Tracker"],
+  "nav.backToStats": ["Back to StatGrade", "StatGrade'e dön", "Zurück zu StatGrade"],
   "nav.language": ["Language", "Dil", "Sprache"],
   "nav.themeLight": ["Switch to light mode", "Açık temaya geç",
                      "Zum hellen Modus wechseln"],
@@ -714,4 +716,23 @@ export const STRINGS: Record<string, string | [string, string, string]> = {
   "team.rosterStats": ["Roster — Season Stats", "Kadro — Sezon İstatistikleri",
                        "Kader — Saisonwerte"],
   "table.empty": ["No records found.", "Kayıt bulunamadı.", "Keine Einträge gefunden."],
+
+  // ---------------------------------------------------------------- giriş
+  "login.title": ["Bet Tracker", "Bahis Takip", "Wett-Tracker"],
+  "login.sub": ["This section is private. Sign in to continue.",
+                "Bu bölüm özeldir. Devam etmek için giriş yapın.",
+                "Dieser Bereich ist privat. Zum Fortfahren anmelden."],
+  "login.user": ["Username", "Kullanıcı adı", "Benutzername"],
+  "login.pass": ["Password", "Parola", "Passwort"],
+  "login.remember": ["Remember me", "Beni hatırla", "Angemeldet bleiben"],
+  "login.submit": ["Sign in", "Giriş yap", "Anmelden"],
+  "login.checking": ["Checking…", "Kontrol ediliyor…", "Wird geprüft…"],
+  "login.failed": ["Wrong username or password.",
+                   "Kullanıcı adı veya parola hatalı.",
+                   "Benutzername oder Passwort falsch."],
+  "login.signOut": ["Sign out", "Çıkış yap", "Abmelden"],
+  "login.notice": [
+    "The check runs in your browser, so it keeps the section out of the way rather than protecting secrets. Your bets stay on this device.",
+    "Kontrol tarayıcınızda çalışır; bu yüzden bölümü gizler ama sır saklamaz. Bahisleriniz bu cihazda kalır.",
+    "Die Prüfung läuft im Browser: Sie hält den Bereich fern, schützt aber keine Geheimnisse. Deine Wetten bleiben auf diesem Gerät."],
 };
