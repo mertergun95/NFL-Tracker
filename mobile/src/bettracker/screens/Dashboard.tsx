@@ -6,8 +6,8 @@ import { useI18n } from '../i18n';
 import { computeStats, equityCurve } from '../core/stats';
 import { settleBet } from '../core/settlement';
 import { useApp } from '../state/AppContext';
-import { BankrollSwitcher, BetRow, EquityChart } from '../components';
-import { Button, Dim, Panel, Row, Stat } from '../ui';
+import { BankrollSwitcher, BetCard, EquityChart } from '../components';
+import { Button, Dim, Panel, Row, Stat, StatGrid } from '../ui';
 
 /** Opening screen: where the bankroll stands, what is still running, what just settled. */
 export default function Dashboard() {
@@ -82,7 +82,7 @@ export default function Dashboard() {
     <View>
       <BankrollSwitcher />
 
-      <Row gap={space.sm} style={{ flexWrap: 'wrap' }}>
+      <StatGrid>
         <Stat
           label={t('dash.profit')}
           value={formatMoney(stats.profit, currency, { sign: true })}
@@ -103,7 +103,7 @@ export default function Dashboard() {
           value={formatMoney(stats.pendingStake, currency)}
           sub={`${stats.pendingCount} ${t('bet.bets')}`}
         />
-      </Row>
+      </StatGrid>
 
       <Panel title={t('dash.capitalGrowth')} style={{ marginTop: space.md }}>
         <EquityChart points={curve} mode="balance" />
@@ -122,11 +122,11 @@ export default function Dashboard() {
           <Dim>{t('dash.noOpenBets')}</Dim>
         ) : (
           open.map((bet) => (
-            <BetRow
+            <BetCard
               key={bet.id}
               bet={bet}
               oddsFormat={settings.oddsFormat}
-              onPress={() => router.push(`/bets/bet/${bet.id}` as never)}
+              onEdit={() => router.push(`/bets/bet/${bet.id}` as never)}
             />
           ))
         )}
@@ -137,11 +137,11 @@ export default function Dashboard() {
           <Dim>{t('dash.noSettledBets')}</Dim>
         ) : (
           recent.map((bet) => (
-            <BetRow
+            <BetCard
               key={bet.id}
               bet={bet}
               oddsFormat={settings.oddsFormat}
-              onPress={() => router.push(`/bets/bet/${bet.id}` as never)}
+              onEdit={() => router.push(`/bets/bet/${bet.id}` as never)}
             />
           ))
         )}
