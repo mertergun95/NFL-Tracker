@@ -62,6 +62,10 @@ export default function More() {
       <SectionHeader title={t("nav.charts")} />
       {TOOLS.map((e) => <Row key={e.href} entry={e} />)}
 
+      {/* Kişisel bölüm: girişle açılır, kendi sekme yığını var. */}
+      <SectionHeader title={t("nav.bets")} />
+      <Row entry={{ href: "/bets", titleKey: "nav.bets", descKey: "login.sub" }} />
+
       <Settings />
     </Screen>
   );

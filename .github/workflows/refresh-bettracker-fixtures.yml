@@ -1,0 +1,44 @@
+# Bahis takip bölümünün lig/takım/fikstür kataloğunu tazeler.
+# Çıktı web/public/data/bettracker/ altına yazılır ve repoya commit'lenir:
+# site kendi origin'inden okur, çalışma anında üçüncü bir servise bağımlı olmaz.
+name: Refresh BetTracker Fixtures
+
+on:
+  schedule:
+    # Her gün 04:15 UTC — Kuzey Amerika maçları bittikten, Avrupa fikstürleri
+    # yeniden düzenlenmeden önce.
+    - cron: "15 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bettracker-fixtures
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch leagues, teams and fixtures
+        working-directory: web
+        run: npm run fetch:bettracker-sports
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet -- web/public/data/bettracker; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/public/data/bettracker
+          git commit -m "data: bahis fikstürlerini güncelle"
+          git push

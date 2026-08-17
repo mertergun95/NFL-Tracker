@@ -3,7 +3,7 @@
     "name": "StatGrade",
     "slug": "statgrade",
     "scheme": "statgrade",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.statgrade.app",
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#0D1117",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -50,7 +51,8 @@
             "enableShrinkResourcesInReleaseBuilds": false
           }
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

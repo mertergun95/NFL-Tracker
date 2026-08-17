@@ -30,6 +30,8 @@ import NcaaStandings from "./pages/ncaa/NcaaStandings";
 import NcaaRosters from "./pages/ncaa/NcaaRosters";
 import NcaaProjections from "./pages/ncaa/NcaaProjections";
 import NcaaAccuracy from "./pages/ncaa/NcaaAccuracy";
+import BetTracker from "./bettracker/BetTracker";
+import LoginGate from "./components/LoginGate";
 import { loadManifest, seasonsFromManifest } from "./lib/data";
 import { loadNcaaManifest } from "./lib/ncaa";
 import { useAsync } from "./lib/hooks";
@@ -76,10 +78,24 @@ export default function App() {
   const { t, lang, setLang } = useI18n();
   const { theme, toggle } = useTheme();
   const isNcaa = location.pathname.startsWith("/ncaa");
+  const isBets = location.pathname === "/bets" || location.pathname.startsWith("/bets/");
   const { data: manifest, error, loading } = useAsync(() => loadManifest(), []);
   const seasons = manifest ? seasonsFromManifest(manifest) : [];
   const { data: ncaaManifest } = useAsync(() => loadNcaaManifest(), []);
   const ncaaSeasons = ncaaManifest ? seasonsFromManifest(ncaaManifest) : [];
+
+  // Bahis takibi kendi kabuğuyla tam sayfa açılır: iki üst menü ve iki gezinme
+  // yığını üst üste binmesin. Splat rota, modülün içindeki göreli rotaların
+  // /bets altında çözülmesi için gerekli.
+  if (isBets) {
+    return (
+      <LoginGate>
+        <Routes>
+          <Route path="/bets/*" element={<BetTracker />} />
+        </Routes>
+      </LoginGate>
+    );
+  }
 
   return (
     <div className="app">
@@ -91,6 +107,9 @@ export default function App() {
           <Link to="/" className={!isNcaa ? "active" : ""}>NFL</Link>
           <Link to="/ncaa" className={isNcaa ? "active" : ""}>NCAA</Link>
         </span>
+        <Link to="/bets" className="bets-link" title={t("nav.bets")}>
+          🎯 <span>{t("nav.bets")}</span>
+        </Link>
         <nav>
           {(isNcaa ? NCAA_NAV : NAV).map(({ to, key }) => (
             <NavLink key={to} to={to} end={to === "/" || to === "/ncaa"}>

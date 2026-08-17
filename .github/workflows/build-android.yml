@@ -1,0 +1,78 @@
+# Mobil uygulamanın Android paketini üretir.
+#
+# EAS kullanmıyor: derleme runner'da yapılıyor, çıktı da Actions artifact'ı
+# olarak iniyor. Böylece APK almak için Expo hesabı/kotası gerekmiyor.
+#
+# `android/` klasörü depoda durmuyor (generated), her koşuda `expo prebuild`
+# ile yeniden üretiliyor.
+name: Build Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      buildType:
+        description: "Gradle build type"
+        type: choice
+        default: release
+        options: [release, debug]
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install
+        working-directory: mobile
+        run: npm ci
+
+      # Yerel derleme yapılandırmayı app.json'dan okur; native proje her
+      # koşuda sıfırdan üretilsin ki depoda tutulan bir kopyayla ayrışmasın.
+      - name: Prebuild native project
+        working-directory: mobile
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Assemble APK
+        working-directory: mobile/android
+        env:
+          BUILD_TYPE: ${{ inputs.buildType || 'release' }}
+        run: |
+          chmod +x ./gradlew
+          if [ "$BUILD_TYPE" = "debug" ]; then
+            ./gradlew assembleDebug --no-daemon
+          else
+            ./gradlew assembleRelease --no-daemon
+          fi
+
+      - name: Collect APKs
+        run: |
+          mkdir -p artifacts
+          # Release APK burada Expo'nun geliştirme anahtarıyla imzalanır;
+          # mağaza sürümü için ayrı bir keystore secret'ı gerekir.
+          find mobile/android/app/build/outputs/apk -name '*.apk' -exec cp {} artifacts/ \;
+          ls -la artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: statgrade-apk-${{ inputs.buildType || 'release' }}
+          path: artifacts/*.apk
+          if-no-files-found: error

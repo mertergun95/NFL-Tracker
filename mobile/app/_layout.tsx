@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import ErrorBoundary from "../src/components/ErrorBoundary";
+import { AuthProvider } from "../src/lib/auth";
 import { I18nProvider } from "../src/lib/i18n";
 import { LeagueProvider } from "../src/lib/league";
 import { PrefsProvider } from "../src/lib/prefs";
@@ -24,6 +25,9 @@ function Navigator() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Bahis takibi kendi sekme yığınını taşıyor; girişi ayrı bir rota. */}
+        <Stack.Screen name="bets" options={{ headerShown: false }} />
+        <Stack.Screen name="bets-login" options={{ headerShown: false }} />
         <Stack.Screen name="player/[id]" options={{ title: "" }} />
         <Stack.Screen name="team/[abbr]" options={{ title: "" }} />
         <Stack.Screen name="game/[season]/[gameId]" options={{ title: "" }} />
@@ -58,7 +62,9 @@ export default function RootLayout() {
           <I18nProvider>
             <PrefsProvider>
               <LeagueProvider>
-                <Navigator />
+                <AuthProvider>
+                  <Navigator />
+                </AuthProvider>
               </LeagueProvider>
             </PrefsProvider>
           </I18nProvider>

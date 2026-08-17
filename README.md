@@ -20,6 +20,10 @@ Plan ve fazlar için [ROADMAP.md](ROADMAP.md).
   taşımaz; yayındaki `https://statgrade.com/data/` JSON'larını okur, yani Salı
   güncellemesi mağaza sürümü gerektirmeden uygulamaya da yansır. Ayrıntı:
   [mobile/README.md](mobile/README.md).
+- **Bahis takibi:** Ayrı bir BetTracker projesi olarak başlayan modül artık
+  burada yaşıyor — webde `#/bets`, mobilde `Daha › Bahis Takip`. Girişle
+  açılır ve verisi yalnızca cihazda durur. Ayrıntı:
+  [docs/BETTRACKER.md](docs/BETTRACKER.md).
 
 ## Yerelde çalıştırma
 
