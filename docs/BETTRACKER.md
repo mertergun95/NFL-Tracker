@@ -50,6 +50,73 @@ Cihazda. Hiçbir yere yüklenmez.
 (Ayarlar › Senkronizasyon). Token yalnızca cihazda durur ve `api.github.com`
 dışına gitmez. Yedek almak için JSON/CSV dışa aktarımı da var.
 
+## Mobil ile web'i senkronlamak
+
+İkisi de veriyi kendi cihazında tutar (web'de IndexedDB, telefonda
+AsyncStorage) ve birbirlerini kendiliğinden görmezler. Aynı bahis geçmişini
+iki yerde birden istiyorsanız modülün senkronunu açmanız gerekir: veri sizin
+**özel bir GitHub deponuza** tek bir JSON dosyası olarak yazılır, diğer cihaz
+da oradan okur. Arada bir sunucu ya da hesap yoktur.
+
+### 1. Veri için özel bir depo açın
+
+GitHub'da yeni bir depo: adı ne olursa olsun (ör. `bettracker-data`),
+görünürlüğü **Private**. Boş olması yeterli, README bile gerekmez.
+
+> Bu depoyu NFL-Tracker'dan ayrı tutun. NFL-Tracker public; bahis geçmişiniz
+> orada durmamalı.
+
+### 2. Bir token üretin
+
+**Settings → Developer settings → Personal access tokens → Fine-grained
+tokens → Generate new token**
+
+| Alan | Değer |
+|---|---|
+| Repository access | Only select repositories → az önce açtığınız depo |
+| Permissions → Repository → **Contents** | **Read and write** |
+
+Başka hiçbir izne gerek yok. Token yalnızca o depoya yazabilir; kaybolursa
+zararı o depoyla sınırlı kalır.
+
+### 3. İki tarafa da girin
+
+**Ayarlar › Senkronizasyon** (webde `#/bets/settings`, mobilde `Ayarlar`
+sekmesi) — aynı dört alan ve aynı token:
+
+| Alan | Örnek |
+|---|---|
+| Owner | `mertergun95` |
+| Repo | `bettracker-data` |
+| Branch | `main` |
+| Path | `bettracker.json` |
+| Token | `github_pat_…` |
+
+**Bağlan**'a basın. İlk cihaz veriyi yukarı yazar, ikinci cihaz bağlandığında
+onu indirir ve kendi verisiyle birleştirir. **Otomatik** açıkken her
+değişiklikten ~4 saniye sonra kendiliğinden gönderilir ve uygulama her
+açılışta çeker; kapalıysa **Şimdi senkronla** ile elle yapılır.
+
+### Birleştirme nasıl çalışıyor?
+
+Kayıt kayıt, `updatedAt` damgasına göre: iki cihaz aynı bahsi değiştirdiyse
+sonra düzenlenen kazanır, farklı kayıtlara dokunduysa ikisi de korunur.
+Silmeler ayrıca "mezar taşı" olarak tutulur — bu olmasaydı bir cihazdaki
+silme, kaydı hâlâ elinde tutan diğer cihazın ilk senkronunda geri gelirdi.
+İki cihaz aynı anda gönderirse tur bir kez tekrarlanır, zorla üzerine
+yazılmaz.
+
+### Senkron istemiyorsanız
+
+Tek seferlik taşımak yeterliyse: bir tarafta **Ayarlar › JSON dışa aktar**,
+diğerinde **JSON içe aktar**. İçe aktarma mevcut veriyi değiştirir, birleştirmez.
+
+### Token nerede duruyor?
+
+Yalnızca o cihazda (web: IndexedDB, mobil: AsyncStorage) ve
+`api.github.com` dışında hiçbir yere gönderilmez. Depoya da yazılmaz.
+Telefonu kaybederseniz token'ı GitHub'dan iptal etmeniz yeterli.
+
 ## Kod düzeni
 
 ```
