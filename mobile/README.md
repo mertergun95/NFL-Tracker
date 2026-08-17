@@ -148,6 +148,18 @@ npm run typecheck       # tsc --noEmit
 python3 scripts/make-icons.py [BOLD_SANS_FONT.ttf]
 ```
 
+## APK (Actions üzerinden)
+
+Hızlı yoldan bir APK almak için Expo hesabı gerekmiyor:
+**Actions → Build Android → Run workflow**. İş akışı `expo prebuild` ile
+native projeyi üretip Gradle ile derliyor, APK'yı da koşunun artifact'ı
+olarak bırakıyor (`statgrade-apk-release`). `v*` etiketi atıldığında da
+kendiliğinden çalışır.
+
+Release APK burada Expo'nun geliştirme anahtarıyla imzalanır — yan yükleme
+(sideload) için yeterli, mağaza gönderimi için değil. Onun için aşağıdaki
+EAS akışını ya da kendi keystore'unuzu kullanın.
+
 ## Derleme (EAS)
 
 ```bash
