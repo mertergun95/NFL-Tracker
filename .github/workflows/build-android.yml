@@ -15,6 +15,11 @@ on:
         type: choice
         default: release
         options: [release, debug]
+      abi:
+        description: "Hedef ABI (tümü = 4 mimari, çok daha yavaş)"
+        type: choice
+        default: arm64-v8a
+        options: [arm64-v8a, "arm64-v8a,armeabi-v7a", "armeabi-v7a,arm64-v8a,x86,x86_64"]
   push:
     tags: ["v*"]
 
@@ -51,17 +56,26 @@ jobs:
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --no-install
 
+      # Sürenin tamamına yakınını React Native'in C++ katmanının derlenmesi
+      # alıyor ve bu maliyet ABI başına tekrarlanıyor. Dört mimarinin hepsi
+      # ~50 dakika sürüyor; arm64-v8a tek başına son ~8 yılın telefonlarını
+      # kapsıyor ve derlemeyi dörtte birine indiriyor. Mağaza sürümü için
+      # `abi` girdisinden tam listeye geçilebilir.
       - name: Assemble APK
         working-directory: mobile/android
         env:
           BUILD_TYPE: ${{ inputs.buildType || 'release' }}
+          ABIS: ${{ inputs.abi || 'arm64-v8a' }}
         run: |
           chmod +x ./gradlew
+          # Açık if: `[ … ] && task=…` biçimi release yolunda 1 döndürüyor ve
+          # runner'ın `bash -e` kabuğu adımı orada düşürüyor.
           if [ "$BUILD_TYPE" = "debug" ]; then
-            ./gradlew assembleDebug --no-daemon
+            task=assembleDebug
           else
-            ./gradlew assembleRelease --no-daemon
+            task=assembleRelease
           fi
+          ./gradlew "$task" --no-daemon "-PreactNativeArchitectures=$ABIS"
 
       - name: Collect APKs
         run: |
