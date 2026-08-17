@@ -43,6 +43,10 @@ jobs:
         run: |
           npm ci
           npm run build
+      # Özel alan adı `web/public/CNAME` ile artifact'ın içinden geliyor,
+      # depo ayarından değil: Pages yayını bir kez silindiğinde ayardaki
+      # domain de gidiyor ve site adsız kalıyor. Dosya depoda durduğu sürece
+      # her yayın statgrade.com'a bağlanıyor.
       - uses: actions/configure-pages@v5
         with:
           enablement: true
