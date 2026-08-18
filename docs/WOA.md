@@ -144,7 +144,11 @@ kullanılmadığı analizlerin gözle görülür olması.
 
 ## 5. Arayüz
 
-Tam sayfa oturum kabuğu (`#/woa`), BetTracker gibi kendi düzeni:
+Site kabuğunun içinde, `#/woa` altında üç sütunlu oturum düzeni. (Şartnamenin
+ilk hâlinde BetTracker gibi ayrı bir kabuk düşünülmüştü; ayrı kabuk yalnızca
+kendi gezinme yığınına ihtiyaç duyan modüller için gerekli — WoA site
+menüsünün altında kalıyor, üstelik oradan takım/oyuncu sayfalarına geçmek de
+kolay oluyor.)
 
 ```
 ┌─ İlerleme: Maç 5/8 ───────────────────── [Analizi bitir] ─┐
@@ -169,10 +173,37 @@ Tam sayfa oturum kabuğu (`#/woa`), BetTracker gibi kendi düzeni:
 
 ## 6. Veri ve rapor
 
-- Depolama **Dexie** (BetTracker'ın altyapısı), veri yalnızca cihazda.
-- Oturum modeli: `{ id, season, week, gameId, home, away, status, steps{}, players[], verdict }`.
+- Depolama **Dexie** (`woa` veritabanı, BetTracker'ınkinden ayrı), veri yalnızca
+  cihazda. Notlar yazılırken 400 ms gecikmeli otomatik kaydedilir.
+- Oturum modeli: `{ id, season, week, gameId, home, away, dataSeason, status,
+  steps{}, players[] }`. Karar alanları (skor tahmini, lean, güven) M8 ve P6
+  adımlarının `values` sözlüğünde durur — ayrı bir `verdict` nesnesi yok, böylece
+  rapor ve ilerleme hesabı tek kod yolundan geçiyor.
 - Rapor: yazdırılabilir HTML + `.md` indirme + panoya kopyalama. İçeriği: künye,
   maç tezi, takım notları, oyuncu kartları, kapsanmayan adımlar, abonelik
   kullanım paneli.
 - Geçmiş oturumlar listelenir ve tekrar açılabilir.
 - İleride: "bu analizden BetTracker'a bahis oluştur" köprüsü.
+
+## 7. Kod haritası
+
+```
+web/src/woa/
+  core/blueprint.ts   adım şablonu + araç kataloğu (içerik kararları burada)
+  core/types.ts       oturum veri modeli
+  core/session.ts     ilerleme, kilit, mutasyon, kapsama hesabı (saf)
+  core/store.ts       Dexie yükleme + gecikmeli otomatik kayıt
+  core/data.ts        panellerin okuduğu StatGrade JSON'ları
+  core/report.ts      markdown rapor üreteci
+  core/woa.test.ts    kilit, kapsama ve rapor testleri
+  components/         StepCard (not + checklist + alanlar), ortak parçalar
+  panels/             M1–M8 ve P1–P6 veri panelleri
+  screens/            Home (maç seçimi + geçmiş), Session, Report
+  woa.css
+```
+
+Rotalar: `#/woa`, `#/woa/:id`, `#/woa/:id/report`.
+
+Adım eklemek/çıkarmak için tek dosya yeter: `core/blueprint.ts`. Yeni adımın
+paneli olacaksa `panels/` içine bir bileşen eklenip `PANELS` sözlüğüne yazılır;
+panelsiz adım da çalışır.

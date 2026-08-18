@@ -1,0 +1,249 @@
+/* WoA — analiz rehberi. Renkler site token'larından; buradaki sınıflar
+   yalnızca bu modülde kullanılır (hepsi `woa-` önekli). */
+
+.woa-home h2 { margin-top: 28px; }
+
+.woa-games { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.woa-game {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--bg-soft); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; cursor: pointer; font-size: 0.92rem; text-align: left;
+}
+.woa-game:hover { border-color: var(--accent); }
+.woa-game span { display: inline-flex; align-items: center; gap: 6px; }
+.woa-game__when { margin-left: auto; font-size: 0.8rem; }
+
+.woa-sessions { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.woa-sessions li { display: flex; gap: 6px; }
+.woa-session {
+  flex: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--bg-soft); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; cursor: pointer; text-align: left;
+}
+.woa-session:hover { border-color: var(--accent); }
+.woa-session__game { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.woa-progress-mini { margin-left: auto; font-size: 0.8rem; color: var(--text-dim); }
+.woa-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
+.woa-tag--done { background: var(--good-bg); border-color: var(--good-border); color: var(--good); }
+.woa-del {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-dim); cursor: pointer; padding: 0 10px;
+}
+.woa-del:hover { color: var(--bad); border-color: var(--bad-border); }
+.woa-del--inline { width: 100%; margin: 4px 0 10px; padding: 4px; font-size: 0.78rem; }
+
+/* ------------------------------------------------------------- oturum */
+
+.woa-top {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.woa-top h1 { font-size: 1.15rem; margin: 0; display: inline-flex; align-items: center; gap: 6px; }
+.woa-back {
+  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); cursor: pointer; padding: 4px 10px;
+}
+.woa-bar-wrap {
+  flex: 1; min-width: 120px; height: 6px; border-radius: 3px;
+  background: var(--bg-raised); overflow: hidden;
+}
+.woa-bar-fill { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+
+.woa-grid {
+  display: grid; gap: 16px; margin-top: 16px;
+  grid-template-columns: 230px minmax(0, 1fr) 240px;
+  align-items: start;
+}
+@media (max-width: 1100px) { .woa-grid { grid-template-columns: 200px minmax(0, 1fr); } .woa-side { display: none; } }
+@media (max-width: 780px) { .woa-grid { grid-template-columns: 1fr; } }
+
+.woa-stepper, .woa-side {
+  position: sticky; top: 12px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px;
+}
+.woa-stepper h3, .woa-side h3 {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-dim); margin: 8px 4px 6px;
+}
+.woa-stepitem {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: none; border-radius: 6px; cursor: pointer;
+  color: var(--text); text-align: left; padding: 6px 8px; font-size: 0.86rem;
+}
+.woa-stepitem:hover { background: var(--bg-raised); }
+.woa-stepitem.is-active { background: var(--bg-raised); box-shadow: inset 2px 0 0 var(--accent); }
+.woa-stepitem--sub { padding-left: 18px; font-size: 0.8rem; }
+.woa-stepitem__id { color: var(--text-dim); font-size: 0.72rem; min-width: 18px; }
+.woa-stepitem__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.woa-add { color: var(--link); }
+.woa-gate { font-size: 0.8rem; color: var(--text-dim); margin: 4px 8px 10px; }
+.woa-playerbox { border-bottom: 1px solid var(--border); }
+.woa-playerbox:last-of-type { border-bottom: none; }
+
+.woa-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--border); flex: none; }
+.woa-dot--filled { background: var(--good); border-color: var(--good-border); }
+.woa-dot--skipped { background: var(--text-dim); }
+.woa-lock { font-size: 0.7rem; margin-left: auto; }
+
+/* --------------------------------------------------------- adım kartı */
+
+.woa-step {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+}
+.woa-step.is-skipped { opacity: .6; }
+.woa-step__head { display: flex; align-items: center; gap: 10px; }
+.woa-step__head > div { display: flex; align-items: center; gap: 8px; flex: 1; }
+.woa-step__head h2 { margin: 0; font-size: 1.1rem; }
+.woa-step__id {
+  background: var(--bg-raised); border-radius: 6px; padding: 2px 7px;
+  font-size: 0.75rem; color: var(--text-dim);
+}
+.woa-why { color: var(--text-dim); margin: 6px 0 14px; font-size: 0.9rem; }
+.woa-step__foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+.woa-playerhead {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.woa-panel { display: grid; gap: 12px; margin-bottom: 14px; }
+.woa-panelbox {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+}
+.woa-panelbox h4 {
+  margin: 0 0 8px; font-size: 0.82rem; color: var(--text-dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.woa-panelbox h5 {
+  margin: 10px 0 4px; font-size: 0.74rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text-dim);
+}
+.woa-two { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 700px) { .woa-two { grid-template-columns: 1fr; } }
+
+.woa-duel { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.woa-duel th, .woa-duel td { padding: 4px 6px; text-align: right; }
+.woa-duel thead th { color: var(--text-dim); font-weight: 500; }
+.woa-duel tbody th[scope="row"] { text-align: left; color: var(--text-dim); font-weight: 500; }
+.woa-duel tbody tr:nth-child(odd) { background: var(--bg-soft); }
+.woa-duel--cross tbody th[scope="row"] { text-transform: capitalize; }
+
+.woa-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.woa-facts li { display: flex; flex-direction: column; font-size: 0.86rem; }
+.woa-facts .woa-dim { font-size: 0.72rem; }
+
+.woa-list { list-style: none; margin: 4px 0; padding: 0; font-size: 0.84rem; display: grid; gap: 3px; }
+.woa-list--inline { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.woa-recap li { color: var(--text-dim); }
+.woa-recap .woa-dim { color: var(--text); font-weight: 600; margin-right: 4px; }
+.woa-quote { font-style: italic; margin: 0; font-size: 0.88rem; }
+.woa-status { color: var(--warn); font-size: 0.78rem; }
+.woa-self { color: var(--accent); font-weight: 600; }
+.woa-dim { color: var(--text-dim); }
+.woa-up { color: var(--good); }
+.woa-down { color: var(--bad); }
+.woa-empty { color: var(--text-dim); margin: 4px 0; }
+.woa-hint { color: var(--text-dim); font-size: 0.82rem; margin: 6px 0 0; }
+.woa-warn {
+  background: var(--err-bg); border: 1px solid var(--err-border); color: var(--err-text);
+  border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; margin: 8px 0 0;
+}
+.woa-warn--soft { background: none; border: none; color: var(--warn); padding: 0; }
+
+.woa-bars { list-style: none; display: flex; gap: 6px; align-items: flex-end; height: 60px; margin: 0; padding: 0; }
+.woa-bars li { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; font-size: 0.7rem; }
+.woa-bar { width: 16px; background: var(--accent); border-radius: 2px 2px 0 0; }
+
+/* ------------------------------------------------------------ kaynaklar */
+
+.woa-sources { border-top: 1px solid var(--border); padding-top: 10px; }
+.woa-sources h3 {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-dim); margin: 0 0 8px;
+}
+.woa-source { padding: 6px 0; border-bottom: 1px dashed var(--border); }
+.woa-source:last-child { border-bottom: none; }
+.woa-source.is-done { opacity: .75; }
+.woa-source__head { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+.woa-source__head a { color: var(--link); }
+.woa-source__bring { margin: 2px 0 0 24px; font-size: 0.8rem; color: var(--text-dim); }
+.woa-source .woa-fields { margin-left: 24px; }
+.woa-badge {
+  font-size: 0.68rem; padding: 1px 6px; border-radius: 8px;
+  border: 1px solid var(--border); color: var(--text-dim);
+}
+.woa-badge--pff { border-color: var(--accent); color: var(--accent); }
+.woa-badge--hashtag { border-color: var(--link); color: var(--link); }
+.woa-tier { font-size: 0.68rem; color: var(--text-dim); }
+
+/* ---------------------------------------------------------------- alanlar */
+
+.woa-fields { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 8px 0; }
+.woa-field { display: flex; flex-direction: column; gap: 3px; }
+.woa-field--team { flex-direction: row; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.woa-field--team .woa-field__label { width: 100%; }
+.woa-field__label { font-size: 0.74rem; color: var(--text-dim); }
+.woa-field__slot { display: flex; align-items: center; gap: 5px; font-size: 0.82rem; }
+.woa-field__team { display: inline-flex; align-items: center; gap: 3px; color: var(--text-dim); font-size: 0.75rem; }
+.woa-field input, .woa-field select, .woa-search {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; font-size: 0.85rem; max-width: 180px;
+}
+.woa-search { max-width: 100%; width: 100%; margin-bottom: 10px; }
+.woa-rating { display: inline-flex; gap: 2px; }
+.woa-rating button {
+  background: none; border: none; cursor: pointer;
+  color: var(--border); font-size: 0.9rem; padding: 0 1px;
+}
+.woa-rating button.on { color: var(--accent); }
+
+.woa-notes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; margin-top: 12px; }
+.woa-notes:has(> :only-child) { grid-template-columns: 1fr; }
+@media (max-width: 700px) { .woa-notes { grid-template-columns: 1fr; } }
+.woa-note { display: flex; flex-direction: column; gap: 4px; }
+.woa-note > span { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text-dim); }
+.woa-note textarea {
+  background: var(--bg); color: var(--text); resize: vertical;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font: inherit; font-size: 0.88rem;
+}
+.woa-note textarea:focus { outline: none; border-color: var(--accent); }
+
+.woa-roster { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 320px; overflow-y: auto; }
+.woa-roster button {
+  width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  color: var(--text); padding: 4px 6px; border-radius: 6px; font-size: 0.85rem;
+  display: flex; gap: 8px;
+}
+.woa-roster button:hover { background: var(--bg-raised); }
+.woa-roster button.is-added { color: var(--text-dim); }
+
+.woa-cov { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; font-size: 0.84rem; }
+.woa-cov li { display: flex; justify-content: space-between; }
+
+/* ----------------------------------------------------------------- rapor */
+
+.woa-report__actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.woa-report { max-width: 760px; }
+.woa-report h1 { font-size: 1.5rem; }
+.woa-report h2 { margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.woa-report h3 { margin-top: 20px; }
+.woa-report h4 { margin: 16px 0 4px; font-size: 0.95rem; }
+.woa-report p { margin: 4px 0; }
+.woa-report blockquote {
+  margin: 10px 0; padding: 8px 14px; border-left: 3px solid var(--accent);
+  background: var(--bg-soft); font-style: italic;
+}
+.woa-report ul { margin: 4px 0; padding-left: 20px; font-size: 0.9rem; }
+.woa-report em { color: var(--text-dim); font-style: normal; font-size: 0.85rem; }
+
+@media print {
+  .topbar, footer, .woa-report__actions { display: none !important; }
+  .woa-report { max-width: none; }
+}

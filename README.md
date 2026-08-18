@@ -20,6 +20,11 @@ Plan ve fazlar için [ROADMAP.md](ROADMAP.md).
   taşımaz; yayındaki `https://statgrade.com/data/` JSON'larını okur, yani Salı
   güncellemesi mağaza sürümü gerektirmeden uygulamaya da yansır. Ayrıntı:
   [mobile/README.md](mobile/README.md).
+- **WoA (Way of Analysis):** Bir maçı analiz ederken adım adım yönlendiren
+  rehber — webde `#/woa`. Maç analizi sekiz, oyuncu analizi altı adım; her
+  adımda kendi verimiz gömülü, yanında PFF/Hashtag/FootballGuys bağlantıları.
+  Notlar rapora dönüşür ve yalnızca cihazda durur. Ayrıntı:
+  [docs/WOA.md](docs/WOA.md).
 - **Bahis takibi:** Ayrı bir BetTracker projesi olarak başlayan modül artık
   burada yaşıyor — webde `#/bets`, mobilde `Daha › Bahis Takip`. Girişle
   açılır ve verisi yalnızca cihazda durur. Ayrıntı:
