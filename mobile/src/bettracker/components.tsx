@@ -8,7 +8,16 @@ import Svg, { Path, Line as SvgLine } from 'react-native-svg';
 import { font, radius, space, useColors } from '../lib/theme';
 import { useI18n } from './i18n';
 import { formatOdds } from './core/odds';
-import { combinedOdds, potentialReturn, settleBet } from './core/settlement';
+import {
+  combinedOdds,
+  isBuilder,
+  pickStatus,
+  potentialReturn,
+  settleBet,
+  SETTLEABLE_STATUSES,
+  withLegStatus,
+  withPickStatus,
+} from './core/settlement';
 import { sportIcon } from './core/reference';
 import type { CurvePoint } from './core/stats';
 import type { Bet, BetStatus, OddsFormat, Selection, SelectionStatus } from './core/types';
@@ -138,10 +147,8 @@ export function statusLabel(status: BetStatus, t: (k: never) => string): string 
   return t(key as never);
 }
 
-/** Every leg outcome offered inline, including the Asian half-lines. */
-const LEG_STATUSES: SelectionStatus[] = ['pending', 'won', 'lost', 'void', 'half_won', 'half_lost'];
-
-function legTone(status: SelectionStatus): 'good' | 'bad' | 'warn' | 'dim' {
+/** Chip colour for one outcome. Shared with the bet form. */
+export function legTone(status: SelectionStatus): 'good' | 'bad' | 'warn' | 'dim' {
   if (status === 'won' || status === 'half_won') return 'good';
   if (status === 'lost' || status === 'half_lost') return 'bad';
   if (status === 'pending') return 'warn';
@@ -212,9 +219,19 @@ export function BetCard({
         ? c.bad
         : c.textDim;
 
-  function setLeg(selection: Selection, status: SelectionStatus) {
+  /**
+   * Writes one leg back, leaving the others alone.
+   *
+   * Reopening a leg has to drop `settledAt` too, or the bet keeps a settlement
+   * date it no longer has and the equity curve orders it by that date.
+   */
+  function replaceLeg(next: Selection) {
+    const selections = bet.selections.map((s) => (s.id === next.id ? next : s));
     void updateBets([bet.id], {
-      selections: bet.selections.map((s) => (s.id === selection.id ? { ...s, status } : s)),
+      selections,
+      settledAt: selections.some((s) => s.status === 'pending')
+        ? undefined
+        : (bet.settledAt ?? Date.now()),
     });
   }
 
@@ -287,7 +304,7 @@ export function BetCard({
                 key={selection.id}
                 selection={selection}
                 oddsFormat={oddsFormat}
-                onSetStatus={(status) => setLeg(selection, status)}
+                onChange={replaceLeg}
               />
             ))}
           </View>
@@ -352,19 +369,27 @@ function MenuItem({
   );
 }
 
-/** One leg inside an expanded card, with its outcome buttons. */
+/**
+ * One leg inside an expanded card.
+ *
+ * A bet builder is a single price on several predictions, so each prediction
+ * gets its own outcome buttons and the leg's status is read off them. Settling
+ * the whole leg in one tap would throw away exactly the detail the analyser
+ * needs — which of the four calls actually landed.
+ */
 function LegRow({
   selection,
   oddsFormat,
-  onSetStatus,
+  onChange,
 }: {
   selection: Selection;
   oddsFormat: OddsFormat;
-  onSetStatus: (status: SelectionStatus) => void;
+  onChange: (selection: Selection) => void;
 }) {
   const c = useColors();
   const { t } = useI18n();
 
+  const builder = isBuilder(selection);
   const picks = selection.picks.map((p) => p.pick).filter(Boolean).join(' + ');
   const markets = selection.picks.map((p) => p.market).filter(Boolean).join(' + ');
 
@@ -380,45 +405,115 @@ function LegRow({
         </Text>
       </Row>
 
-      {picks ? (
-        <Text style={{ color: c.textDim, fontSize: font.xs, marginTop: 2 }}>
-          {markets ? `${markets} · ` : ''}{picks}
-        </Text>
-      ) : null}
+      {builder ? (
+        <>
+          {/* Ayağın kendi sonucu tahminlerden çıkıyor; elle seçilmiyor. */}
+          <Row gap={space.sm} style={{ marginTop: 2 }}>
+            <Dim style={{ fontSize: font.xs, flex: 1 }}>
+              {t('bet.builder')} ×{selection.picks.length} · {t('bet.builder.perPick')}
+            </Dim>
+            <Badge label={t(`status.${selection.status}` as never)}
+                   tone={legTone(selection.status)} />
+          </Row>
 
-      <Row gap={6} style={{ marginTop: space.sm, flexWrap: 'wrap' }}>
-        {LEG_STATUSES.map((status) => {
-          const active = selection.status === status;
-          const tone = legTone(status);
-          const fg = tone === 'good' ? c.good : tone === 'bad' ? c.bad
-            : tone === 'warn' ? c.warn : c.textDim;
-          const label =
-            status === 'half_won' ? `½ ${t('status.won')}`
-            : status === 'half_lost' ? `½ ${t('status.lost')}`
-            : t(`status.${status}` as never);
+          {selection.picks.map((pick) => (
+            <PickRow
+              key={pick.id}
+              label={pick.pick || pick.market || '—'}
+              sub={pick.pick && pick.market ? pick.market : ''}
+              status={pickStatus(selection, pick)}
+              onSetStatus={(status) => onChange(withPickStatus(selection, pick.id, status))}
+            />
+          ))}
+        </>
+      ) : (
+        <>
+          {picks ? (
+            <Text style={{ color: c.textDim, fontSize: font.xs, marginTop: 2 }}>
+              {markets ? `${markets} · ` : ''}{picks}
+            </Text>
+          ) : null}
 
-          return (
-            <Pressable
-              key={status}
-              onPress={() => onSetStatus(status)}
-              style={{
-                paddingHorizontal: space.md,
-                paddingVertical: 6,
-                borderRadius: radius.pill,
-                borderWidth: 1,
-                borderColor: active ? fg : c.border,
-                backgroundColor: active ? fg : 'transparent',
-              }}
-            >
-              <Text style={{ color: active ? c.bg : fg, fontSize: font.xs,
-                             fontWeight: active ? '800' : '600' }}>
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </Row>
+          <StatusChips
+            status={selection.status}
+            onSetStatus={(status) => onChange(withLegStatus(selection, status))}
+          />
+        </>
+      )}
     </View>
+  );
+}
+
+/** One prediction of a bet builder, with its own outcome buttons. */
+function PickRow({
+  label,
+  sub,
+  status,
+  onSetStatus,
+}: {
+  label: string;
+  sub: string;
+  status: SelectionStatus;
+  onSetStatus: (status: SelectionStatus) => void;
+}) {
+  const c = useColors();
+
+  return (
+    <View style={{ marginTop: space.sm, paddingLeft: space.sm,
+                   borderLeftWidth: 2, borderLeftColor: c.border }}>
+      <Text numberOfLines={2} style={{ color: c.text, fontSize: font.xs, fontWeight: '600' }}>
+        {label}
+      </Text>
+      {sub ? <Dim style={{ fontSize: font.xs }}>{sub}</Dim> : null}
+      <StatusChips status={status} onSetStatus={onSetStatus} />
+    </View>
+  );
+}
+
+/**
+ * The outcome buttons. Half-won / half-lost are deliberately absent: they only
+ * apply to Asian quarter lines, which this app's sports do not have, and they
+ * were pushing the outcomes people do use onto a second row.
+ */
+function StatusChips({
+  status,
+  onSetStatus,
+}: {
+  status: SelectionStatus;
+  onSetStatus: (status: SelectionStatus) => void;
+}) {
+  const c = useColors();
+  const { t } = useI18n();
+
+  return (
+    <Row gap={6} style={{ marginTop: space.sm, flexWrap: 'wrap' }}>
+      {SETTLEABLE_STATUSES.map((option) => {
+        const active = status === option;
+        const tone = legTone(option);
+        const fg = tone === 'good' ? c.good : tone === 'bad' ? c.bad
+          : tone === 'warn' ? c.warn : c.textDim;
+
+        return (
+          <Pressable
+            key={option}
+            onPress={() => onSetStatus(option)}
+            style={{
+              paddingHorizontal: space.md,
+              paddingVertical: 6,
+              borderRadius: radius.pill,
+              borderWidth: 1,
+              borderColor: active ? fg : c.border,
+              backgroundColor: active ? fg : 'transparent',
+            }}
+          >
+            <Text style={{ color: active ? c.bg : fg, fontSize: font.xs,
+                           fontWeight: active ? '800' : '600' }}>
+              {t(`status.${option}` as never)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
   );
 }
 

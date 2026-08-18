@@ -6,7 +6,16 @@ import { useI18n } from '../i18n';
 import { newId } from '../core/ids';
 import { formatOdds, parseOdds } from '../core/odds';
 import { COMMON_MARKETS, SPORTS, sportIcon } from '../core/reference';
-import { combinedOdds, potentialReturn, settleBet } from '../core/settlement';
+import {
+  combinedOdds,
+  isBuilder,
+  potentialReturn,
+  settleBet,
+  SETTLEABLE_STATUSES,
+  statusFromPicks,
+  withLegStatus,
+  withPickStatus,
+} from '../core/settlement';
 import { SYSTEM_PRESETS, systemLabel } from '../core/systems';
 import {
   findLeague,
@@ -24,7 +33,9 @@ import type {
 } from '../core/types';
 import { emptyBet, useApp } from '../state/AppContext';
 import { useSportsData } from '../state/useSportsData';
+import { legTone } from '../components';
 import {
+  Badge,
   Button,
   Chips,
   Confirm,
@@ -41,7 +52,6 @@ import {
 } from '../ui';
 
 const STRUCTURES: BetStructure[] = ['single', 'accumulator', 'system'];
-const LEG_STATUSES: SelectionStatus[] = ['pending', 'won', 'lost', 'void', 'half_won', 'half_lost'];
 
 /** Bir müsabakanın girilme yolu. */
 type MatchMode = 'fixture' | 'teams' | 'manual';
@@ -485,6 +495,16 @@ function SelectionCard({
   const { catalog, fixtures } = useSportsData();
   const [fixturesOpen, setFixturesOpen] = useState(false);
 
+  const builder = isBuilder(selection);
+
+  /**
+   * Adding or dropping a prediction changes what the leg as a whole means, so
+   * the leg's outcome is rederived rather than left on whatever it was.
+   */
+  function setPicks(picks: Selection['picks']) {
+    onChange({ picks, status: statusFromPicks({ ...selection, picks }) });
+  }
+
   // A saved leg reopens on whichever tab it was entered with, so editing never
   // rewrites the event behind the user's back.
   const [mode, setMode] = useState<MatchMode>(() => {
@@ -690,9 +710,7 @@ function SelectionCard({
               />
               {selection.picks.length > 1 ? (
                 <Pressable
-                  onPress={() =>
-                    onChange({ picks: selection.picks.filter((p) => p.id !== pick.id) })
-                  }
+                  onPress={() => setPicks(selection.picks.filter((p) => p.id !== pick.id))}
                   hitSlop={10}
                 >
                   <Text style={{ color: c.bad, fontSize: font.lg }}>✕</Text>
@@ -700,6 +718,22 @@ function SelectionCard({
               ) : null}
             </Row>
           </Field>
+
+          {/* Bet builder'da her tahmin ayrı sonuçlanır; ayağın sonucu
+              bunlardan hesaplanıyor. */}
+          {builder ? (
+            <Field label={t('bet.pickOutcome')}>
+              <Chips
+                compact
+                value={pick.status ?? selection.status}
+                onChange={(v: SelectionStatus) => onChange(withPickStatus(selection, pick.id, v))}
+                options={SETTLEABLE_STATUSES.map((s) => ({
+                  value: s,
+                  label: t(`status.${s}` as never),
+                }))}
+              />
+            </Field>
+          ) : null}
         </View>
       ))}
 
@@ -707,13 +741,19 @@ function SelectionCard({
         label={t('bet.addPick')}
         tone="ghost"
         onPress={() =>
-          onChange({
-            picks: [...selection.picks, { id: newId('pk_'), market: '', pick: '' }],
-          })
+          setPicks([
+            ...selection.picks,
+            // Yeni tahmin ayağın durumunu miras alır: kazandı işaretli bir
+            // ayağa tahmin eklemek onu sessizce geri açmasın.
+            { id: newId('pk_'), market: '', pick: '', status: selection.status },
+          ])
         }
         style={{ marginTop: space.sm }}
       />
-      <Dim style={{ marginTop: space.xs, fontSize: font.xs }}>{t('bet.builder.hint')}</Dim>
+      <Dim style={{ marginTop: space.xs, fontSize: font.xs }}>
+        {t('bet.builder.hint')}
+        {builder ? ` ${t('bet.builder.perPick')}` : ''}
+      </Dim>
 
       <Divider />
 
@@ -746,19 +786,20 @@ function SelectionCard({
         />
       </Field>
 
-      <Field label={t('common.count')}>
-        <Chips
-          compact
-          value={selection.status}
-          onChange={(v: SelectionStatus) => onChange({ status: v })}
-          options={LEG_STATUSES.map((s) => ({
-            value: s,
-            label:
-              s === 'half_won' ? `½ ${t('status.won')}`
-              : s === 'half_lost' ? `½ ${t('status.lost')}`
-              : t(`status.${s}` as never),
-          }))}
-        />
+      <Field label={t('bet.legOutcome')} hint={builder ? t('bet.builder.derived') : undefined}>
+        {builder ? (
+          <Badge label={t(`status.${selection.status}` as never)} tone={legTone(selection.status)} />
+        ) : (
+          <Chips
+            compact
+            value={selection.status}
+            onChange={(v: SelectionStatus) => onChange(withLegStatus(selection, v))}
+            options={SETTLEABLE_STATUSES.map((s) => ({
+              value: s,
+              label: t(`status.${s}` as never),
+            }))}
+          />
+        )}
       </Field>
 
       <FixtureSheet

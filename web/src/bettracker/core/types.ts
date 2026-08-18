@@ -17,8 +17,13 @@ export type BetStructure = 'single' | 'accumulator' | 'system';
 
 /**
  * Outcome of one selection.
+ *
  * `half_won` / `half_lost` cover Asian handicap quarter lines, where half the
- * stake settles at the odds and half is returned.
+ * stake settles at the odds and half is returned. They are no longer offered
+ * anywhere in the UI — the app tracks American football, which has no quarter
+ * lines — but the settlement engine still honours them so records saved or
+ * imported before they were withdrawn keep settling to the same money.
+ * `SETTLEABLE_STATUSES` in `settlement.ts` is what the UI offers.
  */
 export type SelectionStatus =
   | 'pending'
@@ -50,6 +55,18 @@ export interface BuilderPick {
   market: string;
   /** The side taken, e.g. "Galatasaray", "Over 2.5", "Icardi" */
   pick: string;
+  /**
+   * Outcome of this one pick.
+   *
+   * A bet builder pays only if every pick lands, so the leg's own status is
+   * derived from these rather than set by hand (`statusFromPicks`). Tracking
+   * them separately is what lets the analyser say which markets actually hit,
+   * instead of writing off all four picks of a builder because one missed.
+   *
+   * Optional: records written before per-pick settling have none, and read
+   * back through `pickStatus`, which falls back to the leg.
+   */
+  status?: SelectionStatus;
 }
 
 export interface Selection {

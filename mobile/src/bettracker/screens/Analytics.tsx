@@ -5,11 +5,14 @@ import { useI18n } from '../i18n';
 import { formatOdds } from '../core/odds';
 import {
   breakdownBy,
+  computePickStats,
   computeStats,
   monthlyBreakdown,
   oddsBand,
+  pickBreakdownBy,
   weekdayBreakdown,
   type BreakdownRow,
+  type PickBreakdownRow,
 } from '../core/stats';
 import type { Bet } from '../core/types';
 import { useApp } from '../state/AppContext';
@@ -33,11 +36,28 @@ export default function Analytics() {
   const { settings, scopedBets, currency } = useApp();
 
   const [dimension, setDimension] = useState<Dimension>('sport');
+  const [pickDimension, setPickDimension] = useState<'market' | 'pick'>('market');
 
   const stats = useMemo(() => computeStats(scopedBets), [scopedBets]);
   const rows = useMemo(
     () => breakdown(scopedBets, dimension, t),
     [scopedBets, dimension, t],
+  );
+
+  /**
+   * Prediction-level figures.
+   *
+   * A bet builder is one price on several predictions, so bet-level numbers can
+   * only say the whole thing lost — not that three of its four calls were
+   * right. These count the predictions one by one.
+   */
+  const pickStats = useMemo(() => computePickStats(scopedBets), [scopedBets]);
+  const pickRows = useMemo(
+    () =>
+      pickDimension === 'market'
+        ? pickBreakdownBy(scopedBets, (p) => p.pick.market || t('common.unknown'))
+        : pickBreakdownBy(scopedBets, (p) => p.pick.pick || p.pick.market || t('common.unknown')),
+    [scopedBets, pickDimension, t],
   );
 
   if (scopedBets.length === 0) {
@@ -114,6 +134,49 @@ export default function Analytics() {
         </Panel>
       ) : null}
 
+      <Panel title={t('analytics.picks')}>
+        <Dim style={{ marginBottom: space.sm }}>{t('analytics.picks.hint')}</Dim>
+        {pickStats.pickCount === 0 ? (
+          <Dim>{t('analytics.noPicks')}</Dim>
+        ) : (
+          <>
+            <StatGrid>
+              <Stat
+                label={t('analytics.pickCount')}
+                value={String(pickStats.pickCount)}
+                sub={`${t('analytics.builderPicks')} ${pickStats.builderPickCount}`}
+              />
+              <Stat
+                label={t('analytics.pickHitRate')}
+                value={formatPercent(pickStats.hitRate)}
+              />
+              <Stat label={t('stat.wonCount')} value={String(pickStats.wonCount)} tone="good" />
+              <Stat label={t('stat.lostCount')} value={String(pickStats.lostCount)} tone="bad" />
+              <Stat label={t('stat.voidCount')} value={String(pickStats.voidCount)} />
+              <Stat label={t('stat.pendingCount')} value={String(pickStats.pendingCount)} />
+            </StatGrid>
+
+            <View style={{ marginTop: space.md }}>
+              <Chips
+                compact
+                value={pickDimension}
+                onChange={setPickDimension}
+                options={[
+                  { value: 'market' as const, label: t('analytics.byMarket') },
+                  { value: 'pick' as const, label: t('analytics.byPick') },
+                ]}
+              />
+            </View>
+
+            <View style={{ marginTop: space.md }}>
+              {pickRows.map((row) => (
+                <PickLine key={row.key} row={row} />
+              ))}
+            </View>
+          </>
+        )}
+      </Panel>
+
       <Panel title={t('analytics.breakdown')}>
         <Chips
           compact
@@ -162,6 +225,33 @@ function BreakdownLine({ row, currency }: { row: BreakdownRow; currency: string 
       <Dim style={{ fontSize: font.xs, marginTop: 2 }}>
         {row.betCount} {t('bet.bets')} · {t('stat.hitRate')} {formatPercent(row.hitRate)} ·{' '}
         {t('stat.yield')} {formatPercent(row.yield)}
+      </Dim>
+    </View>
+  );
+}
+
+/** One market or prediction, counted rather than priced. */
+function PickLine({ row }: { row: PickBreakdownRow }) {
+  const c = useColors();
+  const { t, formatPercent } = useI18n();
+  const resolved = row.wonCount + row.lostCount;
+
+  return (
+    <View style={{ paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: c.border }}>
+      <Row>
+        <Text numberOfLines={1} style={{ color: c.text, fontSize: font.sm,
+                                         fontWeight: '600', flex: 1 }}>
+          {row.label}
+        </Text>
+        <Text style={{ color: resolved === 0 ? c.textDim : row.hitRate >= 0.5 ? c.good : c.bad,
+                       fontSize: font.sm, fontWeight: '700' }}>
+          {resolved > 0 ? formatPercent(row.hitRate) : '—'}
+        </Text>
+      </Row>
+      <Dim style={{ fontSize: font.xs, marginTop: 2 }}>
+        {row.pickCount} {t('analytics.pickCount')} · {row.wonCount} {t('status.won')} ·{' '}
+        {row.lostCount} {t('status.lost')}
+        {row.pendingCount > 0 ? ` · ${row.pendingCount} ${t('status.pending')}` : ''}
       </Dim>
     </View>
   );

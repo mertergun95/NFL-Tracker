@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useApp, emptyBet } from '@bt/state/AppContext';
 import { useI18n } from '@bt/i18n';
 import { computeStats } from '@bt/core/stats';
-import { isSettled } from '@bt/core/settlement';
+import { isSettled, withLegStatus } from '@bt/core/settlement';
 import BetList from '@bt/components/BetList';
 import BetForm from '@bt/components/BetForm';
 import BankrollSwitcher from '@bt/components/BankrollSwitcher';
@@ -20,14 +20,17 @@ import {
   useToast,
 } from '@bt/components/ui';
 import { FilterBar, EMPTY_FILTER, useFilteredBets, type FilterState } from '@bt/components/FilterBar';
-import type { Bet, SelectionStatus } from '@bt/core/types';
+import type { Bet, Selection, SelectionStatus } from '@bt/core/types';
 
-/** Marks every selection of a bet with one outcome — the common case. */
+/**
+ * Marks every selection of a bet with one outcome — the common case.
+ * `withLegStatus` carries it down to each builder pick as well, so a bet
+ * settled in bulk does not leave its individual predictions reading as open.
+ */
 function settleAll(bet: Bet, status: SelectionStatus): Partial<Bet> {
   return {
     selections: bet.selections.map((s) => ({
-      ...s,
-      status,
+      ...withLegStatus(s, status),
       placed: status === 'won' ? true : s.placed,
     })),
     settledAt: status === 'pending' ? undefined : (bet.settledAt ?? Date.now()),
@@ -70,6 +73,19 @@ export default function Bets() {
     }
     show(t('bet.selected', { count: selectedBets.length }));
     setSelected(new Set());
+  }
+
+  /**
+   * Writes legs settled from the list's detail panel straight back to the bet.
+   * Re-settling a bet as open has to clear `settledAt` too, or the equity curve
+   * keeps ordering it by a date it no longer has.
+   */
+  async function saveSelections(bet: Bet, selections: Selection[]) {
+    const stillOpen = selections.some((s) => s.status === 'pending');
+    await updateBets([bet.id], {
+      selections,
+      settledAt: stillOpen ? undefined : (bet.settledAt ?? Date.now()),
+    });
   }
 
   if (bankrolls.length === 0) {
@@ -193,6 +209,7 @@ export default function Bets() {
               selectedIds={selected}
               onToggleSelect={toggle}
               onOpen={setEditing}
+              onSettleSelections={(bet, selections) => void saveSelections(bet, selections)}
             />
           </>
         )}

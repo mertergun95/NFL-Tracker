@@ -1,5 +1,12 @@
-import type { Bet, Transaction } from './types';
-import { closingLineValue, combinedOdds, isSettled, potentialReturn, settleBet } from './settlement';
+import type { Bet, BuilderPick, Selection, SelectionStatus, Transaction } from './types';
+import {
+  closingLineValue,
+  combinedOdds,
+  isSettled,
+  pickStatus,
+  potentialReturn,
+  settleBet,
+} from './settlement';
 
 /**
  * Statistics engine.
@@ -372,6 +379,166 @@ function clvStats(bets: Bet[]): {
     totalEv: evSum,
     luck: actual - evSum,
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * Pick level
+ * ------------------------------------------------------------------ */
+
+/**
+ * Counts over individual picks rather than bets.
+ *
+ * A bet builder is one price on several predictions, so bet-level figures say
+ * nothing about which of those predictions were right: a four-pick builder
+ * that missed by one leg counts as a single loss, and the three that landed
+ * disappear. These counts keep them.
+ */
+export interface PickStats {
+  pickCount: number;
+  wonCount: number;
+  lostCount: number;
+  voidCount: number;
+  pendingCount: number;
+  /** won / (won + lost). Voids and open picks are excluded. */
+  hitRate: number;
+  /** Picks that belong to a multi-pick leg — the ones bet-level stats lose. */
+  builderPickCount: number;
+}
+
+export const EMPTY_PICK_STATS: PickStats = {
+  pickCount: 0,
+  wonCount: 0,
+  lostCount: 0,
+  voidCount: 0,
+  pendingCount: 0,
+  hitRate: 0,
+  builderPickCount: 0,
+};
+
+/** One pick, flattened out of its bet, ready to be counted or grouped. */
+export interface FlatPick {
+  bet: Bet;
+  selection: Selection;
+  pick: BuilderPick;
+  status: SelectionStatus;
+  /** True when the pick shares its price with others on the same event. */
+  inBuilder: boolean;
+}
+
+export function flattenPicks(bets: Bet[]): FlatPick[] {
+  const out: FlatPick[] = [];
+  for (const bet of bets) {
+    for (const selection of bet.selections) {
+      const inBuilder = selection.picks.length > 1;
+      for (const pick of selection.picks) {
+        out.push({
+          bet,
+          selection,
+          pick,
+          status: pickStatus(selection, pick),
+          inBuilder,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+export function computePickStats(bets: Bet[]): PickStats {
+  const picks = flattenPicks(bets);
+  if (picks.length === 0) return { ...EMPTY_PICK_STATS };
+
+  let won = 0;
+  let lost = 0;
+  let voided = 0;
+  let pendingCount = 0;
+  let builderPickCount = 0;
+
+  for (const p of picks) {
+    if (p.inBuilder) builderPickCount++;
+    // The half-lines are legacy but can still sit in imported data; count them
+    // on the side they landed rather than dropping them.
+    if (p.status === 'won' || p.status === 'half_won') won++;
+    else if (p.status === 'lost' || p.status === 'half_lost') lost++;
+    else if (p.status === 'void') voided++;
+    else pendingCount++;
+  }
+
+  const resolved = won + lost;
+  return {
+    pickCount: picks.length,
+    wonCount: won,
+    lostCount: lost,
+    voidCount: voided,
+    pendingCount,
+    hitRate: resolved > 0 ? won / resolved : 0,
+    builderPickCount,
+  };
+}
+
+export interface PickBreakdownRow extends PickStats {
+  key: string;
+  label: string;
+}
+
+/**
+ * Groups picks by an arbitrary key and counts outcomes per group.
+ *
+ * Deliberately count-only: a builder's stake belongs to the leg as a whole and
+ * cannot be split between its picks without inventing a number, so money stays
+ * at bet level and this table answers "which markets do I actually get right".
+ */
+export function pickBreakdownBy(
+  bets: Bet[],
+  keyFn: (pick: FlatPick) => string[] | string | undefined,
+  labelFn: (key: string) => string = (k) => k,
+): PickBreakdownRow[] {
+  const groups = new Map<string, FlatPick[]>();
+
+  for (const flat of flattenPicks(bets)) {
+    const raw = keyFn(flat);
+    if (raw === undefined) continue;
+    for (const key of Array.isArray(raw) ? raw : [raw]) {
+      if (!key) continue;
+      const list = groups.get(key);
+      if (list) list.push(flat);
+      else groups.set(key, [flat]);
+    }
+  }
+
+  const rows: PickBreakdownRow[] = [];
+  for (const [key, group] of groups) {
+    let won = 0;
+    let lost = 0;
+    let voided = 0;
+    let pendingCount = 0;
+    let builderPickCount = 0;
+
+    for (const p of group) {
+      if (p.inBuilder) builderPickCount++;
+      if (p.status === 'won' || p.status === 'half_won') won++;
+      else if (p.status === 'lost' || p.status === 'half_lost') lost++;
+      else if (p.status === 'void') voided++;
+      else pendingCount++;
+    }
+
+    const resolved = won + lost;
+    rows.push({
+      key,
+      label: labelFn(key),
+      pickCount: group.length,
+      wonCount: won,
+      lostCount: lost,
+      voidCount: voided,
+      pendingCount,
+      hitRate: resolved > 0 ? won / resolved : 0,
+      builderPickCount,
+    });
+  }
+
+  // Most-played first: a market with two picks tells the user nothing, and
+  // sorting by hit rate would put it on top.
+  return rows.sort((a, b) => b.pickCount - a.pickCount || b.hitRate - a.hitRate);
 }
 
 /* ------------------------------------------------------------------ *
