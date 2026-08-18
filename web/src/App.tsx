@@ -30,6 +30,9 @@ import NcaaStandings from "./pages/ncaa/NcaaStandings";
 import NcaaRosters from "./pages/ncaa/NcaaRosters";
 import NcaaProjections from "./pages/ncaa/NcaaProjections";
 import NcaaAccuracy from "./pages/ncaa/NcaaAccuracy";
+import WoaHome from "./woa/screens/Home";
+import WoaSession from "./woa/screens/Session";
+import WoaReport from "./woa/screens/Report";
 import BetTracker from "./bettracker/BetTracker";
 import LoginGate from "./components/LoginGate";
 import { loadManifest, seasonsFromManifest } from "./lib/data";
@@ -49,6 +52,7 @@ const NAV = [
   { to: "/depth", key: "nav.depth" },
   { to: "/games", key: "nav.games" },
   { to: "/matchups", key: "nav.matchups" },
+  { to: "/woa", key: "nav.woa" },
   { to: "/props", key: "nav.props" },
   { to: "/compare", key: "nav.compare" },
   { to: "/charts", key: "nav.charts" },
@@ -152,6 +156,9 @@ export default function App() {
               <Route path="/depth" element={<DepthCharts />} />
               <Route path="/standings" element={<Standings seasons={seasons} />} />
               <Route path="/matchups" element={<Matchups />} />
+              <Route path="/woa" element={<WoaHome />} />
+              <Route path="/woa/:id" element={<WoaSession />} />
+              <Route path="/woa/:id/report" element={<WoaReport />} />
               <Route path="/props" element={<PropFinder seasons={seasons} />} />
               <Route path="/injuries" element={<Injuries />} />
               <Route path="/accuracy" element={<Accuracy />} />
