@@ -909,6 +909,129 @@
   align-items: baseline;
 }
 
+/* Bet list: expanded detail
+ *
+ * The row itself stays a link to the edit form; the detail below it is where a
+ * bet gets settled, so the two never fight over the same click. */
+
+.bt-root .bet-entry {
+  border-bottom: 1px solid var(--border);
+}
+
+.bt-root .bet-entry:last-child {
+  border-bottom: none;
+}
+
+.bt-root .bet-entry .bet-item {
+  border-bottom: none;
+}
+
+.bt-root .bet-item__toggle {
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bt-root .bet-item__toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.bt-root .bet-detail {
+  padding: 2px 14px 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.bt-root .bet-detail__leg {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 11px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bt-root .bet-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.bt-root .bet-detail__pick {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding-left: 11px;
+  border-left: 2px solid var(--border);
+}
+
+.bt-root .bet-detail__pick-label {
+  flex: 1;
+  min-width: 140px;
+  font-size: 0.82rem;
+}
+
+.bt-root .bet-detail__pick-market {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.bt-root .status-picker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bt-root .status-picker__item {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.bt-root .status-picker__item:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.bt-root .status-picker__item.is-active {
+  color: var(--surface);
+  border-color: transparent;
+  background: var(--text-muted);
+}
+
+.bt-root .status-picker__item--won.is-active {
+  background: var(--positive);
+}
+
+.bt-root .status-picker__item--lost.is-active {
+  background: var(--negative);
+}
+
+.bt-root .status-picker__item--pending.is-active {
+  background: var(--accent);
+}
+
 /* ------------------------------------------------------------------ *
  * Tables
  * ------------------------------------------------------------------ */

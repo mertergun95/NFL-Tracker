@@ -1,6 +1,6 @@
 import { newId } from './ids';
 import { parseOdds } from './odds';
-import { settleBet } from './settlement';
+import { pickStatus, settleBet } from './settlement';
 import type {
   Bankroll,
   Bet,
@@ -108,6 +108,7 @@ export const CSV_COLUMNS = [
   'event',
   'market',
   'pick',
+  'pick_status',
   'side',
   'odds',
   'closing_odds',
@@ -150,6 +151,9 @@ export function betsToCsv(bets: Bet[], bankrollNames: Map<string, string> = new 
         event: sel.event,
         market: sel.picks.map((p) => p.market).join(PICK_SEPARATOR),
         pick: sel.picks.map((p) => p.pick).join(PICK_SEPARATOR),
+        // Per-pick outcomes: a bet builder's picks each settle on their own,
+        // and the leg-level `status` column cannot carry that.
+        pick_status: sel.picks.map((p) => pickStatus(sel, p)).join(PICK_SEPARATOR),
         side: sel.side,
         odds: sel.odds,
         closing_odds: sel.closingOdds ?? '',
@@ -264,16 +268,28 @@ function normaliseStatus(raw: string): SelectionStatus {
   return aliases[s] ?? 'pending';
 }
 
-/** Zips the market and pick cells back into builder picks. */
-function parsePicks(marketCell: string, pickCell: string): BuilderPick[] {
+/**
+ * Zips the market, pick and outcome cells back into builder picks.
+ *
+ * A file exported before per-pick outcomes existed has no status cell; those
+ * picks fall back to the leg's status, which is what they meant.
+ */
+function parsePicks(
+  marketCell: string,
+  pickCell: string,
+  statusCell: string,
+  legStatus: SelectionStatus,
+): BuilderPick[] {
   const markets = marketCell ? marketCell.split(PICK_SEPARATOR) : [];
   const picks = pickCell ? pickCell.split(PICK_SEPARATOR) : [];
+  const statuses = statusCell ? statusCell.split(PICK_SEPARATOR) : [];
   const count = Math.max(markets.length, picks.length, 1);
 
   return Array.from({ length: count }, (_, i) => ({
     id: newId('pk_'),
     market: (markets[i] ?? '').trim(),
     pick: (picks[i] ?? '').trim(),
+    status: statuses[i] ? normaliseStatus(statuses[i]!) : legStatus,
   }));
 }
 
@@ -315,6 +331,7 @@ export function csvToBets(
     event: col('event'),
     market: col('market'),
     pick: col('pick'),
+    pickStatus: col('pick_status'),
     side: col('side'),
     odds: col('odds'),
     closingOdds: col('closing_odds'),
@@ -381,16 +398,17 @@ export function csvToBets(
       const odds = parseOdds(get(row, idx.odds)) ?? 1;
       const closing = parseOdds(get(row, idx.closingOdds));
       const sideText = get(row, idx.side).toLowerCase();
+      const status = normaliseStatus(get(row, idx.status));
       return {
         id: newId('sel_'),
         event: get(row, idx.event) || '—',
         sport: get(row, idx.sport) || 'other',
         competition: get(row, idx.competition),
-        picks: parsePicks(get(row, idx.market), get(row, idx.pick)),
+        picks: parsePicks(get(row, idx.market), get(row, idx.pick), get(row, idx.pickStatus), status),
         odds,
         side: sideText === 'lay' ? 'lay' : 'back',
         closingOdds: closing !== null && closing > 1 ? closing : undefined,
-        status: normaliseStatus(get(row, idx.status)),
+        status,
       };
     });
 

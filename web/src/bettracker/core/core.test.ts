@@ -11,16 +11,31 @@ import {
 import {
   closingLineValue,
   combinedOdds,
+  isBuilder,
   isSettled,
   layLiability,
   lineCount,
+  pickStatus,
   placeOdds,
   potentialReturn,
+  SETTLEABLE_STATUSES,
   settleBet,
+  statusFromPicks,
   totalStake,
+  withLegStatus,
+  withPickStatus,
 } from './settlement';
 import { combinations, indexCombinations, systemLineCount } from './systems';
-import { computeStats, drawdown, equityCurve, oddsBand, toSettledBets } from './stats';
+import {
+  computePickStats,
+  computeStats,
+  drawdown,
+  equityCurve,
+  flattenPicks,
+  oddsBand,
+  pickBreakdownBy,
+  toSettledBets,
+} from './stats';
 import { allocateCapital, dutching, hedge, marketRtp, simulate, stakeSuggestion, surebet } from './calculators';
 
 /* ------------------------------------------------------------------ *
@@ -365,6 +380,128 @@ describe('closing line value', () => {
 
   it('is unavailable when a leg has no closing price', () => {
     expect(closingLineValue(bet({ selections: [sel(2, 'won')] }))).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Bet builders
+ * ------------------------------------------------------------------ */
+
+/** A leg holding several picks under one price. */
+function builder(odds: number, statuses: (SelectionStatus | undefined)[]): Selection {
+  return sel(odds, 'pending', {
+    picks: statuses.map((status, i) => ({
+      id: `bp${idCounter++}`,
+      market: `M${i}`,
+      pick: `P${i}`,
+      status,
+    })),
+  });
+}
+
+describe('bet builder picks', () => {
+  it('offers no half-lines to settle with', () => {
+    expect([...SETTLEABLE_STATUSES]).toEqual(['pending', 'won', 'lost', 'void']);
+  });
+
+  it('recognises a leg with more than one pick', () => {
+    expect(isBuilder(sel(2))).toBe(false);
+    expect(isBuilder(builder(2, ['won', 'won']))).toBe(true);
+  });
+
+  it('reads a pick with no status of its own off the leg', () => {
+    const legacy = sel(2, 'won', {
+      picks: [
+        { id: 'a', market: 'm', pick: 'p' },
+        { id: 'b', market: 'm2', pick: 'p2' },
+      ],
+    });
+    expect(legacy.picks.map((p) => pickStatus(legacy, p))).toEqual(['won', 'won']);
+  });
+
+  it('needs every pick to land before the leg wins', () => {
+    expect(statusFromPicks(builder(2, ['won', 'won']))).toBe('won');
+    expect(statusFromPicks(builder(2, ['won', 'lost']))).toBe('lost');
+    expect(statusFromPicks(builder(2, ['won', 'pending']))).toBe('pending');
+    // A losing pick settles the leg even while another is still open.
+    expect(statusFromPicks(builder(2, ['lost', 'pending']))).toBe('lost');
+    expect(statusFromPicks(builder(2, ['void', 'void']))).toBe('void');
+    // Voided picks drop out; the rest decide.
+    expect(statusFromPicks(builder(2, ['void', 'won']))).toBe('won');
+  });
+
+  it('leaves a single-pick leg alone', () => {
+    expect(statusFromPicks(sel(2, 'won'))).toBe('won');
+  });
+
+  it('rederives the leg when one pick is settled', () => {
+    const leg = builder(2, ['pending', 'pending']);
+    const first = withPickStatus(leg, leg.picks[0]!.id, 'won');
+    expect(first.status).toBe('pending');
+
+    const both = withPickStatus(first, leg.picks[1]!.id, 'won');
+    expect(both.status).toBe('won');
+    expect(both.picks.map((p) => p.status)).toEqual(['won', 'won']);
+
+    const missed = withPickStatus(both, leg.picks[1]!.id, 'lost');
+    expect(missed.status).toBe('lost');
+  });
+
+  it('mirrors a bulk settle onto every pick', () => {
+    const leg = withLegStatus(builder(2, ['pending', 'pending']), 'won');
+    expect(leg.status).toBe('won');
+    expect(leg.picks.every((p) => p.status === 'won')).toBe(true);
+  });
+
+  it("pays the leg's price once, not once per pick", () => {
+    const won = bet({ selections: [withLegStatus(builder(2.5, ['pending', 'pending']), 'won')] });
+    near(settleBet(won).profit, 150);
+  });
+
+  it('counts each pick of a builder separately', () => {
+    const history = [
+      bet({ selections: [builder(3, ['won', 'won', 'lost'])] }),
+      bet({ selections: [sel(2, 'won')] }),
+    ];
+
+    expect(flattenPicks(history)).toHaveLength(4);
+
+    const picks = computePickStats(history);
+    expect(picks.pickCount).toBe(4);
+    expect(picks.wonCount).toBe(3);
+    expect(picks.lostCount).toBe(1);
+    expect(picks.builderPickCount).toBe(3);
+    near(picks.hitRate, 0.75);
+
+    // Bet level sees only the two bets, one of them a loss.
+    const stats = computeStats(history);
+    expect(stats.betCount).toBe(2);
+  });
+
+  it('groups picks by market', () => {
+    const history = [
+      bet({
+        selections: [
+          sel(2, 'pending', {
+            picks: [
+              { id: 'x1', market: 'Spread', pick: 'KC -3', status: 'won' },
+              { id: 'x2', market: 'Total', pick: 'Over 44', status: 'lost' },
+              { id: 'x3', market: 'Spread', pick: 'SF -1', status: 'won' },
+            ],
+          }),
+        ],
+      }),
+    ];
+
+    const rows = pickBreakdownBy(history, (p) => p.pick.market);
+    const spread = rows.find((r) => r.key === 'Spread')!;
+    expect(spread.pickCount).toBe(2);
+    expect(spread.wonCount).toBe(2);
+    near(spread.hitRate, 1);
+
+    const total = rows.find((r) => r.key === 'Total')!;
+    expect(total.lostCount).toBe(1);
+    near(total.hitRate, 0);
   });
 });
 

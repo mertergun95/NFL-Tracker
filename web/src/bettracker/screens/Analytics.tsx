@@ -3,13 +3,16 @@ import { useApp } from '@bt/state/AppContext';
 import { useI18n } from '@bt/i18n';
 import {
   breakdownBy,
-  computeStats,
+  computePickStats,
   dailyProfit,
+  computeStats,
   monthlyBreakdown,
   oddsBand,
+  pickBreakdownBy,
   toSettledBets,
   weekdayBreakdown,
   type BreakdownRow,
+  type PickBreakdownRow,
 } from '@bt/core/stats';
 import { combinedOdds } from '@bt/core/settlement';
 import { formatOdds } from '@bt/core/odds';
@@ -122,6 +125,64 @@ function BreakdownTable({
   );
 }
 
+/**
+ * Predictions grouped by market or by the pick itself.
+ *
+ * Counts only — a builder's stake belongs to the whole leg and splitting it
+ * across the picks would be a made-up number. What the user wants here is
+ * which calls they actually get right.
+ */
+function PickBreakdownTable({
+  rows,
+  minPicks,
+  head,
+}: {
+  rows: PickBreakdownRow[];
+  minPicks: number;
+  /** Column header — what the rows are grouped by. */
+  head: string;
+}) {
+  const { t, formatPercent, formatNumber } = useI18n();
+  const shown = rows.filter((r) => r.pickCount >= minPicks);
+
+  if (shown.length === 0) {
+    return <div className="banner banner--info">{t('analytics.noPicks')}</div>;
+  }
+
+  return (
+    <div className="bt-table-wrap">
+      <table className="table">
+        <thead>
+          <tr>
+            <th>{head}</th>
+            <th className="bt-num">{t('analytics.pickCount')}</th>
+            <th className="bt-num">{t('status.won')}</th>
+            <th className="bt-num">{t('status.lost')}</th>
+            <th className="bt-num">{t('status.void')}</th>
+            <th className="bt-num">{t('status.pending')}</th>
+            <th className="bt-num">{t('analytics.pickHitRate')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((row) => (
+            <tr key={row.key}>
+              <td className="truncate">{row.label}</td>
+              <td className="bt-num">{formatNumber(row.pickCount)}</td>
+              <td className="bt-num is-positive">{formatNumber(row.wonCount)}</td>
+              <td className="bt-num is-negative">{formatNumber(row.lostCount)}</td>
+              <td className="bt-num">{formatNumber(row.voidCount)}</td>
+              <td className="bt-num">{formatNumber(row.pendingCount)}</td>
+              <td className="bt-num">
+                {row.wonCount + row.lostCount > 0 ? formatPercent(row.hitRate) : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 type DimensionKey =
   | 'sport'
   | 'bookmaker'
@@ -143,6 +204,7 @@ export default function Analytics() {
   const [sortKey, setSortKey] = useState<SortKey>('profit');
   const [minBets, setMinBets] = useState(1);
   const [calendarMonths, setCalendarMonths] = useState(6);
+  const [pickDimension, setPickDimension] = useState<'market' | 'pick'>('market');
 
   const bets = useFilteredBets(scopedBets, filterState);
 
@@ -202,6 +264,23 @@ export default function Analytics() {
   }, [bets, dimension, t]);
 
   const daily = useMemo(() => dailyProfit(bets), [bets]);
+
+  /**
+   * Prediction-level figures.
+   *
+   * Bet-level statistics can only ever say a bet builder lost; they cannot say
+   * that three of its four predictions were right. These are counted per pick,
+   * which is the only place that shows up.
+   */
+  const pickStats = useMemo(() => computePickStats(bets), [bets]);
+
+  const pickRows = useMemo(
+    () =>
+      pickDimension === 'market'
+        ? pickBreakdownBy(bets, (p) => p.pick.market || t('common.unknown'))
+        : pickBreakdownBy(bets, (p) => p.pick.pick || p.pick.market || t('common.unknown')),
+    [bets, pickDimension, t],
+  );
 
   /** Money split across winning, losing and voided bets. */
   const stakeSplit = useMemo(() => {
@@ -464,6 +543,66 @@ export default function Analytics() {
               onSortChange={setSortKey}
               minBets={minBets}
             />
+          </Card>
+
+          {/* Prediction level — where bet builders stop being one line */}
+          <Card title={t('analytics.picks')} hint={t('analytics.picks.hint')}>
+            {pickStats.pickCount === 0 ? (
+              <div className="banner banner--info">{t('analytics.noPicks')}</div>
+            ) : (
+              <>
+                <div className="grid grid--kpi" style={{ marginBottom: 12 }}>
+                  <Stat
+                    label={t('analytics.pickCount')}
+                    value={formatNumber(pickStats.pickCount)}
+                    sub={`${t('analytics.builderPicks')} ${formatNumber(pickStats.builderPickCount)}`}
+                  />
+                  <Stat
+                    label={t('analytics.pickHitRate')}
+                    value={formatPercent(pickStats.hitRate)}
+                  />
+                  <Stat
+                    label={t('stat.wonCount')}
+                    value={formatNumber(pickStats.wonCount)}
+                    tone="positive"
+                  />
+                  <Stat
+                    label={t('stat.lostCount')}
+                    value={formatNumber(pickStats.lostCount)}
+                    tone="negative"
+                  />
+                  <Stat label={t('stat.voidCount')} value={formatNumber(pickStats.voidCount)} />
+                  <Stat
+                    label={t('stat.pendingCount')}
+                    value={formatNumber(pickStats.pendingCount)}
+                  />
+                </div>
+
+                <div className="chip-row chip-row--scroll" style={{ marginBottom: 12 }}>
+                  {(
+                    [
+                      { key: 'market' as const, label: t('analytics.byMarket') },
+                      { key: 'pick' as const, label: t('analytics.byPick') },
+                    ]
+                  ).map((d) => (
+                    <button
+                      key={d.key}
+                      type="button"
+                      className={`chip${pickDimension === d.key ? ' is-active' : ''}`}
+                      onClick={() => setPickDimension(d.key)}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+
+                <PickBreakdownTable
+                  rows={pickRows}
+                  minPicks={minBets}
+                  head={pickDimension === 'market' ? t('bet.market') : t('bet.pick')}
+                />
+              </>
+            )}
           </Card>
 
           {/* Calendar */}

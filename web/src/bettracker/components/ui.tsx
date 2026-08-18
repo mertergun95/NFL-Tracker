@@ -7,7 +7,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useI18n, type TranslationKey } from '@bt/i18n';
-import type { BetStatus } from '@bt/core/types';
+import { SETTLEABLE_STATUSES } from '@bt/core/settlement';
+import type { BetStatus, SelectionStatus } from '@bt/core/types';
 
 /* ------------------------------------------------------------------ *
  * Cards, tiles, empty states
@@ -482,9 +483,57 @@ const STATUS_KEYS: Record<BetStatus, TranslationKey> = {
   cashed_out: 'status.cashed_out',
 };
 
+/** Legacy half-lines are still here: imported records can carry them. */
+const SELECTION_STATUS_KEYS: Record<SelectionStatus, TranslationKey> = {
+  pending: 'status.pending',
+  won: 'status.won',
+  lost: 'status.lost',
+  void: 'status.void',
+  half_won: 'status.half_won',
+  half_lost: 'status.half_lost',
+};
+
 export function StatusBadge({ status }: { status: BetStatus }) {
   const { t } = useI18n();
   return <span className={`badge badge--${status}`}>{t(STATUS_KEYS[status])}</span>;
+}
+
+/**
+ * The outcome buttons for one leg or one prediction.
+ *
+ * Buttons rather than a dropdown: settling is the thing this app does most
+ * often, and a select costs two clicks and hides the current answer behind a
+ * closed menu. Only `SETTLEABLE_STATUSES` are offered — the Asian half-lines
+ * are gone from the UI, though old records carrying them still settle.
+ */
+export function StatusPicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: SelectionStatus;
+  onChange: (status: SelectionStatus) => void;
+  /** Accessible group name, e.g. "Leg outcome". */
+  label: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="status-picker" role="group" aria-label={label}>
+      {SETTLEABLE_STATUSES.map((status) => (
+        <button
+          key={status}
+          type="button"
+          aria-pressed={value === status}
+          className={`status-picker__item status-picker__item--${status}${
+            value === status ? ' is-active' : ''
+          }`}
+          onClick={() => onChange(status)}
+        >
+          {t(SELECTION_STATUS_KEYS[status])}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ *

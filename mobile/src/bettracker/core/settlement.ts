@@ -1,4 +1,4 @@
-import type { Bet, BetStatus, Selection, SelectionStatus } from './types';
+import type { Bet, BetStatus, BuilderPick, Selection, SelectionStatus } from './types';
 import { indexCombinations, systemLineCount } from './systems';
 
 /**
@@ -28,6 +28,95 @@ export interface Settlement {
   profit: number;
   commissionPaid: number;
   settled: boolean;
+}
+
+/* ------------------------------------------------------------------ *
+ * Outcomes
+ * ------------------------------------------------------------------ */
+
+/**
+ * The outcomes a user can choose, in the order they are offered.
+ *
+ * The Asian half-lines are deliberately absent: they only exist on quarter
+ * handicaps, which this app's sports do not have, and offering them on every
+ * leg made the common settle two taps slower for an outcome nobody picks.
+ * `legMultiplier` still settles them so old records keep their money.
+ */
+export const SETTLEABLE_STATUSES: readonly SelectionStatus[] = [
+  'pending',
+  'won',
+  'lost',
+  'void',
+];
+
+/** True when a leg carries several picks under one price — a bet builder. */
+export function isBuilder(selection: Selection): boolean {
+  return selection.picks.length > 1;
+}
+
+/**
+ * One pick's own outcome.
+ *
+ * Records written before picks could be settled individually have no status on
+ * them, so they read back as the leg's — which is exactly what they meant when
+ * the whole leg was settled in one go.
+ */
+export function pickStatus(selection: Selection, pick: BuilderPick): SelectionStatus {
+  return pick.status ?? selection.status;
+}
+
+/** Every pick's outcome, in order. */
+export function pickStatuses(selection: Selection): SelectionStatus[] {
+  return selection.picks.map((p) => pickStatus(selection, p));
+}
+
+/**
+ * The leg outcome its picks imply.
+ *
+ * A bet builder is one price on the whole combination, so it pays only if
+ * every pick lands: one loser sinks the leg, an unresolved pick keeps it open,
+ * and voided picks drop out of the reckoning (the bookmaker reprices the leg
+ * without them). A leg with a single pick has nothing to derive and keeps the
+ * status it was given.
+ */
+export function statusFromPicks(selection: Selection): SelectionStatus {
+  if (!isBuilder(selection)) return selection.status;
+
+  const statuses = pickStatuses(selection);
+  if (statuses.some((s) => s === 'lost' || s === 'half_lost')) return 'lost';
+  if (statuses.some((s) => s === 'pending')) return 'pending';
+  if (statuses.every((s) => s === 'void')) return 'void';
+  return 'won';
+}
+
+/**
+ * Sets one pick's outcome and rederives the leg's from all of them.
+ *
+ * Settlement money is still read off `Selection.status`, so keeping the leg in
+ * step here is what makes per-pick settling show up in the profit figures.
+ */
+export function withPickStatus(
+  selection: Selection,
+  pickId: string,
+  status: SelectionStatus,
+): Selection {
+  const picks = selection.picks.map((p) => (p.id === pickId ? { ...p, status } : p));
+  const next: Selection = { ...selection, picks };
+  return { ...next, status: statusFromPicks(next) };
+}
+
+/**
+ * Sets the whole leg's outcome, mirroring it onto every pick.
+ *
+ * Quick-settling a bet says something about each of its picks too; without the
+ * mirror, a builder settled in bulk would still report its picks as open.
+ */
+export function withLegStatus(selection: Selection, status: SelectionStatus): Selection {
+  return {
+    ...selection,
+    status,
+    picks: selection.picks.map((p) => ({ ...p, status })),
+  };
 }
 
 /** Effective decimal multiplier of one leg's win part. `null` = still pending. */

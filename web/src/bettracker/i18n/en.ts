@@ -303,6 +303,15 @@ export const en = {
   'analytics.sortBy': 'Sort by',
   'analytics.minBets': 'Minimum bets',
   'analytics.allStats': 'All statistics',
+  'analytics.picks': 'Prediction level',
+  'analytics.picks.hint':
+    'A bet builder is one price on several predictions. Counted here one by one, so a builder that missed by a single pick does not hide the ones that landed.',
+  'analytics.byMarket': 'By market',
+  'analytics.byPick': 'By prediction',
+  'analytics.pickCount': 'Predictions',
+  'analytics.pickHitRate': 'Prediction hit rate',
+  'analytics.builderPicks': 'In a bet builder',
+  'analytics.noPicks': 'No predictions have been settled yet.',
 
   /* Calendar */
   'calendar.profitOn': 'Profit on {date}',
@@ -463,6 +472,12 @@ export const en = {
   'bet.builder': 'Bet builder',
   'bet.builder.hint': 'Several picks on one event, priced as a single leg.',
   'bet.builderOdds': 'Combined price for this leg',
+  'bet.details': 'Details',
+  'bet.hideDetails': 'Hide details',
+  'bet.legOutcome': 'Leg outcome',
+  'bet.pickOutcome': 'Prediction outcome',
+  'bet.builder.perPick': 'Settle each prediction on its own.',
+  'bet.builder.derived': 'The leg follows its predictions: every one of them has to land.',
   'bet.selectMatch': 'Choose a match',
   'bet.fixture': 'Fixture',
   'bet.teams': 'Teams',

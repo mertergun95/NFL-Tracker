@@ -5,7 +5,7 @@ import { font, space, useColors } from '../../lib/theme';
 import { SearchBar } from '../../components/ui';
 import { useI18n } from '../i18n';
 import { applyFilter } from '../core/store';
-import { settleBet } from '../core/settlement';
+import { settleBet, withLegStatus } from '../core/settlement';
 import type { Bet, BetStatus, SelectionStatus } from '../core/types';
 import { useApp } from '../state/AppContext';
 import { BankrollSwitcher, BetCard } from '../components';
@@ -17,8 +17,9 @@ const STATUS_FILTERS: BetStatus[] = ['pending', 'won', 'lost', 'void', 'partial'
  * The bet log: search, a status filter, and the quick-settle sheet.
  *
  * Quick settle marks every leg at once, which covers singles and the common
- * accumulator case. Anything finer — a half-won Asian line, one leg voided —
- * is edited on the bet's own screen, where each leg has its own control.
+ * accumulator case. Anything finer — one leg voided, or one prediction of a
+ * bet builder missing — is set on the card itself, which opens each leg and
+ * each of its predictions with their own controls.
  */
 export default function Bets() {
   const c = useColors();
@@ -47,11 +48,13 @@ export default function Bets() {
   async function settleAs(ids: string[], legStatus: SelectionStatus) {
     // `updateBets` patches whole bets, so each one's legs are rewritten with
     // the chosen outcome and the store stamps `settledAt` on the way through.
+    // `withLegStatus` carries the outcome down to each bet-builder prediction
+    // too, so a bulk settle does not leave them reading as open.
     for (const id of ids) {
       const bet = scopedBets.find((b) => b.id === id);
       if (!bet) continue;
       await updateBets([id], {
-        selections: bet.selections.map((s) => ({ ...s, status: legStatus })),
+        selections: bet.selections.map((s) => withLegStatus(s, legStatus)),
       });
     }
     setSettling(null);

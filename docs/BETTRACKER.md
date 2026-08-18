@@ -117,6 +117,44 @@ Yalnızca o cihazda (web: IndexedDB, mobil: AsyncStorage) ve
 `api.github.com` dışında hiçbir yere gönderilmez. Depoya da yazılmaz.
 Telefonu kaybederseniz token'ı GitHub'dan iptal etmeniz yeterli.
 
+## Bahsi sonuçlandırmak
+
+Kayıtlı bir bahsin kartını (mobilde ▼, webde bahis listesindeki ▼ düğmesi)
+açtığınızda ayaklar açılır ve her ayak orada işaretlenir; düzenleme formuna
+girmeye gerek yok.
+
+Seçenekler dörttür: **Bekliyor · Kazandı · Kaybetti · İade**. Asya
+handikaplarına özgü *yarım kazandı / yarım kaybetti* seçenekleri arayüzden
+kaldırıldı — çeyrek çizgi bu uygulamanın kapsadığı sporlarda yok, buna karşılık
+`legMultiplier` onları hâlâ hesaplıyor, yani eskiden kaydedilmiş ya da dışarıdan
+alınmış kayıtların parası değişmiyor.
+
+### Bet builder: her tahmin ayrı sonuçlanır
+
+Bet builder tek orana birden fazla tahmin koyar (aynı maçta "KC -3" + "Üst 44"
++ "Kelce TD atar" gibi). Bunlar tek bir ayak olarak fiyatlansa da her biri
+kendi başına tutar ya da tutmaz, o yüzden her tahmin için ayrı bir sonuç
+seçilir. Ayağın kendi durumu bunlardan hesaplanır ve elle seçilmez:
+
+- bir tahmin bile kaybettiyse ayak **kaybetti**,
+- sonuçlanmamış tahmin varsa ayak **bekliyor**,
+- iade olan tahminler hesaba katılmaz (kupon onlarsız yeniden fiyatlanır),
+- kalanların hepsi tuttuysa ayak **kazandı**.
+
+Para hesabı yine ayağın tek oranı üzerinden yürür; tahmin başına sonuç yalnızca
+neyi tutturduğunuzu kaydeder.
+
+### Analizde ne değişiyor?
+
+Analiz ekranındaki **Tahmin bazında** paneli bahisleri değil tahminleri sayar:
+kaç tahmin, kaçı tuttu, market ve tahmin kırılımıyla tutturma oranı. Dört
+tahminlik bir bet builder tek bir tahmin yüzünden yattığında bahis düzeyindeki
+istatistik yalnızca "kayıp" der; tutan üç tahmin ancak burada görünür. Diğer
+uygulamaların atladığı yer tam olarak burası.
+
+Tahmin sonuçları CSV dışa aktarımında `pick_status` sütununda taşınır. Bu sütunu
+içermeyen eski dosyalar içe alınabilir — o tahminler ayağın durumunu devralır.
+
 ## Kod düzeni
 
 ```

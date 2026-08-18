@@ -10,8 +10,9 @@ import {
   type Catalog,
   type FixtureFile,
 } from '@bt/core/sportsData';
+import { statusFromPicks, withLegStatus, withPickStatus } from '@bt/core/settlement';
 import type { BuilderPick, Selection } from '@bt/core/types';
-import { Field, NumberInput, Segmented, Select, TextInput } from './ui';
+import { Field, NumberInput, Segmented, Select, StatusPicker, TextInput } from './ui';
 
 /**
  * Editor for one leg of a bet.
@@ -136,14 +137,26 @@ export default function SelectionEditor({
     });
   }
 
+  /**
+   * Adding or dropping a pick changes what the leg as a whole means, so the
+   * leg status is rederived rather than left on whatever it was. A new pick
+   * inherits the leg's outcome: adding a fourth prediction to a leg already
+   * marked won should not silently reopen it.
+   */
+  function setPicks(picks: BuilderPick[]) {
+    const next: Selection = { ...selection, picks };
+    onChange({ picks, status: statusFromPicks(next) });
+  }
+
   function addPick() {
-    onChange({
-      picks: [...selection.picks, { id: newId('pk_'), market: '', pick: '' }],
-    });
+    setPicks([
+      ...selection.picks,
+      { id: newId('pk_'), market: '', pick: '', status: selection.status },
+    ]);
   }
 
   function removePick(pickId: string) {
-    onChange({ picks: selection.picks.filter((p) => p.id !== pickId) });
+    setPicks(selection.picks.filter((p) => p.id !== pickId));
   }
 
   const isBuilder = selection.picks.length > 1;
@@ -295,32 +308,48 @@ export default function SelectionEditor({
 
           <div className="stack" style={{ gap: 7 }}>
             {selection.picks.map((pick, pickIndex) => (
-              <div className="pick-row" key={pick.id}>
-                <TextInput
-                  value={pick.market}
-                  onChange={(v) => patchPick(pick.id, { market: v })}
-                  list="markets-list"
-                  placeholder={t('bet.market')}
-                />
-                <TextInput
-                  value={pick.pick}
-                  onChange={(v) => patchPick(pick.id, { pick: v })}
-                  placeholder={t('bet.pick')}
-                />
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={selection.picks.length === 1}
-                  onClick={() => removePick(pick.id)}
-                  aria-label={`${t('action.delete')} ${pickIndex + 1}`}
-                >
-                  ✕
-                </button>
+              <div className="stack" style={{ gap: 5 }} key={pick.id}>
+                <div className="pick-row">
+                  <TextInput
+                    value={pick.market}
+                    onChange={(v) => patchPick(pick.id, { market: v })}
+                    list="markets-list"
+                    placeholder={t('bet.market')}
+                  />
+                  <TextInput
+                    value={pick.pick}
+                    onChange={(v) => patchPick(pick.id, { pick: v })}
+                    placeholder={t('bet.pick')}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    disabled={selection.picks.length === 1}
+                    onClick={() => removePick(pick.id)}
+                    aria-label={`${t('action.delete')} ${pickIndex + 1}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Each prediction of a builder settles on its own; the leg's
+                    own outcome is derived from them below. */}
+                {isBuilder && (
+                  <StatusPicker
+                    label={t('bet.pickOutcome')}
+                    value={pick.status ?? selection.status}
+                    onChange={(status) => onChange(withPickStatus(selection, pick.id, status))}
+                  />
+                )}
               </div>
             ))}
           </div>
 
-          {isBuilder && <p className="field__hint" style={{ marginTop: 6 }}>{t('bet.builder.hint')}</p>}
+          {isBuilder && (
+            <p className="field__hint" style={{ marginTop: 6 }}>
+              {t('bet.builder.hint')} {t('bet.builder.perPick')}
+            </p>
+          )}
         </div>
 
         {/* One price for the whole leg */}
@@ -342,14 +371,23 @@ export default function SelectionEditor({
               step={0.01}
             />
           </Field>
-          <Field label={t('bets.filter.status')}>
-            <Select
-              value={selection.status}
-              onChange={(v) => onChange({ status: v })}
-              options={(
-                ['pending', 'won', 'lost', 'void', 'half_won', 'half_lost'] as const
-              ).map((s) => ({ value: s, label: t(`status.${s}` as 'status.won') }))}
-            />
+          <Field
+            label={t('bet.legOutcome')}
+            hint={isBuilder ? t('bet.builder.derived') : undefined}
+          >
+            {isBuilder ? (
+              // Derived, not chosen: a builder pays only if every pick lands,
+              // so letting the leg be set by hand would just contradict them.
+              <span className={`badge badge--${selection.status}`}>
+                {t(`status.${selection.status}` as 'status.won')}
+              </span>
+            ) : (
+              <StatusPicker
+                label={t('bet.legOutcome')}
+                value={selection.status}
+                onChange={(status) => onChange(withLegStatus(selection, status))}
+              />
+            )}
           </Field>
           {showSide && (
             <Field label={t('bet.side')}>

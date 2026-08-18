@@ -138,6 +138,39 @@ describe('csv round trip', () => {
     expect(settleBet(bets[0]!).profit).toBeCloseTo(350);
   });
 
+  it("carries each builder pick's own outcome through a round trip", () => {
+    const builder = makeBet({
+      selections: [
+        {
+          ...makeBet().selections[0]!,
+          picks: [
+            { id: 'p1', market: 'Spread', pick: 'KC -3', status: 'won' },
+            { id: 'p2', market: 'Total', pick: 'Over 44', status: 'lost' },
+            { id: 'p3', market: 'Anytime TD', pick: 'Kelce', status: 'void' },
+          ],
+          odds: 4.5,
+          status: 'lost',
+        },
+      ],
+    });
+
+    const { bets } = csvToBets(betsToCsv([builder]), { bankrollId: 'bk1' });
+    expect(bets[0]!.selections[0]!.picks.map((p) => p.status)).toEqual(['won', 'lost', 'void']);
+  });
+
+  it('falls back to the leg status for files exported before per-pick outcomes', () => {
+    // Same file without the pick_status column, which is what old exports are.
+    const csv = betsToCsv([makeBet()]);
+    const rows = csv.split('\n').map((line) => line.split(','));
+    const statusIndex = rows[0]!.indexOf('pick_status');
+    const stripped = rows
+      .map((row) => row.filter((_, i) => i !== statusIndex).join(','))
+      .join('\n');
+
+    const { bets } = csvToBets(stripped, { bankrollId: 'bk1' });
+    expect(bets[0]!.selections[0]!.picks[0]!.status).toBe('won');
+  });
+
   it('reads a legacy CSV that has one market and pick per row', () => {
     const csv = ['bet_id,event,market,pick,odds,stake,status', 'a,A - B,1X2,Home,2.0,100,won'].join(
       '\n',
